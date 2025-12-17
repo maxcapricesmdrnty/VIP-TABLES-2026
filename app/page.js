@@ -1464,11 +1464,46 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
 
             {selectedDay && (
               <Card className="bg-amber-500/10 border-amber-500/30">
-                <CardContent className="py-3">
+                <CardContent className="py-3 flex items-center justify-between">
                   <p className="text-sm">
                     <strong>Configuration spécifique</strong> pour le {format(parseISO(selectedDay), 'EEEE dd MMMM', { locale: fr })}. 
                     Cette configuration sera utilisée uniquement pour ce jour.
                   </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={async () => {
+                      // Copy default layout to this day
+                      const { data: defaultLayouts } = await supabase
+                        .from('table_layouts')
+                        .select('*')
+                        .eq('venue_id', selectedVenue.id)
+                        .is('date', null)
+                      
+                      if (defaultLayouts && defaultLayouts.length > 0) {
+                        // Delete existing for this day
+                        await supabase
+                          .from('table_layouts')
+                          .delete()
+                          .eq('venue_id', selectedVenue.id)
+                          .eq('date', selectedDay)
+                        
+                        // Copy default layouts
+                        const newLayouts = defaultLayouts.map(l => ({
+                          ...l,
+                          id: undefined,
+                          date: selectedDay
+                        }))
+                        await supabase.from('table_layouts').insert(newLayouts)
+                        toast.success('Configuration par défaut copiée!')
+                        fetchLayouts()
+                      } else {
+                        toast.error('Aucune configuration par défaut trouvée')
+                      }
+                    }}
+                  >
+                    Copier config par défaut
+                  </Button>
                 </CardContent>
               </Card>
             )}
