@@ -2374,6 +2374,61 @@ function DaysWeeksManager({ event, eventDays, onUpdate }) {
     setSelectedDates(selectedDates.filter(d => d !== date))
   }
 
+  const openEditWeek = (week) => {
+    setEditingWeek(week)
+    setEditName(week.name)
+    setSelectedDates([])
+    setShowEditWeek(true)
+  }
+
+  const saveWeekEdit = async () => {
+    if (!editName.trim()) {
+      toast.error('Le nom ne peut pas etre vide')
+      return
+    }
+    
+    setLoading(true)
+    try {
+      // Update the label for all days in this week
+      const oldLabel = editingWeek.name === 'Autres dates' ? null : editingWeek.name
+      
+      if (oldLabel === null) {
+        await supabase
+          .from('event_days')
+          .update({ label: editName })
+          .eq('event_id', event.id)
+          .is('label', null)
+      } else {
+        await supabase
+          .from('event_days')
+          .update({ label: editName })
+          .eq('event_id', event.id)
+          .eq('label', oldLabel)
+      }
+
+      // Add new dates if any selected
+      if (selectedDates.length > 0) {
+        const daysToInsert = selectedDates.map(date => ({
+          event_id: event.id,
+          date: date,
+          label: editName,
+          is_active: true
+        }))
+        await supabase.from('event_days').insert(daysToInsert)
+      }
+
+      toast.success('Semaine modifiee!')
+      setShowEditWeek(false)
+      setEditingWeek(null)
+      setSelectedDates([])
+      onUpdate()
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
