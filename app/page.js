@@ -512,11 +512,32 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
 
   const fetchLayouts = async () => {
     if (!selectedVenue) return
-    const { data } = await supabase
+    
+    // Try to get layouts for the specific day first
+    let query = supabase
       .from('table_layouts')
       .select('*')
       .eq('venue_id', selectedVenue.id)
-      .order('sort_order')
+    
+    if (selectedDay) {
+      query = query.eq('date', selectedDay)
+    } else {
+      query = query.is('date', null)
+    }
+    
+    let { data } = await query.order('sort_order')
+    
+    // If no layouts for specific day, try to get default layouts
+    if ((!data || data.length === 0) && selectedDay) {
+      const defaultQuery = await supabase
+        .from('table_layouts')
+        .select('*')
+        .eq('venue_id', selectedVenue.id)
+        .is('date', null)
+        .order('sort_order')
+      data = defaultQuery.data
+    }
+    
     setLayouts(data || [])
     
     if (data?.length > 0) {
