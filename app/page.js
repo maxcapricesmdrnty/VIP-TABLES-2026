@@ -985,7 +985,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
       </aside>
 
       {/* Main Content */}
-      <main className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-16'} transition-all duration-300 p-6`}
+      <main className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-16'} transition-all duration-300 p-6`}>
         {/* Dashboard View */}
         {view === 'dashboard' && (
           <div className="space-y-6">
