@@ -738,7 +738,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
       // Back categories
       layoutForm.backCategories.forEach(cat => {
         const zoneName = `back_${cat.name.replace(/\s+/g, '_').toLowerCase()}`
-        for (let i = 1; i <= cat.count; i++) {
+        const totalTables = cat.rows * cat.tablesPerRow // Calculate total from rows × tablesPerRow
+        for (let i = 1; i <= totalTables; i++) {
           tablesToInsert.push({
             event_id: event.id,
             venue_id: selectedVenue.id,
