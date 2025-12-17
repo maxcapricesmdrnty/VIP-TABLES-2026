@@ -1002,9 +1002,10 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                     <SelectValue placeholder="Sélectionner un jour" />
                   </SelectTrigger>
                   <SelectContent>
-                    {eventDays.map(d => (
+                    {activeDays.map(d => (
                       <SelectItem key={d.id} value={d.date}>
-                        {format(parseISO(d.date), 'EEEE dd MMM', { locale: fr })}
+                        {d.label && <span className="text-amber-400 mr-1">[{d.label}]</span>}
+                        {format(parseISO(d.date), 'EEE dd MMM', { locale: fr })}
                       </SelectItem>
                     ))}
                   </SelectContent>
