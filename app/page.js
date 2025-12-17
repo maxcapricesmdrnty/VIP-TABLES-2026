@@ -659,10 +659,19 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
     }
 
     try {
-      await supabase
+      // Delete existing layouts for this venue/day combination
+      let deleteQuery = supabase
         .from('table_layouts')
         .delete()
         .eq('venue_id', selectedVenue.id)
+      
+      if (selectedDay) {
+        deleteQuery = deleteQuery.eq('date', selectedDay)
+      } else {
+        deleteQuery = deleteQuery.is('date', null)
+      }
+      
+      await deleteQuery
 
       const layoutsToInsert = [
         {
@@ -673,7 +682,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
           rows: layoutForm.left.rows,
           capacity_per_table: layoutForm.left.capacity,
           standard_price: layoutForm.left.price,
-          sort_order: 0
+          sort_order: 0,
+          date: selectedDay || null
         },
         {
           venue_id: selectedVenue.id,
@@ -683,22 +693,24 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
           rows: layoutForm.right.rows,
           capacity_per_table: layoutForm.right.capacity,
           standard_price: layoutForm.right.price,
-          sort_order: 1
+          sort_order: 1,
+          date: selectedDay || null
         },
         ...layoutForm.backCategories.map((cat, idx) => ({
           venue_id: selectedVenue.id,
           zone: `back_${cat.name.replace(/\s+/g, '_').toLowerCase()}`,
           table_prefix: cat.prefix,
-          table_count: cat.rows * cat.tablesPerRow, // Total = rows × tablesPerRow
+          table_count: cat.rows * cat.tablesPerRow,
           rows: cat.rows,
           capacity_per_table: cat.capacity,
           standard_price: cat.price,
-          sort_order: idx + 2
+          sort_order: idx + 2,
+          date: selectedDay || null
         }))
       ]
 
       await supabase.from('table_layouts').insert(layoutsToInsert)
-      toast.success('Configuration sauvegardée!')
+      toast.success(selectedDay ? `Configuration sauvegardée pour le ${format(parseISO(selectedDay), 'dd MMM', { locale: fr })}!` : 'Configuration par défaut sauvegardée!')
       fetchLayouts()
     } catch (error) {
       toast.error(error.message)
