@@ -444,7 +444,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
     left: { prefix: 'L', count: 4, rows: 2, capacity: 10, price: 5000 },
     right: { prefix: 'R', count: 4, rows: 2, capacity: 10, price: 5000 },
     backCategories: [
-      { id: '1', name: 'Tables Arrière', prefix: 'B', count: 4, tablesPerRow: 4, rows: 1, capacity: 10, price: 3000 }
+      { id: '1', name: 'Tables Arrière', prefix: 'B', rows: 1, tablesPerRow: 4, capacity: 10, price: 3000 }
     ]
   })
   
