@@ -2331,11 +2331,20 @@ function DaysWeeksManager({ event, eventDays, onUpdate }) {
   const deleteWeek = async (weekName) => {
     if (!confirm(`Supprimer toute la semaine "${weekName}"?`)) return
     try {
-      await supabase
-        .from('event_days')
-        .delete()
-        .eq('event_id', event.id)
-        .eq('label', weekName)
+      if (weekName === 'Autres dates') {
+        // Delete days with null or empty label
+        await supabase
+          .from('event_days')
+          .delete()
+          .eq('event_id', event.id)
+          .is('label', null)
+      } else {
+        await supabase
+          .from('event_days')
+          .delete()
+          .eq('event_id', event.id)
+          .eq('label', weekName)
+      }
       toast.success('Semaine supprimee')
       onUpdate()
     } catch (error) {
