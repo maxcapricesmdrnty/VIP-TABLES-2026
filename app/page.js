@@ -127,21 +127,9 @@ export default function Home() {
         .single()
       
       if (error) throw error
-
-      if (eventForm.start_date && eventForm.end_date) {
-        const days = eachDayOfInterval({
-          start: parseISO(eventForm.start_date),
-          end: parseISO(eventForm.end_date)
-        })
-        
-        const eventDays = days.map(day => ({
-          event_id: data.id,
-          date: format(day, 'yyyy-MM-dd'),
-          is_active: true
-        }))
-
-        await supabase.from('event_days').insert(eventDays)
-      }
+      
+      // Note: Les jours ne sont plus créés automatiquement
+      // L'utilisateur les ajoute manuellement via l'onglet "Jours"
 
       toast.success('Événement créé!')
       setShowEventDialog(false)
