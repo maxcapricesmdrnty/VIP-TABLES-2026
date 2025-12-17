@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Calendar, MapPin, Plus, LogOut, Settings, Users, Table2, Loader2, Wine, FileText, Download, Trash2, Edit, ChevronLeft } from 'lucide-react'
+import { Calendar, MapPin, Plus, LogOut, Settings, Users, Table2, Loader2, Wine, FileText, Download, Trash2, Edit, ChevronLeft, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { format, parseISO, eachDayOfInterval } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -438,11 +438,16 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
   const [showMenuDialog, setShowMenuDialog] = useState(false)
   const [editingMenuItem, setEditingMenuItem] = useState(null)
   const [venueForm, setVenueForm] = useState({ name: '', capacity: 500 })
+  
+  // Layout with multiple back categories
   const [layoutForm, setLayoutForm] = useState({
     left: { prefix: 'L', count: 4, rows: 2, capacity: 10, price: 5000 },
     right: { prefix: 'R', count: 4, rows: 2, capacity: 10, price: 5000 },
-    back: { prefix: 'B', count: 4, rows: 1, capacity: 10, price: 3000 }
+    backCategories: [
+      { id: '1', name: 'Tables Arrière', prefix: 'B', count: 4, tablesPerRow: 4, rows: 1, capacity: 10, price: 3000 }
+    ]
   })
+  
   const [menuForm, setMenuForm] = useState({
     name: '',
     category: 'champagne',
@@ -508,6 +513,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
       .select('*')
       .eq('venue_id', selectedVenue.id)
       .eq('day', selectedDay)
+      .order('zone')
       .order('table_number')
     setTables(data || [])
   }
@@ -518,20 +524,51 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
       .from('table_layouts')
       .select('*')
       .eq('venue_id', selectedVenue.id)
-      .order('zone')
+      .order('sort_order')
     setLayouts(data || [])
     
     if (data?.length > 0) {
-      const newForm = { ...layoutForm }
+      const newForm = { 
+        left: { prefix: 'L', count: 4, rows: 2, capacity: 10, price: 5000 },
+        right: { prefix: 'R', count: 4, rows: 2, capacity: 10, price: 5000 },
+        backCategories: []
+      }
+      
       data.forEach(l => {
-        newForm[l.zone] = {
-          prefix: l.table_prefix,
-          count: l.table_count,
-          rows: l.rows,
-          capacity: l.capacity_per_table,
-          price: l.standard_price
+        if (l.zone === 'left') {
+          newForm.left = {
+            prefix: l.table_prefix,
+            count: l.table_count,
+            rows: l.rows,
+            capacity: l.capacity_per_table,
+            price: l.standard_price
+          }
+        } else if (l.zone === 'right') {
+          newForm.right = {
+            prefix: l.table_prefix,
+            count: l.table_count,
+            rows: l.rows,
+            capacity: l.capacity_per_table,
+            price: l.standard_price
+          }
+        } else if (l.zone.startsWith('back')) {
+          newForm.backCategories.push({
+            id: l.id,
+            name: l.zone.replace('back_', '').replace(/_/g, ' ') || 'Catégorie',
+            prefix: l.table_prefix,
+            count: l.table_count,
+            tablesPerRow: l.rows > 0 ? Math.ceil(l.table_count / l.rows) : l.table_count,
+            rows: l.rows || 1,
+            capacity: l.capacity_per_table,
+            price: l.standard_price
+          })
         }
       })
+      
+      if (newForm.backCategories.length === 0) {
+        newForm.backCategories = [{ id: '1', name: 'Tables Arrière', prefix: 'B', count: 4, tablesPerRow: 4, rows: 1, capacity: 10, price: 3000 }]
+      }
+      
       setLayoutForm(newForm)
     }
   }
@@ -567,6 +604,37 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
     }
   }
 
+  const addBackCategory = () => {
+    const newId = Date.now().toString()
+    setLayoutForm({
+      ...layoutForm,
+      backCategories: [
+        ...layoutForm.backCategories,
+        { id: newId, name: `Catégorie ${layoutForm.backCategories.length + 1}`, prefix: `C${layoutForm.backCategories.length + 1}`, count: 4, tablesPerRow: 4, rows: 1, capacity: 10, price: 3000 }
+      ]
+    })
+  }
+
+  const removeBackCategory = (id) => {
+    if (layoutForm.backCategories.length <= 1) {
+      toast.error('Vous devez garder au moins une catégorie')
+      return
+    }
+    setLayoutForm({
+      ...layoutForm,
+      backCategories: layoutForm.backCategories.filter(c => c.id !== id)
+    })
+  }
+
+  const updateBackCategory = (id, field, value) => {
+    setLayoutForm({
+      ...layoutForm,
+      backCategories: layoutForm.backCategories.map(c => 
+        c.id === id ? { ...c, [field]: value } : c
+      )
+    })
+  }
+
   const saveLayout = async () => {
     if (!selectedVenue) {
       toast.error('Sélectionnez une salle d\'abord')
@@ -579,16 +647,38 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
         .delete()
         .eq('venue_id', selectedVenue.id)
 
-      const layoutsToInsert = ['left', 'right', 'back'].map((zone, idx) => ({
-        venue_id: selectedVenue.id,
-        zone,
-        table_prefix: layoutForm[zone].prefix,
-        table_count: layoutForm[zone].count,
-        rows: layoutForm[zone].rows,
-        capacity_per_table: layoutForm[zone].capacity,
-        standard_price: layoutForm[zone].price,
-        sort_order: idx
-      }))
+      const layoutsToInsert = [
+        {
+          venue_id: selectedVenue.id,
+          zone: 'left',
+          table_prefix: layoutForm.left.prefix,
+          table_count: layoutForm.left.count,
+          rows: layoutForm.left.rows,
+          capacity_per_table: layoutForm.left.capacity,
+          standard_price: layoutForm.left.price,
+          sort_order: 0
+        },
+        {
+          venue_id: selectedVenue.id,
+          zone: 'right',
+          table_prefix: layoutForm.right.prefix,
+          table_count: layoutForm.right.count,
+          rows: layoutForm.right.rows,
+          capacity_per_table: layoutForm.right.capacity,
+          standard_price: layoutForm.right.price,
+          sort_order: 1
+        },
+        ...layoutForm.backCategories.map((cat, idx) => ({
+          venue_id: selectedVenue.id,
+          zone: `back_${cat.name.replace(/\s+/g, '_').toLowerCase()}`,
+          table_prefix: cat.prefix,
+          table_count: cat.count,
+          rows: cat.rows,
+          capacity_per_table: cat.capacity,
+          standard_price: cat.price,
+          sort_order: idx + 2
+        }))
+      ]
 
       await supabase.from('table_layouts').insert(layoutsToInsert)
       toast.success('Configuration sauvegardée!')
@@ -613,21 +703,50 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
 
       const tablesToInsert = []
       
-      for (const zone of ['left', 'right', 'back']) {
-        const config = layoutForm[zone]
-        for (let i = 1; i <= config.count; i++) {
+      // Left zone
+      for (let i = 1; i <= layoutForm.left.count; i++) {
+        tablesToInsert.push({
+          event_id: event.id,
+          venue_id: selectedVenue.id,
+          table_number: `${layoutForm.left.prefix}${i}`,
+          day: selectedDay,
+          zone: 'left',
+          status: 'libre',
+          standard_price: layoutForm.left.price,
+          sold_price: 0
+        })
+      }
+      
+      // Right zone
+      for (let i = 1; i <= layoutForm.right.count; i++) {
+        tablesToInsert.push({
+          event_id: event.id,
+          venue_id: selectedVenue.id,
+          table_number: `${layoutForm.right.prefix}${i}`,
+          day: selectedDay,
+          zone: 'right',
+          status: 'libre',
+          standard_price: layoutForm.right.price,
+          sold_price: 0
+        })
+      }
+      
+      // Back categories
+      layoutForm.backCategories.forEach(cat => {
+        const zoneName = `back_${cat.name.replace(/\s+/g, '_').toLowerCase()}`
+        for (let i = 1; i <= cat.count; i++) {
           tablesToInsert.push({
             event_id: event.id,
             venue_id: selectedVenue.id,
-            table_number: `${config.prefix}${i}`,
+            table_number: `${cat.prefix}${i}`,
             day: selectedDay,
-            zone,
+            zone: zoneName,
             status: 'libre',
-            standard_price: config.price,
+            standard_price: cat.price,
             sold_price: 0
           })
         }
-      }
+      })
 
       await supabase.from('tables').insert(tablesToInsert)
       toast.success(`${tablesToInsert.length} tables générées!`)
@@ -683,7 +802,6 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
 
   const importDefaultMenu = async () => {
     const defaultItems = [
-      // Champagne
       { name: 'Dom Pérignon', category: 'champagne', price: 800, format: 'Bouteille', volume: '75cl' },
       { name: 'Dom Pérignon Luminous', category: 'champagne', price: 1700, format: 'Magnum', volume: '150cl' },
       { name: 'Perrier-Jouet Belle Epoque', category: 'champagne', price: 650, format: 'Bouteille', volume: '75cl' },
@@ -692,14 +810,11 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
       { name: 'Perrier-Jouet Blason Rosé', category: 'champagne', price: 850, format: 'Magnum', volume: '150cl' },
       { name: 'Perrier-Jouet Brut', category: 'champagne', price: 350, format: 'Bouteille', volume: '75cl' },
       { name: 'Perrier-Jouet Brut', category: 'champagne', price: 750, format: 'Magnum', volume: '150cl' },
-      // Apéritifs
       { name: 'Hierbas Mari Mayans', category: 'aperitif', price: 450, format: 'Bouteille', volume: '70cl' },
       { name: 'Ricard', category: 'aperitif', price: 450, format: 'Bouteille', volume: '70cl' },
       { name: 'Suze', category: 'aperitif', price: 350, format: 'Bouteille', volume: '70cl' },
-      // Bières
       { name: 'Desperados', category: 'biere', price: 8, format: 'Canette', volume: '33cl' },
       { name: 'Heineken', category: 'biere', price: 8, format: 'Canette', volume: '33cl' },
-      // Energy Drinks
       { name: 'Red Bull', category: 'energy', price: 8, format: 'Canette', volume: '25cl' },
       { name: 'Red Bull Apricot Edition', category: 'energy', price: 8, format: 'Canette', volume: '25cl' },
       { name: 'Red Bull Peach Edition', category: 'energy', price: 8, format: 'Canette', volume: '25cl' },
@@ -723,6 +838,11 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
   }
 
   const getTablesByZone = (zone) => tables.filter(t => t.zone === zone)
+  
+  const getBackZones = () => {
+    const zones = [...new Set(tables.filter(t => t.zone.startsWith('back')).map(t => t.zone))]
+    return zones
+  }
 
   const stats = {
     total: tables.length,
@@ -933,21 +1053,36 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                   </div>
                 </div>
 
-                <div className="mt-8">
-                  <h3 className="text-center mb-4 font-semibold text-muted-foreground">Zone Arrière</h3>
-                  <div className="flex justify-center gap-2 flex-wrap">
-                    {getTablesByZone('back').map(table => (
-                      <TableCell 
-                        key={table.id} 
-                        table={table}
-                        currency={event.currency}
-                        onClick={() => {
-                          setSelectedTable(table)
-                          setShowTableModal(true)
-                        }}
-                      />
-                    ))}
-                  </div>
+                {/* Multiple Back Categories */}
+                <div className="mt-8 space-y-6">
+                  {getBackZones().map(zone => {
+                    const zoneTables = getTablesByZone(zone)
+                    const zoneName = zone.replace('back_', '').replace(/_/g, ' ')
+                    const category = layoutForm.backCategories.find(c => `back_${c.name.replace(/\s+/g, '_').toLowerCase()}` === zone)
+                    const tablesPerRow = category?.tablesPerRow || 4
+                    
+                    return (
+                      <div key={zone}>
+                        <h3 className="text-center mb-4 font-semibold text-muted-foreground capitalize">{zoneName}</h3>
+                        <div 
+                          className="flex justify-center gap-2 flex-wrap mx-auto"
+                          style={{ maxWidth: `${tablesPerRow * 100}px` }}
+                        >
+                          {zoneTables.map(table => (
+                            <TableCell 
+                              key={table.id} 
+                              table={table}
+                              currency={event.currency}
+                              onClick={() => {
+                                setSelectedTable(table)
+                                setShowTableModal(true)
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
 
                 <div className="flex justify-center gap-6 mt-8 pt-4 border-t">
@@ -1244,10 +1379,10 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
           </div>
         )}
 
-        {/* Layout View */}
+        {/* Layout View - With Multiple Back Categories */}
         {view === 'layout' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center flex-wrap gap-4">
               <h2 className="text-xl font-semibold">Configuration du Plan de Tables</h2>
               <div>
                 <Label>Salle</Label>
@@ -1270,56 +1405,136 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
               </Card>
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {['left', 'right', 'back'].map(zone => (
+                {/* Side Zones */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {['left', 'right'].map(zone => (
                     <Card key={zone}>
                       <CardHeader>
-                        <CardTitle>Zone {zone === 'left' ? 'Gauche' : zone === 'right' ? 'Droite' : 'Arrière'}</CardTitle>
+                        <CardTitle>Zone {zone === 'left' ? 'Gauche' : 'Droite'}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        <div>
-                          <Label>Préfixe</Label>
-                          <Input
-                            value={layoutForm[zone].prefix}
-                            onChange={(e) => setLayoutForm({
-                              ...layoutForm,
-                              [zone]: { ...layoutForm[zone], prefix: e.target.value }
-                            })}
-                            placeholder="T, B, L..."
-                          />
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>Préfixe</Label>
+                            <Input
+                              value={layoutForm[zone].prefix}
+                              onChange={(e) => setLayoutForm({
+                                ...layoutForm,
+                                [zone]: { ...layoutForm[zone], prefix: e.target.value }
+                              })}
+                            />
+                          </div>
+                          <div>
+                            <Label>Nombre de tables</Label>
+                            <Input
+                              type="number"
+                              value={layoutForm[zone].count}
+                              onChange={(e) => setLayoutForm({
+                                ...layoutForm,
+                                [zone]: { ...layoutForm[zone], count: parseInt(e.target.value) || 0 }
+                              })}
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <Label>Nombre de tables</Label>
-                          <Input
-                            type="number"
-                            value={layoutForm[zone].count}
-                            onChange={(e) => setLayoutForm({
-                              ...layoutForm,
-                              [zone]: { ...layoutForm[zone], count: parseInt(e.target.value) || 0 }
-                            })}
-                          />
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>Capacité/table</Label>
+                            <Input
+                              type="number"
+                              value={layoutForm[zone].capacity}
+                              onChange={(e) => setLayoutForm({
+                                ...layoutForm,
+                                [zone]: { ...layoutForm[zone], capacity: parseInt(e.target.value) || 0 }
+                              })}
+                            />
+                          </div>
+                          <div>
+                            <Label>Prix ({event.currency})</Label>
+                            <Input
+                              type="number"
+                              value={layoutForm[zone].price}
+                              onChange={(e) => setLayoutForm({
+                                ...layoutForm,
+                                [zone]: { ...layoutForm[zone], price: parseInt(e.target.value) || 0 }
+                              })}
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <Label>Capacité par table</Label>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Back Categories */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Catégories Arrière (derrière le DJ)</h3>
+                    <Button onClick={addBackCategory} variant="outline" size="sm">
+                      <Plus className="w-4 h-4 mr-2" /> Ajouter une catégorie
+                    </Button>
+                  </div>
+                  
+                  {layoutForm.backCategories.map((cat, index) => (
+                    <Card key={cat.id}>
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
                           <Input
-                            type="number"
-                            value={layoutForm[zone].capacity}
-                            onChange={(e) => setLayoutForm({
-                              ...layoutForm,
-                              [zone]: { ...layoutForm[zone], capacity: parseInt(e.target.value) || 0 }
-                            })}
+                            value={cat.name}
+                            onChange={(e) => updateBackCategory(cat.id, 'name', e.target.value)}
+                            className="max-w-xs font-semibold"
+                            placeholder="Nom de la catégorie"
                           />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeBackCategory(cat.id)}
+                            className="text-red-500 hover:text-red-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
                         </div>
-                        <div>
-                          <Label>Prix standard ({event.currency})</Label>
-                          <Input
-                            type="number"
-                            value={layoutForm[zone].price}
-                            onChange={(e) => setLayoutForm({
-                              ...layoutForm,
-                              [zone]: { ...layoutForm[zone], price: parseInt(e.target.value) || 0 }
-                            })}
-                          />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                          <div>
+                            <Label>Préfixe</Label>
+                            <Input
+                              value={cat.prefix}
+                              onChange={(e) => updateBackCategory(cat.id, 'prefix', e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <Label>Nb tables total</Label>
+                            <Input
+                              type="number"
+                              value={cat.count}
+                              onChange={(e) => updateBackCategory(cat.id, 'count', parseInt(e.target.value) || 0)}
+                            />
+                          </div>
+                          <div>
+                            <Label>Tables/ligne</Label>
+                            <Input
+                              type="number"
+                              value={cat.tablesPerRow}
+                              onChange={(e) => updateBackCategory(cat.id, 'tablesPerRow', parseInt(e.target.value) || 1)}
+                            />
+                          </div>
+                          <div>
+                            <Label>Capacité/table</Label>
+                            <Input
+                              type="number"
+                              value={cat.capacity}
+                              onChange={(e) => updateBackCategory(cat.id, 'capacity', parseInt(e.target.value) || 0)}
+                            />
+                          </div>
+                          <div>
+                            <Label>Prix ({event.currency})</Label>
+                            <Input
+                              type="number"
+                              value={cat.price}
+                              onChange={(e) => updateBackCategory(cat.id, 'price', parseInt(e.target.value) || 0)}
+                            />
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -1330,6 +1545,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                   Sauvegarder la configuration
                 </Button>
 
+                {/* Preview */}
                 <Card>
                   <CardHeader>
                     <CardTitle>Prévisualisation</CardTitle>
@@ -1337,7 +1553,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                   <CardContent>
                     <div className="flex justify-between items-start p-4 bg-muted rounded-lg">
                       <div className="flex-1">
-                        <p className="text-center text-sm mb-2">Gauche</p>
+                        <p className="text-center text-sm mb-2 font-semibold">Gauche</p>
                         <div className="grid grid-cols-2 gap-1 max-w-24 mx-auto">
                           {Array.from({ length: layoutForm.left.count }).map((_, i) => (
                             <div key={i} className="w-10 h-8 bg-green-500/30 border border-green-500 rounded flex items-center justify-center text-xs">
@@ -1348,13 +1564,13 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                       </div>
 
                       <div className="mx-4">
-                        <div className="w-16 h-16 bg-amber-500/30 border-2 border-amber-500 rounded flex items-center justify-center">
-                          <span className="text-xs">DJ</span>
+                        <div className="w-20 h-20 bg-amber-500/30 border-2 border-amber-500 rounded flex items-center justify-center">
+                          <span className="text-xs font-bold">🎧 DJ</span>
                         </div>
                       </div>
 
                       <div className="flex-1">
-                        <p className="text-center text-sm mb-2">Droite</p>
+                        <p className="text-center text-sm mb-2 font-semibold">Droite</p>
                         <div className="grid grid-cols-2 gap-1 max-w-24 mx-auto">
                           {Array.from({ length: layoutForm.right.count }).map((_, i) => (
                             <div key={i} className="w-10 h-8 bg-green-500/30 border border-green-500 rounded flex items-center justify-center text-xs">
@@ -1365,15 +1581,26 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                       </div>
                     </div>
 
-                    <div className="mt-4">
-                      <p className="text-center text-sm mb-2">Arrière</p>
-                      <div className="flex justify-center gap-1">
-                        {Array.from({ length: layoutForm.back.count }).map((_, i) => (
-                          <div key={i} className="w-10 h-8 bg-green-500/30 border border-green-500 rounded flex items-center justify-center text-xs">
-                            {layoutForm.back.prefix}{i + 1}
+                    {/* Preview Back Categories */}
+                    <div className="mt-6 space-y-4">
+                      {layoutForm.backCategories.map(cat => (
+                        <div key={cat.id}>
+                          <p className="text-center text-sm mb-2 font-semibold">{cat.name}</p>
+                          <div 
+                            className="grid gap-1 mx-auto"
+                            style={{ 
+                              gridTemplateColumns: `repeat(${cat.tablesPerRow}, minmax(0, 1fr))`,
+                              maxWidth: `${cat.tablesPerRow * 50}px`
+                            }}
+                          >
+                            {Array.from({ length: cat.count }).map((_, i) => (
+                              <div key={i} className="w-10 h-8 bg-blue-500/30 border border-blue-500 rounded flex items-center justify-center text-xs">
+                                {cat.prefix}{i + 1}
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
@@ -1401,9 +1628,9 @@ function TableCell({ table, currency, onClick }) {
   return (
     <div
       onClick={onClick}
-      className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${getStatusClass(table.status)}`}
+      className={`p-3 rounded-lg border-2 cursor-pointer transition-all min-w-[70px] ${getStatusClass(table.status)}`}
     >
-      <div className="font-bold text-center">{table.table_number}</div>
+      <div className="font-bold text-center text-sm">{table.table_number}</div>
       {table.client_name && (
         <div className="text-xs text-center truncate mt-1">{table.client_name}</div>
       )}
@@ -1534,23 +1761,20 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
   const generateInvoice = () => {
     const doc = new jsPDF()
     
-    // Header
     doc.setFontSize(24)
-    doc.setTextColor(218, 165, 32) // Gold color
+    doc.setTextColor(218, 165, 32)
     doc.text('FACTURE', 105, 30, { align: 'center' })
     
     doc.setFontSize(16)
     doc.setTextColor(0, 0, 0)
     doc.text(event.name, 105, 40, { align: 'center' })
     
-    // Invoice info
     doc.setFontSize(10)
     doc.text(`Facture N°: INV-${table.id.slice(0, 8).toUpperCase()}`, 20, 60)
     doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, 20, 67)
     doc.text(`Table: ${table.table_number}`, 20, 74)
     doc.text(`Date réservation: ${format(parseISO(table.day), 'dd MMMM yyyy', { locale: fr })}`, 20, 81)
     
-    // Client info
     doc.setFontSize(12)
     doc.text('Client:', 20, 100)
     doc.setFontSize(10)
@@ -1559,7 +1783,6 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
     doc.text(form.client_phone || '', 20, 122)
     doc.text(form.client_address || '', 20, 129)
     
-    // Table with items
     let yPos = 150
     doc.setFillColor(218, 165, 32)
     doc.rect(20, yPos, 170, 8, 'F')
@@ -1584,7 +1807,6 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
       doc.text(`${form.on_site_additional_revenue.toLocaleString()} ${currency}`, 165, yPos, { align: 'right' })
     }
     
-    // Total
     yPos += 15
     doc.setDrawColor(218, 165, 32)
     doc.line(20, yPos, 190, yPos)
@@ -1594,14 +1816,12 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
     doc.text('TOTAL', 25, yPos)
     doc.text(`${totalPrice.toLocaleString()} ${currency}`, 165, yPos, { align: 'right' })
     
-    // Budget boissons
     yPos += 15
     doc.setFontSize(10)
     doc.setFont(undefined, 'normal')
     doc.setTextColor(100, 100, 100)
     doc.text(`Budget boissons inclus (10%): ${beverageBudget.toLocaleString()} ${currency}`, 25, yPos)
     
-    // Footer
     doc.setFontSize(8)
     doc.text('Merci de votre confiance!', 105, 270, { align: 'center' })
     doc.text(event.location || '', 105, 277, { align: 'center' })
@@ -1628,7 +1848,6 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Client Info */}
           <div>
             <h3 className="font-semibold mb-3 text-amber-400">Informations Client</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -1668,17 +1887,12 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
             </div>
           </div>
 
-          {/* Pricing */}
           <div>
             <h3 className="font-semibold mb-3 text-amber-400">Tarification</h3>
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label>Prix standard</Label>
-                <Input
-                  value={table.standard_price}
-                  disabled
-                  className="bg-muted"
-                />
+                <Input value={table.standard_price} disabled className="bg-muted" />
               </div>
               <div>
                 <Label>Prix négocié ({currency})</Label>
@@ -1690,16 +1904,11 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
               </div>
               <div>
                 <Label>Budget boissons (10%)</Label>
-                <Input
-                  value={beverageBudget.toFixed(2)}
-                  disabled
-                  className="bg-muted"
-                />
+                <Input value={beverageBudget.toFixed(2)} disabled className="bg-muted" />
               </div>
             </div>
           </div>
 
-          {/* Concierge */}
           <div>
             <h3 className="font-semibold mb-3 text-amber-400">Concierge</h3>
             <div className="grid grid-cols-3 gap-4">
@@ -1708,7 +1917,6 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                 <Input
                   value={form.concierge_nom}
                   onChange={(e) => setForm({...form, concierge_nom: e.target.value})}
-                  placeholder="Nom du concierge"
                 />
               </div>
               <div>
@@ -1723,16 +1931,11 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
               </div>
               <div>
                 <Label>Montant commission</Label>
-                <Input
-                  value={commissionAmount.toFixed(2)}
-                  disabled
-                  className="bg-muted"
-                />
+                <Input value={commissionAmount.toFixed(2)} disabled className="bg-muted" />
               </div>
             </div>
           </div>
 
-          {/* Additional Persons */}
           <div>
             <h3 className="font-semibold mb-3 text-amber-400">Personnes supplémentaires</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -1771,7 +1974,6 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
             </div>
           </div>
 
-          {/* Notes */}
           <div>
             <h3 className="font-semibold mb-3 text-amber-400">Notes</h3>
             <div className="space-y-4">
@@ -1780,7 +1982,6 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                 <Textarea
                   value={form.staff_notes}
                   onChange={(e) => setForm({...form, staff_notes: e.target.value})}
-                  placeholder="Notes internes..."
                 />
               </div>
               <div>
@@ -1788,13 +1989,11 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                 <Textarea
                   value={form.drink_preorder}
                   onChange={(e) => setForm({...form, drink_preorder: e.target.value})}
-                  placeholder="Préférences boissons du client..."
                 />
               </div>
             </div>
           </div>
 
-          {/* Financial Summary */}
           <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/30">
             <CardHeader>
               <CardTitle className="text-lg text-amber-400">Résumé Financier</CardTitle>
@@ -1833,23 +2032,22 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
         <DialogFooter className="flex-wrap gap-2">
           {form.status !== 'libre' && (
             <Button variant="destructive" onClick={resetTable} disabled={saving}>
-              Libérer la table
+              Libérer
             </Button>
           )}
           {form.client_name && (
             <Button variant="outline" onClick={generateInvoice}>
-              <Download className="w-4 h-4 mr-2" />
-              Facture PDF
+              <Download className="w-4 h-4 mr-2" /> PDF
             </Button>
           )}
           {form.status === 'reserve' && (
             <Button variant="secondary" onClick={confirmTable} disabled={saving}>
-              Confirmer réservation
+              Confirmer
             </Button>
           )}
           {form.status === 'confirme' && (
             <Button className="bg-purple-500 hover:bg-purple-600" onClick={markAsPaid} disabled={saving}>
-              Marquer comme payé
+              Payé
             </Button>
           )}
           <Button variant="outline" onClick={onClose}>Annuler</Button>
@@ -1892,7 +2090,6 @@ function InvoicesView({ event }) {
     const doc = new jsPDF()
     const currency = event.currency
     
-    // Header
     doc.setFontSize(24)
     doc.setTextColor(218, 165, 32)
     doc.text('FACTURE', 105, 30, { align: 'center' })
@@ -1901,14 +2098,12 @@ function InvoicesView({ event }) {
     doc.setTextColor(0, 0, 0)
     doc.text(event.name, 105, 40, { align: 'center' })
     
-    // Invoice info
     doc.setFontSize(10)
     doc.text(`Facture N°: INV-${table.id.slice(0, 8).toUpperCase()}`, 20, 60)
     doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, 20, 67)
     doc.text(`Table: ${table.table_number}`, 20, 74)
     doc.text(`Date réservation: ${format(parseISO(table.day), 'dd MMMM yyyy', { locale: fr })}`, 20, 81)
     
-    // Client info
     doc.setFontSize(12)
     doc.text('Client:', 20, 100)
     doc.setFontSize(10)
@@ -1917,7 +2112,6 @@ function InvoicesView({ event }) {
     doc.text(table.client_phone || '', 20, 122)
     doc.text(table.client_address || '', 20, 129)
     
-    // Table
     let yPos = 150
     doc.setFillColor(218, 165, 32)
     doc.rect(20, yPos, 170, 8, 'F')
@@ -1942,7 +2136,6 @@ function InvoicesView({ event }) {
       doc.text(`${table.on_site_additional_revenue.toLocaleString()} ${currency}`, 165, yPos, { align: 'right' })
     }
     
-    // Total
     yPos += 15
     doc.setDrawColor(218, 165, 32)
     doc.line(20, yPos, 190, yPos)
@@ -1952,14 +2145,12 @@ function InvoicesView({ event }) {
     doc.text('TOTAL', 25, yPos)
     doc.text(`${(table.total_price || 0).toLocaleString()} ${currency}`, 165, yPos, { align: 'right' })
     
-    // Budget boissons
     yPos += 15
     doc.setFontSize(10)
     doc.setFont(undefined, 'normal')
     doc.setTextColor(100, 100, 100)
     doc.text(`Budget boissons inclus (10%): ${(table.beverage_budget || 0).toLocaleString()} ${currency}`, 25, yPos)
     
-    // Footer
     doc.setFontSize(8)
     doc.text('Merci de votre confiance!', 105, 270, { align: 'center' })
     doc.text(event.location || '', 105, 277, { align: 'center' })
@@ -1968,7 +2159,6 @@ function InvoicesView({ event }) {
     toast.success('Facture générée!')
   }
 
-  // Group by client email
   const groupedByClient = reservedTables.reduce((acc, table) => {
     const key = table.client_email || table.client_phone || table.id
     if (!acc[key]) {
@@ -2032,8 +2222,7 @@ function InvoicesView({ event }) {
                       <div className="flex items-center gap-4">
                         <span className="font-bold">{(table.total_price || 0).toLocaleString()} {event.currency}</span>
                         <Button size="sm" variant="outline" onClick={() => generateInvoice(table)}>
-                          <Download className="w-4 h-4 mr-1" />
-                          PDF
+                          <Download className="w-4 h-4 mr-1" /> PDF
                         </Button>
                       </div>
                     </div>
