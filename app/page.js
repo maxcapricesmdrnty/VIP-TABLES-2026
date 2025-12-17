@@ -552,13 +552,17 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
             price: l.standard_price
           }
         } else if (l.zone.startsWith('back')) {
+          // Calculate tablesPerRow from total count and rows
+          const totalTables = l.table_count
+          const numRows = l.rows || 1
+          const tablesPerRow = Math.ceil(totalTables / numRows)
+          
           newForm.backCategories.push({
             id: l.id,
             name: l.zone.replace('back_', '').replace(/_/g, ' ') || 'Catégorie',
             prefix: l.table_prefix,
-            count: l.table_count,
-            tablesPerRow: l.rows > 0 ? Math.ceil(l.table_count / l.rows) : l.table_count,
-            rows: l.rows || 1,
+            rows: numRows,
+            tablesPerRow: tablesPerRow,
             capacity: l.capacity_per_table,
             price: l.standard_price
           })
@@ -566,7 +570,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
       })
       
       if (newForm.backCategories.length === 0) {
-        newForm.backCategories = [{ id: '1', name: 'Tables Arrière', prefix: 'B', count: 4, tablesPerRow: 4, rows: 1, capacity: 10, price: 3000 }]
+        newForm.backCategories = [{ id: '1', name: 'Tables Arrière', prefix: 'B', rows: 1, tablesPerRow: 4, capacity: 10, price: 3000 }]
       }
       
       setLayoutForm(newForm)
