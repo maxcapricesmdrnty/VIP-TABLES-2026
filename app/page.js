@@ -885,54 +885,107 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
     commissions: tables.reduce((sum, t) => sum + (t.commission_amount || 0), 0)
   }
 
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Calendar },
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [configOpen, setConfigOpen] = useState(true)
+
+  const mainNavItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'tables', label: 'Tables', icon: Table2 },
+    { id: 'invoices', label: 'Factures', icon: Receipt },
+  ]
+
+  const configNavItems = [
     { id: 'days', label: 'Jours', icon: Calendar },
-    { id: 'menu', label: 'Menu', icon: Wine },
-    { id: 'invoices', label: 'Factures', icon: FileText },
     { id: 'venues', label: 'Salles', icon: Users },
     { id: 'layout', label: 'Plan', icon: Settings },
+    { id: 'menu', label: 'Menu', icon: Wine },
   ]
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-border bg-card sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={onBack} size="sm">
-                <ChevronLeft className="w-4 h-4 mr-1" /> Retour
+    <div className="min-h-screen flex">
+      {/* Sidebar */}
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-card border-r border-border flex flex-col transition-all duration-300 fixed h-full z-40`}>
+        {/* Sidebar Header */}
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          {sidebarOpen && (
+            <div className="flex items-center gap-2 overflow-hidden">
+              <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
+                <ChevronLeft className="w-4 h-4" />
               </Button>
-              <h1 className="text-xl font-bold text-amber-400">{event.name}</h1>
-              <Badge variant="outline">{event.currency}</Badge>
+              <span className="font-bold text-amber-400 truncate">{event.name}</span>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground hidden md:block">{user.email}</span>
-              <Button variant="ghost" size="icon" onClick={onLogout}>
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-          
-          <nav className="flex gap-1 mt-4 overflow-x-auto pb-2">
-            {navItems.map(item => (
-              <Button
-                key={item.id}
-                variant={view === item.id ? 'default' : 'ghost'}
-                onClick={() => setView(item.id)}
-                size="sm"
-                className={view === item.id ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-black' : ''}
-              >
-                <item.icon className="w-4 h-4 mr-2" />
-                {item.label}
-              </Button>
-            ))}
-          </nav>
+          )}
+          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="shrink-0">
+            {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
+          </Button>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-6">
+        {/* Navigation */}
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+          {mainNavItems.map(item => (
+            <Button
+              key={item.id}
+              variant={view === item.id ? 'secondary' : 'ghost'}
+              onClick={() => setView(item.id)}
+              className={`w-full justify-start ${view === item.id ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : ''}`}
+            >
+              <item.icon className="w-4 h-4 shrink-0" />
+              {sidebarOpen && <span className="ml-2">{item.label}</span>}
+            </Button>
+          ))}
+
+          {/* Configuration Section */}
+          <div className="pt-4">
+            <Button
+              variant="ghost"
+              onClick={() => setConfigOpen(!configOpen)}
+              className="w-full justify-start text-muted-foreground"
+            >
+              <Cog className="w-4 h-4 shrink-0" />
+              {sidebarOpen && (
+                <>
+                  <span className="ml-2 flex-1 text-left">Configuration</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${configOpen ? '' : '-rotate-90'}`} />
+                </>
+              )}
+            </Button>
+            
+            {(configOpen || !sidebarOpen) && (
+              <div className={`${sidebarOpen ? 'ml-4 border-l border-border pl-2' : ''} mt-1 space-y-1`}>
+                {configNavItems.map(item => (
+                  <Button
+                    key={item.id}
+                    variant={view === item.id ? 'secondary' : 'ghost'}
+                    onClick={() => setView(item.id)}
+                    className={`w-full justify-start ${view === item.id ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : ''}`}
+                    size="sm"
+                  >
+                    <item.icon className="w-4 h-4 shrink-0" />
+                    {sidebarOpen && <span className="ml-2">{item.label}</span>}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+        </nav>
+
+        {/* Sidebar Footer */}
+        <div className="p-2 border-t border-border">
+          {sidebarOpen && (
+            <div className="px-2 py-1 mb-2">
+              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              <Badge variant="outline" className="mt-1">{event.currency}</Badge>
+            </div>
+          )}
+          <Button variant="ghost" onClick={onLogout} className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/10">
+            <LogOut className="w-4 h-4 shrink-0" />
+            {sidebarOpen && <span className="ml-2">Déconnexion</span>}
+          </Button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-16'} transition-all duration-300 p-6`}
         {/* Dashboard View */}
         {view === 'dashboard' && (
           <div className="space-y-6">
