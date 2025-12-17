@@ -1063,16 +1063,23 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                 <div className="mt-8 space-y-6">
                   {getBackZones().map(zone => {
                     const zoneTables = getTablesByZone(zone)
-                    const zoneName = zone.replace('back_', '').replace(/_/g, ' ')
-                    const category = layoutForm.backCategories.find(c => `back_${c.name.replace(/\s+/g, '_').toLowerCase()}` === zone)
-                    const tablesPerRow = category?.tablesPerRow || 4
+                    // Handle both "back" and "back_xxx" formats
+                    const zoneName = zone === 'back' ? 'Arrière' : zone.replace('back_', '').replace(/_/g, ' ')
+                    const category = layoutForm.backCategories.find(c => 
+                      `back_${c.name.replace(/\s+/g, '_').toLowerCase()}` === zone || 
+                      (zone === 'back' && c.name.toLowerCase().includes('arrière'))
+                    )
+                    const tablesPerRow = category?.tablesPerRow || Math.min(zoneTables.length, 6)
                     
                     return (
                       <div key={zone}>
                         <h3 className="text-center mb-4 font-semibold text-muted-foreground capitalize">{zoneName}</h3>
                         <div 
-                          className="flex justify-center gap-2 flex-wrap mx-auto"
-                          style={{ maxWidth: `${tablesPerRow * 100}px` }}
+                          className="grid gap-2 mx-auto"
+                          style={{ 
+                            gridTemplateColumns: `repeat(${tablesPerRow}, minmax(0, 1fr))`,
+                            maxWidth: `${tablesPerRow * 90}px` 
+                          }}
                         >
                           {zoneTables.map(table => (
                             <TableCell 
