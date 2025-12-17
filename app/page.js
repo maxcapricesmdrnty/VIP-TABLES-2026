@@ -676,7 +676,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
           venue_id: selectedVenue.id,
           zone: `back_${cat.name.replace(/\s+/g, '_').toLowerCase()}`,
           table_prefix: cat.prefix,
-          table_count: cat.count,
+          table_count: cat.rows * cat.tablesPerRow, // Total = rows × tablesPerRow
           rows: cat.rows,
           capacity_per_table: cat.capacity,
           standard_price: cat.price,
