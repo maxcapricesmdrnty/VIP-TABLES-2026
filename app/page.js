@@ -2496,6 +2496,79 @@ function DaysWeeksManager({ event, eventDays, onUpdate }) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Week Dialog */}
+        <Dialog open={showEditWeek} onOpenChange={setShowEditWeek}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Modifier la semaine</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Nom de la semaine</Label>
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Week One, Semaine 1..."
+                />
+              </div>
+              <div>
+                <Label>Ajouter des dates supplementaires</Label>
+                <div className="flex gap-2 mt-2">
+                  <Input type="date" id="editDateInput" />
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const input = document.getElementById('editDateInput')
+                      if (input.value) {
+                        addDateToSelection(input.value)
+                        input.value = ''
+                      }
+                    }}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              {selectedDates.length > 0 && (
+                <div>
+                  <Label>Nouvelles dates a ajouter</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedDates.sort().map(date => (
+                      <Badge key={date} variant="secondary" className="flex items-center gap-1">
+                        {format(parseISO(date), 'dd MMM yyyy', { locale: fr })}
+                        <button onClick={() => removeDateFromSelection(date)} className="ml-1 hover:text-red-500">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {editingWeek && (
+                <div>
+                  <Label>Jours actuels</Label>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {editingWeek.days.map(day => (
+                      <Badge key={day.id} variant="outline" className="text-xs">
+                        {format(parseISO(day.date), 'dd MMM', { locale: fr })}
+                      </Badge>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Pour supprimer un jour, utilisez le X sur la carte de la semaine</p>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEditWeek(false)}>Annuler</Button>
+              <Button onClick={saveWeekEdit} disabled={loading} className="bg-gradient-to-r from-amber-500 to-amber-600 text-black">
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Sauvegarder
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {weeks.length === 0 ? (
