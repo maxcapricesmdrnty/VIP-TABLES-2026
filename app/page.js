@@ -498,13 +498,17 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
       .from('event_days')
       .select('*')
       .eq('event_id', event.id)
-      .eq('is_active', true)
       .order('date')
     setEventDays(data || [])
-    if (data?.length > 0 && !selectedDay) {
-      setSelectedDay(data[0].date)
+    // Set first active day as selected
+    const activeDays = (data || []).filter(d => d.is_active)
+    if (activeDays.length > 0 && !selectedDay) {
+      setSelectedDay(activeDays[0].date)
     }
   }
+  
+  // Get only active days for table selection
+  const activeDays = eventDays.filter(d => d.is_active)
 
   const fetchTables = async () => {
     if (!selectedVenue || !selectedDay) return
