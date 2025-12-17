@@ -2515,6 +2515,9 @@ function DaysWeeksManager({ event, eventDays, onUpdate }) {
                   </CardTitle>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">{week.days.length} jour{week.days.length > 1 ? 's' : ''}</Badge>
+                    <Button variant="ghost" size="icon" onClick={() => openEditWeek(week)}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" className="text-red-500" onClick={() => deleteWeek(week.name)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
