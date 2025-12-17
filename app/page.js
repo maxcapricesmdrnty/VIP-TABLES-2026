@@ -1140,6 +1140,11 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
           </div>
         )}
 
+        {/* Days/Weeks View */}
+        {view === 'days' && (
+          <DaysWeeksManager event={event} eventDays={eventDays} onUpdate={fetchEventDays} />
+        )}
+
         {/* Menu View */}
         {view === 'menu' && (
           <div className="space-y-6">
