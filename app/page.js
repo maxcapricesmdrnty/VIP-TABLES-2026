@@ -1500,7 +1500,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                           <div>
                             <Label>Préfixe</Label>
                             <Input
@@ -1509,19 +1509,29 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                             />
                           </div>
                           <div>
-                            <Label>Nb tables total</Label>
+                            <Label>Nb lignes</Label>
                             <Input
                               type="number"
-                              value={cat.count}
-                              onChange={(e) => updateBackCategory(cat.id, 'count', parseInt(e.target.value) || 0)}
+                              min="1"
+                              value={cat.rows}
+                              onChange={(e) => updateBackCategory(cat.id, 'rows', parseInt(e.target.value) || 1)}
                             />
                           </div>
                           <div>
                             <Label>Tables/ligne</Label>
                             <Input
                               type="number"
+                              min="1"
                               value={cat.tablesPerRow}
                               onChange={(e) => updateBackCategory(cat.id, 'tablesPerRow', parseInt(e.target.value) || 1)}
+                            />
+                          </div>
+                          <div>
+                            <Label>Total</Label>
+                            <Input
+                              value={cat.rows * cat.tablesPerRow}
+                              disabled
+                              className="bg-muted"
                             />
                           </div>
                           <div>
