@@ -1598,24 +1598,27 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
 
                     {/* Preview Back Categories */}
                     <div className="mt-6 space-y-4">
-                      {layoutForm.backCategories.map(cat => (
-                        <div key={cat.id}>
-                          <p className="text-center text-sm mb-2 font-semibold">{cat.name}</p>
-                          <div 
-                            className="grid gap-1 mx-auto"
-                            style={{ 
-                              gridTemplateColumns: `repeat(${cat.tablesPerRow}, minmax(0, 1fr))`,
-                              maxWidth: `${cat.tablesPerRow * 50}px`
-                            }}
-                          >
-                            {Array.from({ length: cat.count }).map((_, i) => (
-                              <div key={i} className="w-10 h-8 bg-blue-500/30 border border-blue-500 rounded flex items-center justify-center text-xs">
-                                {cat.prefix}{i + 1}
-                              </div>
-                            ))}
+                      {layoutForm.backCategories.map(cat => {
+                        const totalTables = cat.rows * cat.tablesPerRow
+                        return (
+                          <div key={cat.id}>
+                            <p className="text-center text-sm mb-2 font-semibold">{cat.name} ({cat.rows} lignes × {cat.tablesPerRow} = {totalTables} tables)</p>
+                            <div 
+                              className="grid gap-1 mx-auto"
+                              style={{ 
+                                gridTemplateColumns: `repeat(${cat.tablesPerRow}, minmax(0, 1fr))`,
+                                maxWidth: `${cat.tablesPerRow * 50}px`
+                              }}
+                            >
+                              {Array.from({ length: totalTables }).map((_, i) => (
+                                <div key={i} className="w-10 h-8 bg-blue-500/30 border border-blue-500 rounded flex items-center justify-center text-xs">
+                                  {cat.prefix}{i + 1}
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </CardContent>
                 </Card>
