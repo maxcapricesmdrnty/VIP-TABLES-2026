@@ -863,6 +863,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Calendar },
     { id: 'tables', label: 'Tables', icon: Table2 },
+    { id: 'days', label: 'Jours', icon: Calendar },
     { id: 'menu', label: 'Menu', icon: Wine },
     { id: 'invoices', label: 'Factures', icon: FileText },
     { id: 'venues', label: 'Salles', icon: Users },
