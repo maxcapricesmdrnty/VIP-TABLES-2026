@@ -2250,8 +2250,11 @@ function InvoicesView({ event }) {
 function DaysWeeksManager({ event, eventDays, onUpdate }) {
   const [weeks, setWeeks] = useState([])
   const [showAddWeek, setShowAddWeek] = useState(false)
+  const [showEditWeek, setShowEditWeek] = useState(false)
+  const [editingWeek, setEditingWeek] = useState(null)
   const [newWeek, setNewWeek] = useState({ name: '', dates: [] })
   const [selectedDates, setSelectedDates] = useState([])
+  const [editName, setEditName] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
