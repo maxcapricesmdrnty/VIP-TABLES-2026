@@ -2178,6 +2178,284 @@ function InvoicesView({ event }) {
     doc.text(`${(table.total_price || 0).toLocaleString()} ${currency}`, 165, yPos, { align: 'right' })
     
     yPos += 15
+
+
+// Days/Weeks Manager Component
+function DaysWeeksManager({ event, eventDays, onUpdate }) {
+  const [weeks, setWeeks] = useState([])
+  const [showAddWeek, setShowAddWeek] = useState(false)
+  const [newWeek, setNewWeek] = useState({ name: '', dates: [] })
+  const [selectedDates, setSelectedDates] = useState([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    // Group event days by week (using the label field)
+    const grouped = {}
+    eventDays.forEach(day => {
+      const weekLabel = day.label || 'Autres dates'
+      if (!grouped[weekLabel]) {
+        grouped[weekLabel] = []
+      }
+      grouped[weekLabel].push(day)
+    })
+    
+    const weeksList = Object.entries(grouped).map(([name, days]) => ({
+      name,
+      days: days.sort((a, b) => new Date(a.date) - new Date(b.date))
+    }))
+    
+    setWeeks(weeksList)
+  }, [eventDays])
+
+  const addWeek = async () => {
+    if (!newWeek.name || selectedDates.length === 0) {
+      toast.error('Ajoutez un nom et au moins une date')
+      return
+    }
+
+    setLoading(true)
+    try {
+      // Insert new event days with the week label
+      const daysToInsert = selectedDates.map(date => ({
+        event_id: event.id,
+        date: date,
+        label: newWeek.name,
+        is_active: true
+      }))
+
+      const { error } = await supabase
+        .from('event_days')
+        .insert(daysToInsert)
+
+      if (error) throw error
+
+      toast.success(`${newWeek.name} ajouté avec ${selectedDates.length} jours!`)
+      setShowAddWeek(false)
+      setNewWeek({ name: '', dates: [] })
+      setSelectedDates([])
+      onUpdate()
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const removeDay = async (dayId) => {
+    if (!confirm('Supprimer ce jour?')) return
+    try {
+      await supabase.from('event_days').delete().eq('id', dayId)
+      toast.success('Jour supprimé')
+      onUpdate()
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  const toggleDayActive = async (day) => {
+    try {
+      await supabase
+        .from('event_days')
+        .update({ is_active: !day.is_active })
+        .eq('id', day.id)
+      onUpdate()
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  const deleteWeek = async (weekName) => {
+    if (!confirm(`Supprimer toute la semaine "${weekName}" et ses jours?`)) return
+    try {
+      await supabase
+        .from('event_days')
+        .delete()
+        .eq('event_id', event.id)
+        .eq('label', weekName)
+      toast.success('Semaine supprimée')
+      onUpdate()
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  const addDateToSelection = (date) => {
+    if (!selectedDates.includes(date)) {
+      setSelectedDates([...selectedDates, date])
+    }
+  }
+
+  const removeDateFromSelection = (date) => {
+    setSelectedDates(selectedDates.filter(d => d !== date))
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Gestion des Semaines & Jours</h2>
+        <Dialog open={showAddWeek} onOpenChange={setShowAddWeek}>
+          <DialogTrigger asChild>
+            <Button className="bg-gradient-to-r from-amber-500 to-amber-600 text-black">
+              <Plus className="w-4 h-4 mr-2" /> Ajouter une semaine
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Ajouter une semaine</DialogTitle>
+              <DialogDescription>
+                Définissez le nom de la semaine et sélectionnez les dates
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Nom de la semaine</Label>
+                <Input
+                  value={newWeek.name}
+                  onChange={(e) => setNewWeek({...newWeek, name: e.target.value})}
+                  placeholder="Week One, Semaine 1, Opening Week..."
+                />
+              </div>
+              <div>
+                <Label>Ajouter des dates</Label>
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    type="date"
+                    id="newDateInput"
+                  />
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const input = document.getElementById('newDateInput')
+                      if (input.value) {
+                        addDateToSelection(input.value)
+                        input.value = ''
+                      }
+                    }}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              {selectedDates.length > 0 && (
+                <div>
+                  <Label>Dates sélectionnées</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedDates.sort().map(date => (
+                      <Badge key={date} variant="secondary" className="flex items-center gap-1">
+                        {format(parseISO(date), 'dd MMM yyyy', { locale: fr })}
+                        <button onClick={() => removeDateFromSelection(date)} className="ml-1 hover:text-red-500">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddWeek(false)}>Annuler</Button>
+              <Button 
+                onClick={addWeek} 
+                disabled={loading}
+                className="bg-gradient-to-r from-amber-500 to-amber-600 text-black"
+              >
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Ajouter
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {weeks.length === 0 ? (
+        <Card className="p-8 text-center">
+          <Calendar className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <p className="text-muted-foreground">Aucune semaine configurée. Ajoutez des semaines avec leurs dates!</p>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {weeks.map((week, idx) => (
+            <Card key={idx}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-amber-400" />
+                    {week.name}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{week.days.length} jour{week.days.length > 1 ? 's' : ''}</Badge>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="text-red-500 hover:text-red-600"
+                      onClick={() => deleteWeek(week.name)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {week.days.map(day => (
+                    <div 
+                      key={day.id} 
+                      className={`flex items-center gap-2 p-2 rounded-lg border ${
+                        day.is_active 
+                          ? 'bg-green-500/10 border-green-500/50' 
+                          : 'bg-muted border-muted-foreground/20 opacity-50'
+                      }`}
+                    >
+                      <span className="font-medium">
+                        {format(parseISO(day.date), 'EEE dd MMM', { locale: fr })}
+                      </span>
+                      <Switch
+                        checked={day.is_active}
+                        onCheckedChange={() => toggleDayActive(day)}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-6 h-6 text-red-500 hover:text-red-600"
+                        onClick={() => removeDay(day.id)}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Card className="bg-muted/50">
+        <CardHeader>
+          <CardTitle className="text-sm">Récapitulatif</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-6">
+            <div>
+              <span className="text-muted-foreground">Total semaines:</span>
+              <span className="ml-2 font-bold">{weeks.length}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Total jours:</span>
+              <span className="ml-2 font-bold">{eventDays.length}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Jours actifs:</span>
+              <span className="ml-2 font-bold text-green-500">{eventDays.filter(d => d.is_active).length}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
     doc.setFontSize(10)
     doc.setFont(undefined, 'normal')
     doc.setTextColor(100, 100, 100)
