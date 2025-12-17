@@ -185,7 +185,7 @@ export default function Home() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2 vip-gradient bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold mb-2 text-amber-400">
             VIP Table Management
           </h1>
           <p className="text-muted-foreground">Gestion de tables VIP pour événements exclusifs</p>
