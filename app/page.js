@@ -275,7 +275,7 @@ export default function Home() {
       {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold vip-gradient bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold text-amber-400">
             VIP Table Management
           </h1>
           <div className="flex items-center gap-4">
