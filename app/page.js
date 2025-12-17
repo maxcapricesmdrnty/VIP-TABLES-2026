@@ -2098,3 +2098,412 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
   )
 }
 
+
+// Invoices View Component
+function InvoicesView({ event }) {
+  const [reservedTables, setReservedTables] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchReservedTables()
+  }, [event.id])
+
+  const fetchReservedTables = async () => {
+    try {
+      const { data } = await supabase
+        .from('tables')
+        .select('*')
+        .eq('event_id', event.id)
+        .neq('status', 'libre')
+        .order('day')
+      setReservedTables(data || [])
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const generateInvoice = (table) => {
+    const doc = new jsPDF()
+    const currency = event.currency
+    
+    doc.setFontSize(24)
+    doc.setTextColor(218, 165, 32)
+    doc.text('FACTURE', 105, 30, { align: 'center' })
+    
+    doc.setFontSize(16)
+    doc.setTextColor(0, 0, 0)
+    doc.text(event.name, 105, 40, { align: 'center' })
+    
+    doc.setFontSize(10)
+    doc.text(`Facture N: INV-${table.id.slice(0, 8).toUpperCase()}`, 20, 60)
+    doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, 20, 67)
+    doc.text(`Table: ${table.table_number}`, 20, 74)
+    doc.text(`Date reservation: ${format(parseISO(table.day), 'dd MMMM yyyy', { locale: fr })}`, 20, 81)
+    
+    doc.setFontSize(12)
+    doc.text('Client:', 20, 100)
+    doc.setFontSize(10)
+    doc.text(table.client_name || 'N/A', 20, 108)
+    doc.text(table.client_email || '', 20, 115)
+    doc.text(table.client_phone || '', 20, 122)
+    
+    let yPos = 150
+    doc.setFillColor(218, 165, 32)
+    doc.rect(20, yPos, 170, 8, 'F')
+    doc.setTextColor(0, 0, 0)
+    doc.text('Description', 25, yPos + 6)
+    doc.text('Montant', 165, yPos + 6, { align: 'right' })
+    
+    yPos += 15
+    doc.text(`Table ${table.table_number} - Reservation VIP`, 25, yPos)
+    doc.text(`${(table.sold_price || 0).toLocaleString()} ${currency}`, 165, yPos, { align: 'right' })
+    
+    yPos += 15
+    doc.setDrawColor(218, 165, 32)
+    doc.line(20, yPos, 190, yPos)
+    yPos += 10
+    doc.setFontSize(12)
+    doc.setFont(undefined, 'bold')
+    doc.text('TOTAL', 25, yPos)
+    doc.text(`${(table.total_price || 0).toLocaleString()} ${currency}`, 165, yPos, { align: 'right' })
+    
+    doc.setFontSize(8)
+    doc.text('Merci de votre confiance!', 105, 270, { align: 'center' })
+    
+    doc.save(`Facture_${table.table_number}_${format(new Date(), 'yyyyMMdd')}.pdf`)
+    toast.success('Facture generee!')
+  }
+
+  const groupedByClient = reservedTables.reduce((acc, table) => {
+    const key = table.client_email || table.client_phone || table.id
+    if (!acc[key]) {
+      acc[key] = {
+        client_name: table.client_name,
+        client_email: table.client_email,
+        client_phone: table.client_phone,
+        tables: []
+      }
+    }
+    acc[key].tables.push(table)
+    return acc
+  }, {})
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold">Factures Clients</h2>
+      
+      {Object.keys(groupedByClient).length === 0 ? (
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground">Aucune reservation a facturer</p>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {Object.values(groupedByClient).map((client, idx) => (
+            <Card key={idx}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle>{client.client_name || 'Client sans nom'}</CardTitle>
+                    <CardDescription>
+                      {client.client_email} - {client.client_phone}
+                    </CardDescription>
+                  </div>
+                  <Badge>{client.tables.length} table{client.tables.length > 1 ? 's' : ''}</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {client.tables.map(table => (
+                    <div key={table.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div>
+                        <span className="font-medium">{table.table_number}</span>
+                        <span className="text-muted-foreground ml-2">
+                          {format(parseISO(table.day), 'dd MMM yyyy', { locale: fr })}
+                        </span>
+                        <Badge className="ml-2" variant={table.status === 'paye' ? 'default' : 'secondary'}>
+                          {table.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="font-bold">{(table.total_price || 0).toLocaleString()} {event.currency}</span>
+                        <Button size="sm" variant="outline" onClick={() => generateInvoice(table)}>
+                          <Download className="w-4 h-4 mr-1" /> PDF
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 pt-4 border-t flex justify-between items-center">
+                  <span className="font-semibold">Total client:</span>
+                  <span className="text-xl font-bold text-amber-400">
+                    {client.tables.reduce((sum, t) => sum + (t.total_price || 0), 0).toLocaleString()} {event.currency}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Days/Weeks Manager Component
+function DaysWeeksManager({ event, eventDays, onUpdate }) {
+  const [weeks, setWeeks] = useState([])
+  const [showAddWeek, setShowAddWeek] = useState(false)
+  const [newWeek, setNewWeek] = useState({ name: '', dates: [] })
+  const [selectedDates, setSelectedDates] = useState([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const grouped = {}
+    eventDays.forEach(day => {
+      const weekLabel = day.label || 'Autres dates'
+      if (!grouped[weekLabel]) {
+        grouped[weekLabel] = []
+      }
+      grouped[weekLabel].push(day)
+    })
+    
+    const weeksList = Object.entries(grouped).map(([name, days]) => ({
+      name,
+      days: days.sort((a, b) => new Date(a.date) - new Date(b.date))
+    }))
+    
+    setWeeks(weeksList)
+  }, [eventDays])
+
+  const addWeek = async () => {
+    if (!newWeek.name || selectedDates.length === 0) {
+      toast.error('Ajoutez un nom et au moins une date')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const daysToInsert = selectedDates.map(date => ({
+        event_id: event.id,
+        date: date,
+        label: newWeek.name,
+        is_active: true
+      }))
+
+      const { error } = await supabase
+        .from('event_days')
+        .insert(daysToInsert)
+
+      if (error) throw error
+
+      toast.success(`${newWeek.name} ajoute avec ${selectedDates.length} jours!`)
+      setShowAddWeek(false)
+      setNewWeek({ name: '', dates: [] })
+      setSelectedDates([])
+      onUpdate()
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const removeDay = async (dayId) => {
+    if (!confirm('Supprimer ce jour?')) return
+    try {
+      await supabase.from('event_days').delete().eq('id', dayId)
+      toast.success('Jour supprime')
+      onUpdate()
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  const toggleDayActive = async (day) => {
+    try {
+      await supabase
+        .from('event_days')
+        .update({ is_active: !day.is_active })
+        .eq('id', day.id)
+      onUpdate()
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  const deleteWeek = async (weekName) => {
+    if (!confirm(`Supprimer toute la semaine "${weekName}"?`)) return
+    try {
+      await supabase
+        .from('event_days')
+        .delete()
+        .eq('event_id', event.id)
+        .eq('label', weekName)
+      toast.success('Semaine supprimee')
+      onUpdate()
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  const addDateToSelection = (date) => {
+    if (!selectedDates.includes(date)) {
+      setSelectedDates([...selectedDates, date])
+    }
+  }
+
+  const removeDateFromSelection = (date) => {
+    setSelectedDates(selectedDates.filter(d => d !== date))
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Gestion des Semaines</h2>
+        <Dialog open={showAddWeek} onOpenChange={setShowAddWeek}>
+          <DialogTrigger asChild>
+            <Button className="bg-gradient-to-r from-amber-500 to-amber-600 text-black">
+              <Plus className="w-4 h-4 mr-2" /> Ajouter une semaine
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Ajouter une semaine</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Nom de la semaine</Label>
+                <Input
+                  value={newWeek.name}
+                  onChange={(e) => setNewWeek({...newWeek, name: e.target.value})}
+                  placeholder="Week One, Semaine 1..."
+                />
+              </div>
+              <div>
+                <Label>Ajouter des dates</Label>
+                <div className="flex gap-2 mt-2">
+                  <Input type="date" id="newDateInput" />
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const input = document.getElementById('newDateInput')
+                      if (input.value) {
+                        addDateToSelection(input.value)
+                        input.value = ''
+                      }
+                    }}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              {selectedDates.length > 0 && (
+                <div>
+                  <Label>Dates selectionnees</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedDates.sort().map(date => (
+                      <Badge key={date} variant="secondary" className="flex items-center gap-1">
+                        {format(parseISO(date), 'dd MMM yyyy', { locale: fr })}
+                        <button onClick={() => removeDateFromSelection(date)} className="ml-1 hover:text-red-500">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddWeek(false)}>Annuler</Button>
+              <Button onClick={addWeek} disabled={loading} className="bg-gradient-to-r from-amber-500 to-amber-600 text-black">
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Ajouter
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {weeks.length === 0 ? (
+        <Card className="p-8 text-center">
+          <Calendar className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <p className="text-muted-foreground">Aucune semaine configuree</p>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {weeks.map((week, idx) => (
+            <Card key={idx}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-amber-400" />
+                    {week.name}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{week.days.length} jour{week.days.length > 1 ? 's' : ''}</Badge>
+                    <Button variant="ghost" size="icon" className="text-red-500" onClick={() => deleteWeek(week.name)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {week.days.map(day => (
+                    <div 
+                      key={day.id} 
+                      className={`flex items-center gap-2 p-2 rounded-lg border ${
+                        day.is_active ? 'bg-green-500/10 border-green-500/50' : 'bg-muted opacity-50'
+                      }`}
+                    >
+                      <span className="font-medium text-sm">
+                        {format(parseISO(day.date), 'EEE dd MMM', { locale: fr })}
+                      </span>
+                      <Switch checked={day.is_active} onCheckedChange={() => toggleDayActive(day)} />
+                      <Button variant="ghost" size="icon" className="w-6 h-6 text-red-500" onClick={() => removeDay(day.id)}>
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Card className="bg-muted/50">
+        <CardHeader>
+          <CardTitle className="text-sm">Recapitulatif</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-6">
+            <div>
+              <span className="text-muted-foreground">Semaines:</span>
+              <span className="ml-2 font-bold">{weeks.length}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Total jours:</span>
+              <span className="ml-2 font-bold">{eventDays.length}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Jours actifs:</span>
+              <span className="ml-2 font-bold text-green-500">{eventDays.filter(d => d.is_active).length}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
