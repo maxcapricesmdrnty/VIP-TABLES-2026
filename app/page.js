@@ -845,8 +845,9 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
   const getTablesByZone = (zone) => tables.filter(t => t.zone === zone)
   
   const getBackZones = () => {
-    const zones = [...new Set(tables.filter(t => t.zone.startsWith('back')).map(t => t.zone))]
-    return zones
+    // Support both "back" and "back_xxx" formats
+    const zones = [...new Set(tables.filter(t => t.zone === 'back' || t.zone.startsWith('back_')).map(t => t.zone))]
+    return zones.length > 0 ? zones : []
   }
 
   const stats = {
