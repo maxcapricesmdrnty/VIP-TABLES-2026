@@ -1396,20 +1396,49 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
           <div className="space-y-6">
             <div className="flex justify-between items-center flex-wrap gap-4">
               <h2 className="text-xl font-semibold">Configuration du Plan de Tables</h2>
-              <div>
-                <Label>Salle</Label>
-                <Select value={selectedVenue?.id} onValueChange={(v) => setSelectedVenue(venues.find(ve => ve.id === v))}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Sélectionner une salle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {venues.map(v => (
-                      <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex gap-4 items-end">
+                <div>
+                  <Label>Salle</Label>
+                  <Select value={selectedVenue?.id} onValueChange={(v) => setSelectedVenue(venues.find(ve => ve.id === v))}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Sélectionner une salle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {venues.map(v => (
+                        <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Jour (optionnel)</Label>
+                  <Select value={selectedDay || 'default'} onValueChange={(v) => setSelectedDay(v === 'default' ? null : v)}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Config par défaut" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">Config par défaut</SelectItem>
+                      {activeDays.map(d => (
+                        <SelectItem key={d.id} value={d.date}>
+                          {d.label && `[${d.label}] `}{format(parseISO(d.date), 'EEE dd MMM', { locale: fr })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
+
+            {selectedDay && (
+              <Card className="bg-amber-500/10 border-amber-500/30">
+                <CardContent className="py-3">
+                  <p className="text-sm">
+                    <strong>Configuration spécifique</strong> pour le {format(parseISO(selectedDay), 'EEEE dd MMMM', { locale: fr })}. 
+                    Cette configuration sera utilisée uniquement pour ce jour.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {!selectedVenue ? (
               <Card className="p-8 text-center">
