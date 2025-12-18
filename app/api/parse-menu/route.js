@@ -33,7 +33,15 @@ const categoryMapping = {
 }
 
 function detectCategory(text) {
-  const lowerText = text.toLowerCase()
+  const lowerText = text.toLowerCase().trim()
+  
+  // First, check for exact match
+  const validCategories = ['champagne', 'aperitif', 'biere', 'energy', 'spiritueux', 'vin', 'soft']
+  if (validCategories.includes(lowerText)) {
+    return lowerText
+  }
+  
+  // Then check for keyword matches
   for (const [keyword, category] of Object.entries(categoryMapping)) {
     if (lowerText.includes(keyword)) {
       return category
