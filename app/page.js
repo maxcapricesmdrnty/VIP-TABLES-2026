@@ -2112,7 +2112,7 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
   })
   const [saving, setSaving] = useState(false)
 
-  const beverageBudget = form.sold_price * 0.10
+  const beverageBudget = form.sold_price
   const commissionAmount = form.sold_price * (form.concierge_commission / 100)
   const totalPrice = form.sold_price + (form.additional_persons * form.additional_person_price) + form.on_site_additional_revenue
   const netAmount = totalPrice - commissionAmount
