@@ -94,7 +94,7 @@ function parseStructuredData(text) {
       cols.forEach((col, idx) => {
         if (col.includes('nom') || col.includes('name') || col.includes('produit') || col.includes('article')) nameCol = idx
         if (col.includes('prix') || col.includes('price') || col.includes('tarif')) priceCol = idx
-        if (col.includes('categ') || col.includes('type')) categoryCol = idx
+        if (col.includes('categ') || col.includes('catég') || col.includes('type') || col.includes('category')) categoryCol = idx
         if (col.includes('format') || col.includes('taille')) formatCol = idx
         if (col.includes('volume') || col.includes('contenance') || col.includes('cl') || col.includes('ml')) volumeCol = idx
       })
