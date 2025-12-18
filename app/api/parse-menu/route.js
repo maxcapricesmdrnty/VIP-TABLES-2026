@@ -1,149 +1,12 @@
 import { NextResponse } from 'next/server'
+import Anthropic from '@anthropic-ai/sdk'
 import mammoth from 'mammoth'
 import * as XLSX from 'xlsx'
 
-// Category mapping for common terms
-const categoryMapping = {
-  'champagne': 'champagne',
-  'champ': 'champagne',
-  'aperitif': 'aperitif',
-  'apéritif': 'aperitif',
-  'apero': 'aperitif',
-  'biere': 'biere',
-  'bière': 'biere',
-  'beer': 'biere',
-  'energy': 'energy',
-  'redbull': 'energy',
-  'red bull': 'energy',
-  'spiritueux': 'spiritueux',
-  'spirits': 'spiritueux',
-  'vodka': 'spiritueux',
-  'whisky': 'spiritueux',
-  'gin': 'spiritueux',
-  'rum': 'spiritueux',
-  'rhum': 'spiritueux',
-  'vin': 'vin',
-  'wine': 'vin',
-  'soft': 'soft',
-  'soda': 'soft',
-  'jus': 'soft',
-  'juice': 'soft',
-  'eau': 'soft',
-  'water': 'soft'
-}
-
-function detectCategory(text) {
-  const lowerText = text.toLowerCase().trim()
-  
-  // First, check for exact match
-  const validCategories = ['champagne', 'aperitif', 'biere', 'energy', 'spiritueux', 'vin', 'soft']
-  if (validCategories.includes(lowerText)) {
-    return lowerText
-  }
-  
-  // Then check for keyword matches
-  for (const [keyword, category] of Object.entries(categoryMapping)) {
-    if (lowerText.includes(keyword)) {
-      return category
-    }
-  }
-  return 'soft' // default
-}
-
-function detectFormat(text) {
-  const lowerText = text.toLowerCase()
-  if (lowerText.includes('magnum')) return 'Magnum'
-  if (lowerText.includes('jeroboam')) return 'Jeroboam'
-  if (lowerText.includes('canette') || lowerText.includes('can')) return 'Canette'
-  if (lowerText.includes('verre') || lowerText.includes('glass')) return 'Verre'
-  return 'Bouteille'
-}
-
-function detectVolume(text) {
-  // Match patterns like 75cl, 1L, 33cl, 150cl, etc.
-  const match = text.match(/(\d+(?:\.\d+)?)\s*(cl|l|ml)/i)
-  if (match) {
-    return `${match[1]}${match[2].toLowerCase()}`
-  }
-  return ''
-}
-
-function extractPrice(text) {
-  // Extract numeric price from text
-  const cleaned = text.toString().replace(/[^\d.,]/g, '').replace(',', '.')
-  const price = parseFloat(cleaned)
-  return isNaN(price) ? 0 : price
-}
-
-// Parse CSV/Excel data intelligently
-function parseStructuredData(text) {
-  const lines = text.split('\n').filter(line => line.trim())
-  const items = []
-  
-  // Try to detect header row
-  let headerIndex = -1
-  let nameCol = -1, priceCol = -1, categoryCol = -1, formatCol = -1, volumeCol = -1
-  
-  for (let i = 0; i < Math.min(5, lines.length); i++) {
-    const cols = lines[i].split(',').map(c => c.trim().toLowerCase())
-    const hasName = cols.some(c => c.includes('nom') || c.includes('name') || c.includes('produit') || c.includes('article'))
-    const hasPrice = cols.some(c => c.includes('prix') || c.includes('price') || c.includes('tarif'))
-    
-    if (hasName || hasPrice) {
-      headerIndex = i
-      cols.forEach((col, idx) => {
-        if (col.includes('nom') || col.includes('name') || col.includes('produit') || col.includes('article')) nameCol = idx
-        if (col.includes('prix') || col.includes('price') || col.includes('tarif')) priceCol = idx
-        if (col.includes('categ') || col.includes('catég') || col.includes('type') || col.includes('category')) categoryCol = idx
-        if (col.includes('format') || col.includes('taille')) formatCol = idx
-        if (col.includes('volume') || col.includes('contenance') || col.includes('cl') || col.includes('ml')) volumeCol = idx
-      })
-      break
-    }
-  }
-  
-  // Parse data rows
-  const startRow = headerIndex >= 0 ? headerIndex + 1 : 0
-  
-  for (let i = startRow; i < lines.length; i++) {
-    const cols = lines[i].split(',').map(c => c.trim())
-    if (cols.length < 2) continue
-    
-    let name, price, category, format, volume
-    
-    if (nameCol >= 0 && priceCol >= 0) {
-      // Use detected columns
-      name = cols[nameCol] || ''
-      price = extractPrice(cols[priceCol] || '0')
-      category = categoryCol >= 0 ? detectCategory(cols[categoryCol]) : detectCategory(name)
-      format = formatCol >= 0 ? cols[formatCol] || detectFormat(name) : detectFormat(name)
-      volume = volumeCol >= 0 ? cols[volumeCol] || detectVolume(name) : detectVolume(name)
-    } else {
-      // Assume first col is name, second is price
-      name = cols[0] || ''
-      price = extractPrice(cols[1] || '0')
-      category = cols[2] ? detectCategory(cols[2]) : detectCategory(name)
-      format = cols[3] || detectFormat(name)
-      volume = cols[4] || detectVolume(name)
-    }
-    
-    // Skip if no valid name or price
-    if (!name || name.length < 2) continue
-    
-    items.push({
-      id: `temp_${i}_${Date.now()}`,
-      name: name,
-      price: price,
-      category: category,
-      format: format || 'Bouteille',
-      volume: volume || '',
-      description: '',
-      available: true
-    })
-  }
-  
-  return items
-}
+// Initialize Anthropic client
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY
+})
 
 // Extract text from different file types
 async function extractTextFromFile(buffer, fileType) {
@@ -167,6 +30,79 @@ async function extractTextFromFile(buffer, fileType) {
   } catch (error) {
     console.error('Error extracting text:', error)
     throw new Error(`Erreur lors de l'extraction du texte: ${error.message}`)
+  }
+}
+
+// Parse menu items using Claude AI
+async function parseMenuWithClaude(text) {
+  const prompt = `Tu es un assistant spécialisé dans l'extraction de données de menus de boissons.
+
+Analyse le texte suivant qui provient d'une carte des boissons et extrait TOUS les articles.
+
+Pour chaque article, identifie:
+- name: nom du produit (ex: "Dom Pérignon", "Heineken")
+- price: prix en nombre uniquement (ex: 800, 8, 1700) - enlève les devises et symboles
+- category: une des catégories suivantes UNIQUEMENT: champagne, aperitif, biere, energy, spiritueux, vin, soft
+- format: format du produit (ex: "Bouteille", "Magnum", "Jeroboam", "Canette", "Verre")
+- volume: volume si disponible (ex: "75cl", "70cl", "33cl", "25cl")
+
+RÈGLES IMPORTANTES:
+- Les catégories VODKA, GIN, WHISKY, RHUM, TEQUILA, MEZCAL doivent être mappées vers "spiritueux"
+- Les catégories BIÈRES doivent être mappées vers "biere"
+- Les catégories ENERGY DRINKS doivent être mappées vers "energy"
+- Les catégories APÉRITIFS doivent être mappées vers "aperitif"
+- Prix comme "CHF 1'700.-" doit devenir 1700
+- Prix comme "CHF 8.-" doit devenir 8
+
+Retourne UNIQUEMENT un tableau JSON valide, sans aucun texte avant ou après.
+
+Texte du menu:
+${text}
+
+JSON:`
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 8000,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
+    })
+
+    const content = response.content[0].text.trim()
+    console.log('Claude response preview:', content.substring(0, 200))
+    
+    // Try to extract JSON from the response
+    let jsonStr = content
+    
+    // Handle markdown code blocks
+    if (content.includes('```json')) {
+      jsonStr = content.split('```json')[1].split('```')[0].trim()
+    } else if (content.includes('```')) {
+      jsonStr = content.split('```')[1].split('```')[0].trim()
+    }
+    
+    // Parse JSON
+    const items = JSON.parse(jsonStr)
+    
+    // Validate and clean items
+    return items.map((item, index) => ({
+      id: `temp_${index}_${Date.now()}`,
+      name: item.name || 'Sans nom',
+      price: parseFloat(item.price) || 0,
+      category: item.category || 'soft',
+      format: item.format || 'Bouteille',
+      volume: item.volume || '',
+      description: item.description || '',
+      available: true
+    }))
+  } catch (error) {
+    console.error('Error parsing with Claude:', error)
+    throw new Error(`Erreur lors de l'analyse IA: ${error.message}`)
   }
 }
 
@@ -207,20 +143,21 @@ export async function POST(request) {
     }
 
     console.log('Text extracted successfully, length:', extractedText.length)
+    console.log('Preview:', extractedText.substring(0, 500))
 
-    // Parse menu items from structured data
-    const menuItems = parseStructuredData(extractedText)
+    // Parse menu with Claude AI
+    const menuItems = await parseMenuWithClaude(extractedText)
 
     if (menuItems.length === 0) {
       return NextResponse.json({ 
-        error: 'Aucun article trouvé. Assurez-vous que le fichier contient des colonnes: Nom, Prix (et optionnellement Catégorie, Format, Volume)' 
+        error: 'Aucun article trouvé dans le document.' 
       }, { status: 400 })
     }
 
     return NextResponse.json({
       success: true,
       items: menuItems,
-      message: `${menuItems.length} articles détectés`
+      message: `${menuItems.length} articles détectés par l'IA`
     })
 
   } catch (error) {
