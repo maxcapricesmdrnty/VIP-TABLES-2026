@@ -2269,7 +2269,7 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
     doc.setFontSize(10)
     doc.setFont(undefined, 'normal')
     doc.setTextColor(100, 100, 100)
-    doc.text(`Budget boissons inclus (10%): ${beverageBudget.toLocaleString()} ${currency}`, 25, yPos)
+    doc.text(`Budget boissons inclus: ${beverageBudget.toLocaleString()} ${currency}`, 25, yPos)
     
     doc.setFontSize(8)
     doc.text('Merci de votre confiance!', 105, 270, { align: 'center' })
