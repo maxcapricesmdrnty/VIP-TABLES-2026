@@ -1811,24 +1811,24 @@ function TableCell({ table, currency, onClick }) {
   return (
     <div
       onClick={onClick}
-      className={`p-3 rounded-lg border-2 cursor-pointer transition-all min-w-[80px] ${getStatusClass(table.status)}`}
+      className={`p-3 rounded-lg border-2 cursor-pointer transition-all min-w-[120px] min-h-[90px] flex flex-col justify-center ${getStatusClass(table.status)}`}
     >
-      <div className="font-bold text-center text-sm">{table.table_number}</div>
+      <div className="font-bold text-center text-base">{table.table_number}</div>
       
       {hasReservation ? (
         <>
           {/* Client name */}
-          <div className="text-xs text-center truncate mt-1 font-medium">{table.client_name}</div>
+          <div className="text-sm text-center truncate mt-1 font-medium">{table.client_name}</div>
           
           {/* Number of persons */}
-          <div className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
+          <div className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1 mt-1">
             <Users className="w-3 h-3" />
-            <span>{totalPersons > 0 ? totalPersons : baseCapacity || '-'}</span>
+            <span>{totalPersons > 0 ? totalPersons : baseCapacity || '-'} pers.</span>
           </div>
           
           {/* Price */}
           {table.sold_price > 0 && (
-            <div className="text-xs text-center font-semibold text-amber-400 mt-0.5">
+            <div className="text-sm text-center font-semibold text-amber-400 mt-1">
               {table.sold_price.toLocaleString()} {currency}
             </div>
           )}
@@ -1839,12 +1839,12 @@ function TableCell({ table, currency, onClick }) {
           {baseCapacity > 0 && (
             <div className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1 mt-1">
               <Users className="w-3 h-3" />
-              <span>{baseCapacity}</span>
+              <span>{baseCapacity} pers.</span>
             </div>
           )}
           {/* Show standard price for free tables */}
           {table.standard_price > 0 && (
-            <div className="text-xs text-center text-muted-foreground mt-0.5">
+            <div className="text-xs text-center text-muted-foreground mt-1">
               {table.standard_price.toLocaleString()} {currency}
             </div>
           )}
