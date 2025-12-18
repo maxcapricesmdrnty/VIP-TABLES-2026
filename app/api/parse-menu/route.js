@@ -9,25 +9,10 @@ const openai = new OpenAI({
   baseURL: 'https://emergentintegrations.ai/api/v1/openai'
 })
 
-// Dynamic import for pdf-parse to handle ESM/CJS issues
-async function parsePDF(buffer) {
-  try {
-    const pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default
-    const data = await pdfParse(buffer)
-    return data.text
-  } catch (error) {
-    console.error('PDF parse error:', error)
-    // Fallback: try to extract text as string if it's a simple text-based PDF
-    throw new Error('Impossible de lire le PDF. Essayez avec un fichier Excel ou Word.')
-  }
-}
-
 // Extract text from different file types
 async function extractTextFromFile(buffer, fileType) {
   try {
-    if (fileType === 'pdf') {
-      return await parsePDF(buffer)
-    } else if (fileType === 'docx') {
+    if (fileType === 'docx') {
       const result = await mammoth.extractRawText({ buffer })
       return result.value
     } else if (fileType === 'xlsx' || fileType === 'xls') {
@@ -135,15 +120,13 @@ export async function POST(request) {
     // Get file extension
     const fileName = file.name.toLowerCase()
     let fileType = ''
-    if (fileName.endsWith('.pdf')) fileType = 'pdf'
-    else if (fileName.endsWith('.docx')) fileType = 'docx'
-    else if (fileName.endsWith('.doc')) fileType = 'doc'
+    if (fileName.endsWith('.docx')) fileType = 'docx'
     else if (fileName.endsWith('.xlsx')) fileType = 'xlsx'
     else if (fileName.endsWith('.xls')) fileType = 'xls'
     else if (fileName.endsWith('.csv')) fileType = 'csv'
     else {
       return NextResponse.json({ 
-        error: 'Format non supporté. Utilisez PDF, DOCX, XLSX ou CSV.' 
+        error: 'Format non supporté. Utilisez DOCX, XLSX ou CSV.' 
       }, { status: 400 })
     }
 
@@ -170,7 +153,7 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       items: menuItems,
-      extractedText: extractedText.substring(0, 500) // Return preview for debugging
+      extractedText: extractedText.substring(0, 500)
     })
 
   } catch (error) {
