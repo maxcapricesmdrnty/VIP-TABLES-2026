@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import pdfParse from 'pdf-parse'
 import mammoth from 'mammoth'
 import * as XLSX from 'xlsx'
 
 // Initialize OpenAI client with Emergent LLM key
 const openai = new OpenAI({
   apiKey: process.env.EMERGENT_LLM_KEY,
-  baseURL: 'https://api.openai.com/v1'
+  baseURL: 'https://emergentintegrations.ai/api/v1/openai'
 })
 
 // Extract text from different file types
