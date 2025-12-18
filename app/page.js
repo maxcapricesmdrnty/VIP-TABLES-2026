@@ -2512,9 +2512,67 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                   <span>Net:</span>
                   <span>{netAmount.toLocaleString()} {currency}</span>
                 </div>
+                <div className="flex justify-between text-amber-400 border-t pt-2 mt-2">
+                  <span>Budget boissons:</span>
+                  <span>{beverageBudget.toLocaleString()} {currency}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
+
+          {/* VIP Pre-order Link */}
+          {form.client_name && form.sold_price > 0 && (
+            <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg text-purple-400 flex items-center gap-2">
+                  <ShoppingCart className="w-5 h-5" />
+                  Pré-commande VIP
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Générez un lien unique pour que le client puisse pré-commander ses boissons.
+                </p>
+                
+                {vipLink ? (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input 
+                        value={vipLink} 
+                        readOnly 
+                        className="text-xs bg-zinc-800/50"
+                      />
+                      <Button size="icon" variant="outline" onClick={copyVipLink}>
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                      <Button size="icon" variant="outline" onClick={() => window.open(vipLink, '_blank')}>
+                        <ExternalLink className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-green-400">✓ Lien prêt à envoyer au client</p>
+                  </div>
+                ) : (
+                  <Button 
+                    onClick={generateVipLink} 
+                    disabled={generatingVipLink}
+                    className="w-full bg-purple-500 hover:bg-purple-600"
+                  >
+                    {generatingVipLink ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Génération...
+                      </>
+                    ) : (
+                      <>
+                        <Link className="w-4 h-4 mr-2" />
+                        Générer lien VIP
+                      </>
+                    )}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <DialogFooter className="flex-wrap gap-2">
