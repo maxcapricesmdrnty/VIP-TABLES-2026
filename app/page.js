@@ -427,6 +427,12 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
   const [editingMenuItem, setEditingMenuItem] = useState(null)
   const [venueForm, setVenueForm] = useState({ name: '', capacity: 500 })
   
+  // Menu import states
+  const [showImportDialog, setShowImportDialog] = useState(false)
+  const [importedItems, setImportedItems] = useState([])
+  const [importLoading, setImportLoading] = useState(false)
+  const [importError, setImportError] = useState('')
+  
   // Layout with multiple back categories
   const [layoutForm, setLayoutForm] = useState({
     left: { prefix: 'L', count: 4, rows: 2, capacity: 10, price: 5000 },
