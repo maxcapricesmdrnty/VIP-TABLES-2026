@@ -1093,11 +1093,13 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
             </div>
 
             {tables.length > 0 && (
-              <div className="bg-card rounded-lg border p-6">
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1">
+              <div className="bg-card rounded-lg border p-6 overflow-x-auto">
+                {/* Zone Gauche + DJ Booth + Zone Droite */}
+                <div className="flex items-center justify-center gap-6 min-w-fit">
+                  {/* Zone Gauche */}
+                  <div className="shrink-0">
                     <h3 className="text-center mb-4 font-semibold text-muted-foreground">Zone Gauche</h3>
-                    <div className="grid grid-cols-2 gap-3" style={{ maxWidth: '280px', margin: '0 auto' }}>
+                    <div className="grid grid-cols-2 gap-3">
                       {getTablesByZone('left').map(table => (
                         <TableCell 
                           key={table.id} 
@@ -1112,18 +1114,20 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                     </div>
                   </div>
 
-                  <div className="mx-4 flex flex-col items-center justify-center">
-                    <div className="w-20 h-20 bg-gradient-to-b from-amber-500/30 to-amber-600/10 rounded-lg flex items-center justify-center border-2 border-amber-500/50">
+                  {/* DJ Booth - Centré */}
+                  <div className="shrink-0 flex flex-col items-center justify-center self-center">
+                    <div className="w-16 h-16 bg-gradient-to-b from-amber-500/30 to-amber-600/10 rounded-lg flex items-center justify-center border-2 border-amber-500/50">
                       <div className="text-center">
-                        <div className="text-xl">🎧</div>
-                        <div className="text-[10px] font-bold text-amber-400">DJ</div>
+                        <div className="text-lg">🎧</div>
+                        <div className="text-[9px] font-bold text-amber-400">DJ</div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex-1">
+                  {/* Zone Droite */}
+                  <div className="shrink-0">
                     <h3 className="text-center mb-4 font-semibold text-muted-foreground">Zone Droite</h3>
-                    <div className="grid grid-cols-2 gap-3" style={{ maxWidth: '280px', margin: '0 auto' }}>
+                    <div className="grid grid-cols-2 gap-3">
                       {getTablesByZone('right').map(table => (
                         <TableCell 
                           key={table.id} 
