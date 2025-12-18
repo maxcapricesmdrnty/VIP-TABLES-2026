@@ -1094,10 +1094,10 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
 
             {tables.length > 0 && (
               <div className="bg-card rounded-lg border p-6">
-                <div className="flex justify-between items-start">
+                <div className="flex justify-between items-start gap-4">
                   <div className="flex-1">
                     <h3 className="text-center mb-4 font-semibold text-muted-foreground">Zone Gauche</h3>
-                    <div className="grid grid-cols-2 gap-2 max-w-xs mx-auto">
+                    <div className="grid grid-cols-2 gap-3" style={{ maxWidth: '280px', margin: '0 auto' }}>
                       {getTablesByZone('left').map(table => (
                         <TableCell 
                           key={table.id} 
@@ -1112,18 +1112,18 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                     </div>
                   </div>
 
-                  <div className="mx-8 flex flex-col items-center">
-                    <div className="w-32 h-32 bg-gradient-to-b from-amber-500/30 to-amber-600/10 rounded-lg flex items-center justify-center border-2 border-amber-500/50">
+                  <div className="mx-4 flex flex-col items-center justify-center">
+                    <div className="w-20 h-20 bg-gradient-to-b from-amber-500/30 to-amber-600/10 rounded-lg flex items-center justify-center border-2 border-amber-500/50">
                       <div className="text-center">
-                        <div className="text-3xl">🎧</div>
-                        <div className="text-xs font-bold mt-1 text-amber-400">DJ BOOTH</div>
+                        <div className="text-xl">🎧</div>
+                        <div className="text-[10px] font-bold text-amber-400">DJ</div>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex-1">
                     <h3 className="text-center mb-4 font-semibold text-muted-foreground">Zone Droite</h3>
-                    <div className="grid grid-cols-2 gap-2 max-w-xs mx-auto">
+                    <div className="grid grid-cols-2 gap-3" style={{ maxWidth: '280px', margin: '0 auto' }}>
                       {getTablesByZone('right').map(table => (
                         <TableCell 
                           key={table.id} 
