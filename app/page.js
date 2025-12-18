@@ -1155,10 +1155,10 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                       <div key={zone}>
                         <h3 className="text-center mb-4 font-semibold text-muted-foreground capitalize">{zoneName}</h3>
                         <div 
-                          className="grid gap-2 mx-auto"
+                          className="grid gap-3 mx-auto"
                           style={{ 
-                            gridTemplateColumns: `repeat(${tablesPerRow}, minmax(0, 1fr))`,
-                            maxWidth: `${tablesPerRow * 90}px` 
+                            gridTemplateColumns: `repeat(${tablesPerRow}, minmax(120px, 140px))`,
+                            maxWidth: `${tablesPerRow * 150}px` 
                           }}
                         >
                           {zoneTables.map(table => (
