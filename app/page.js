@@ -1527,6 +1527,126 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                 </TabsContent>
               ))}
             </Tabs>
+
+            {/* Import Preview Dialog */}
+            <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+              <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <FileSpreadsheet className="w-5 h-5" />
+                    Prévisualisation de l'import ({importedItems.length} articles)
+                  </DialogTitle>
+                  <DialogDescription>
+                    Vérifiez et corrigez les données avant l'import
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="flex-1 overflow-auto py-4">
+                  {importedItems.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Aucun article à importer
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {importedItems.map((item, index) => (
+                        <div key={item.id} className="border rounded-lg p-3 bg-muted/30">
+                          <div className="flex items-start gap-3">
+                            <span className="text-sm font-medium text-muted-foreground w-6">{index + 1}</span>
+                            <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-3">
+                              <div className="md:col-span-2">
+                                <Label className="text-xs text-muted-foreground">Nom</Label>
+                                <Input
+                                  value={item.name}
+                                  onChange={(e) => updateImportedItem(item.id, 'name', e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs text-muted-foreground">Catégorie</Label>
+                                <Select 
+                                  value={item.category} 
+                                  onValueChange={(v) => updateImportedItem(item.id, 'category', v)}
+                                >
+                                  <SelectTrigger className="h-8 text-sm">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {categories.map(cat => (
+                                      <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <Label className="text-xs text-muted-foreground">Prix ({event.currency})</Label>
+                                <Input
+                                  type="number"
+                                  value={item.price}
+                                  onChange={(e) => updateImportedItem(item.id, 'price', parseFloat(e.target.value) || 0)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <div className="flex-1">
+                                  <Label className="text-xs text-muted-foreground">Format</Label>
+                                  <Input
+                                    value={item.format}
+                                    onChange={(e) => updateImportedItem(item.id, 'format', e.target.value)}
+                                    className="h-8 text-sm"
+                                    placeholder="Bouteille"
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <Label className="text-xs text-muted-foreground">Volume</Label>
+                                  <Input
+                                    value={item.volume}
+                                    onChange={(e) => updateImportedItem(item.id, 'volume', e.target.value)}
+                                    className="h-8 text-sm"
+                                    placeholder="75cl"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                              onClick={() => removeImportedItem(item.id)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <DialogFooter className="border-t pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowImportDialog(false)
+                      setImportedItems([])
+                    }}
+                  >
+                    Annuler
+                  </Button>
+                  <Button 
+                    onClick={confirmImport}
+                    disabled={importLoading || importedItems.length === 0}
+                    className="bg-gradient-to-r from-amber-500 to-amber-600 text-black"
+                  >
+                    {importLoading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Check className="w-4 h-4 mr-2" />
+                    )}
+                    Importer {importedItems.length} articles
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
 
