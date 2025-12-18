@@ -1330,7 +1330,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                   <input
                     type="file"
                     id="menu-file-upload"
-                    accept=".pdf,.docx,.xlsx,.xls,.csv"
+                    accept=".docx,.xlsx,.xls,.csv"
                     onChange={handleFileUpload}
                     className="hidden"
                   />
