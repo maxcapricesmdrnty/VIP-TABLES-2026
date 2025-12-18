@@ -1322,12 +1322,35 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
         {/* Menu View */}
         {view === 'menu' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <h2 className="text-xl font-semibold">Menu Boissons</h2>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                {/* File Upload Button */}
+                <div className="relative">
+                  <input
+                    type="file"
+                    id="menu-file-upload"
+                    accept=".pdf,.docx,.xlsx,.xls,.csv"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Button 
+                    variant="outline" 
+                    onClick={() => document.getElementById('menu-file-upload').click()}
+                    disabled={importLoading}
+                  >
+                    {importLoading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4 mr-2" />
+                    )}
+                    Importer fichier
+                  </Button>
+                </div>
+                
                 {menuItems.length === 0 && (
                   <Button variant="outline" onClick={importDefaultMenu}>
-                    Importer menu par défaut
+                    Menu par défaut
                   </Button>
                 )}
                 <Dialog open={showMenuDialog} onOpenChange={setShowMenuDialog}>
