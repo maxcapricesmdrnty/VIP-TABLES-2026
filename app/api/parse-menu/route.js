@@ -9,12 +9,24 @@ const openai = new OpenAI({
   baseURL: 'https://emergentintegrations.ai/api/v1/openai'
 })
 
+// Dynamic import for pdf-parse to handle ESM/CJS issues
+async function parsePDF(buffer) {
+  try {
+    const pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default
+    const data = await pdfParse(buffer)
+    return data.text
+  } catch (error) {
+    console.error('PDF parse error:', error)
+    // Fallback: try to extract text as string if it's a simple text-based PDF
+    throw new Error('Impossible de lire le PDF. Essayez avec un fichier Excel ou Word.')
+  }
+}
+
 // Extract text from different file types
 async function extractTextFromFile(buffer, fileType) {
   try {
     if (fileType === 'pdf') {
-      const data = await pdfParse(buffer)
-      return data.text
+      return await parsePDF(buffer)
     } else if (fileType === 'docx') {
       const result = await mammoth.extractRawText({ buffer })
       return result.value
@@ -58,7 +70,7 @@ Exemple de sortie:
 ]
 
 Texte du menu à analyser:
-${text}
+${text.substring(0, 8000)}
 
 Tableau JSON des articles:`
 
@@ -140,7 +152,7 @@ export async function POST(request) {
     const buffer = Buffer.from(bytes)
 
     // Extract text from file
-    console.log(`Extracting text from ${fileType} file...`)
+    console.log(`Extracting text from ${fileType} file: ${fileName}`)
     const extractedText = await extractTextFromFile(buffer, fileType)
     
     if (!extractedText || extractedText.trim().length === 0) {
@@ -149,8 +161,8 @@ export async function POST(request) {
       }, { status: 400 })
     }
 
-    console.log('Text extracted, parsing with AI...')
-    console.log('Extracted text preview:', extractedText.substring(0, 500))
+    console.log('Text extracted successfully, length:', extractedText.length)
+    console.log('Preview:', extractedText.substring(0, 300))
 
     // Parse menu with AI
     const menuItems = await parseMenuWithAI(extractedText)
@@ -158,7 +170,7 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       items: menuItems,
-      extractedText: extractedText.substring(0, 1000) // Return preview for debugging
+      extractedText: extractedText.substring(0, 500) // Return preview for debugging
     })
 
   } catch (error) {
