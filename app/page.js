@@ -2111,6 +2111,8 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
     drink_preorder: table.drink_preorder || ''
   })
   const [saving, setSaving] = useState(false)
+  const [vipLink, setVipLink] = useState('')
+  const [generatingVipLink, setGeneratingVipLink] = useState(false)
 
   const beverageBudget = form.sold_price
   const commissionAmount = form.sold_price * (form.concierge_commission / 100)
