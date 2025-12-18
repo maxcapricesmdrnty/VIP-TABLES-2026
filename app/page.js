@@ -2281,6 +2281,43 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
     toast.success('Facture générée!')
   }
 
+  const generateVipLink = async () => {
+    setGeneratingVipLink(true)
+    try {
+      const response = await fetch('/api/vip/generate-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tableId: table.id })
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur de génération')
+      }
+      
+      setVipLink(data.link)
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(data.link)
+      toast.success('Lien VIP copié!', {
+        description: data.isExisting ? 'Lien existant récupéré' : 'Nouveau lien généré'
+      })
+      
+    } catch (error) {
+      toast.error('Erreur: ' + error.message)
+    } finally {
+      setGeneratingVipLink(false)
+    }
+  }
+
+  const copyVipLink = async () => {
+    if (vipLink) {
+      await navigator.clipboard.writeText(vipLink)
+      toast.success('Lien copié!')
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
