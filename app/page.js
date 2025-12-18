@@ -1800,19 +1800,55 @@ function TableCell({ table, currency, onClick }) {
     return classes[status] || ''
   }
 
+  // Calculate total persons (base capacity + additional persons)
+  const baseCapacity = table.capacity || 0
+  const additionalPersons = table.additional_persons || 0
+  const totalPersons = baseCapacity + additionalPersons
+  
+  // Check if table has reservation info
+  const hasReservation = table.status !== 'libre' && table.client_name
+
   return (
     <div
       onClick={onClick}
-      className={`p-3 rounded-lg border-2 cursor-pointer transition-all min-w-[70px] ${getStatusClass(table.status)}`}
+      className={`p-3 rounded-lg border-2 cursor-pointer transition-all min-w-[80px] ${getStatusClass(table.status)}`}
     >
       <div className="font-bold text-center text-sm">{table.table_number}</div>
-      {table.client_name && (
-        <div className="text-xs text-center truncate mt-1">{table.client_name}</div>
-      )}
-      {table.sold_price > 0 && (
-        <div className="text-xs text-center text-muted-foreground">
-          {table.sold_price.toLocaleString()} {currency}
-        </div>
+      
+      {hasReservation ? (
+        <>
+          {/* Client name */}
+          <div className="text-xs text-center truncate mt-1 font-medium">{table.client_name}</div>
+          
+          {/* Number of persons */}
+          <div className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
+            <Users className="w-3 h-3" />
+            <span>{totalPersons > 0 ? totalPersons : baseCapacity || '-'}</span>
+          </div>
+          
+          {/* Price */}
+          {table.sold_price > 0 && (
+            <div className="text-xs text-center font-semibold text-amber-400 mt-0.5">
+              {table.sold_price.toLocaleString()} {currency}
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Show capacity for free tables */}
+          {baseCapacity > 0 && (
+            <div className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1 mt-1">
+              <Users className="w-3 h-3" />
+              <span>{baseCapacity}</span>
+            </div>
+          )}
+          {/* Show standard price for free tables */}
+          {table.standard_price > 0 && (
+            <div className="text-xs text-center text-muted-foreground mt-0.5">
+              {table.standard_price.toLocaleString()} {currency}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
