@@ -873,6 +873,97 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
     }
   }
 
+  // Handle file upload for menu import
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setImportLoading(true)
+    setImportError('')
+    setImportedItems([])
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/parse-menu', {
+        method: 'POST',
+        body: formData
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors du parsing')
+      }
+
+      if (data.items && data.items.length > 0) {
+        setImportedItems(data.items)
+        setShowImportDialog(true)
+        toast.success(`${data.items.length} articles détectés!`)
+      } else {
+        toast.error('Aucun article trouvé dans le fichier')
+      }
+    } catch (error) {
+      console.error('Upload error:', error)
+      setImportError(error.message)
+      toast.error(error.message)
+    } finally {
+      setImportLoading(false)
+      // Reset file input
+      e.target.value = ''
+    }
+  }
+
+  // Update imported item
+  const updateImportedItem = (id, field, value) => {
+    setImportedItems(items => 
+      items.map(item => 
+        item.id === id ? { ...item, [field]: value } : item
+      )
+    )
+  }
+
+  // Remove imported item
+  const removeImportedItem = (id) => {
+    setImportedItems(items => items.filter(item => item.id !== id))
+  }
+
+  // Confirm and save imported items
+  const confirmImport = async () => {
+    if (importedItems.length === 0) {
+      toast.error('Aucun article à importer')
+      return
+    }
+
+    setImportLoading(true)
+    try {
+      const itemsToInsert = importedItems.map(item => ({
+        event_id: event.id,
+        name: item.name,
+        price: parseFloat(item.price) || 0,
+        category: item.category,
+        format: item.format || 'Bouteille',
+        volume: item.volume || '',
+        description: item.description || '',
+        available: true
+      }))
+
+      const { error } = await supabase.from('menu_items').insert(itemsToInsert)
+      if (error) throw error
+
+      toast.success(`${itemsToInsert.length} articles importés avec succès!`)
+      setShowImportDialog(false)
+      setImportedItems([])
+      fetchMenuItems()
+    } catch (error) {
+      console.error('Import error:', error)
+      toast.error(error.message)
+    } finally {
+      setImportLoading(false)
+    }
+  }
+
   const getTablesByZone = (zone) => tables.filter(t => t.zone === zone)
   
   const getBackZones = () => {
