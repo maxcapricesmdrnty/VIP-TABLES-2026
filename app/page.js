@@ -2770,7 +2770,7 @@ function InvoicesView({ event }) {
       
       // Table line
       doc.text(`Table ${t.table_number} - Réservation VIP`, 25, yPos)
-      doc.text(format(parseISO(t.day), 'dd/MM/yyyy'), 100, yPos)
+      doc.text(formatDate(t.day), 100, yPos)
       doc.text(`${formatSwiss(t.sold_price || 0)} ${currency}`, 175, yPos, { align: 'right' })
       yPos += 7
       
@@ -2925,7 +2925,7 @@ function InvoicesView({ event }) {
       tables.forEach(t => {
         grandTotal += calculateTableTotal(t)
         doc.text(`Table ${t.table_number} - Réservation VIP`, 25, yPos)
-        doc.text(format(parseISO(t.day), 'dd/MM/yyyy'), 100, yPos)
+        doc.text(formatDate(t.day), 100, yPos)
         doc.text(`${formatSwiss(t.sold_price || 0)} ${currency}`, 175, yPos, { align: 'right' })
         yPos += 8
       })
