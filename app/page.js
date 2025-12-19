@@ -2779,35 +2779,30 @@ function InvoicesView({ event }) {
     toast.success('PDF téléchargé!')
   }
 
-  // Send invoice by email
-  const sendInvoiceEmail = async (table, consolidated = false, clientTables = null) => {
+  // Send invoice by email - Simplified
+  const sendInvoiceEmail = async (table) => {
     if (!table.client_email) {
       toast.error('Email client manquant')
       return
     }
 
-    setSendingEmail(consolidated ? `cons_${table.client_email}` : table.id)
+    setSendingEmail(table.id)
     
     try {
       const doc = new jsPDF()
-      const tables = consolidated ? clientTables : [table]
-      const currency = event.currency
+      const currency = event?.currency || 'CHF'
+      const total = calculateTableTotal(table)
       
-      // Generate PDF content (same as generateInvoice but don't save)
-      // ... (recreate PDF in memory)
+      // Simple PDF
       doc.setFontSize(24)
       doc.setTextColor(218, 165, 32)
-      doc.text(consolidated ? 'FACTURE CONSOLIDÉE' : 'FACTURE', 105, 25, { align: 'center' })
+      doc.text('FACTURE', 105, 25, { align: 'center' })
       doc.setFontSize(14)
       doc.setTextColor(0, 0, 0)
-      doc.text(event.name, 105, 35, { align: 'center' })
-      
-      const invoiceNum = consolidated 
-        ? `CONS-${table.client_email?.slice(0, 6) || 'X'}-${format(new Date(), 'yyyyMMdd')}`.toUpperCase()
-        : `INV-${table.id.slice(0, 8).toUpperCase()}`
+      doc.text(event?.name || 'Événement', 105, 35, { align: 'center' })
       
       doc.setFontSize(10)
-      doc.text(`Facture N°: ${invoiceNum}`, 20, 55)
+      doc.text(`Facture N°: INV-${(table.id || '').slice(0, 8).toUpperCase()}`, 20, 55)
       doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, 20, 62)
       
       doc.setFontSize(11)
@@ -2816,52 +2811,38 @@ function InvoicesView({ event }) {
       doc.setFont(undefined, 'normal')
       doc.setFontSize(10)
       doc.text(table.client_name || 'N/A', 20, 88)
-      if (table.client_email) doc.text(table.client_email, 20, 95)
-      if (table.client_phone) doc.text(table.client_phone, 20, 102)
+      doc.text(table.client_email || '', 20, 95)
       
-      let yPos = 130
+      let yPos = 120
       doc.setFillColor(218, 165, 32)
       doc.rect(20, yPos, 170, 8, 'F')
       doc.setTextColor(255, 255, 255)
-      doc.setFontSize(10)
       doc.setFont(undefined, 'bold')
       doc.text('Description', 25, yPos + 6)
-      doc.text('Date', 100, yPos + 6)
       doc.text('Montant', 175, yPos + 6, { align: 'right' })
       
+      yPos += 15
       doc.setTextColor(0, 0, 0)
       doc.setFont(undefined, 'normal')
-      yPos += 12
+      doc.text(`Table ${table.table_number} - Réservation VIP`, 25, yPos)
+      doc.text(`${formatSwiss(total)} ${currency}`, 175, yPos, { align: 'right' })
       
-      let grandTotal = 0
-      tables.forEach(t => {
-        grandTotal += calculateTableTotal(t)
-        doc.text(`Table ${t.table_number} - Réservation VIP`, 25, yPos)
-        doc.text(formatDate(t.day), 100, yPos)
-        doc.text(`${formatSwiss(t.sold_price || 0)} ${currency}`, 175, yPos, { align: 'right' })
-        yPos += 8
-      })
-      
-      yPos += 5
+      yPos += 15
       doc.setDrawColor(218, 165, 32)
       doc.line(20, yPos, 190, yPos)
       yPos += 8
       doc.setFontSize(12)
       doc.setFont(undefined, 'bold')
       doc.text('TOTAL', 25, yPos)
-      doc.text(`${formatSwiss(grandTotal)} ${currency}`, 175, yPos, { align: 'right' })
+      doc.text(`${formatSwiss(total)} ${currency}`, 175, yPos, { align: 'right' })
       
       doc.setFontSize(9)
       doc.setFont(undefined, 'normal')
       doc.text('Merci de votre confiance!', 105, 265, { align: 'center' })
-      doc.text('Caprices Festival - Gstaad | vip@caprices.ch', 105, 272, { align: 'center' })
+      doc.text('vip@caprices.ch', 105, 272, { align: 'center' })
       
-      // Get base64
       const pdfBase64 = doc.output('datauristring').split(',')[1]
-      
-      const fileName = consolidated 
-        ? `Facture_Consolidee_${table.client_name?.replace(/\s+/g, '_') || 'Client'}.pdf`
-        : `Facture_${table.table_number}.pdf`
+      const fileName = `Facture_${table.table_number}.pdf`
       
       const response = await fetch('/api/invoice/send-email', {
         method: 'POST',
@@ -2874,11 +2855,8 @@ function InvoicesView({ event }) {
               <h2 style="color: #DAA520;">Caprices Festival - VIP</h2>
               <p>Bonjour ${table.client_name || ''},</p>
               <p>Veuillez trouver ci-joint votre facture pour votre réservation VIP.</p>
-              <p><strong>Montant total: ${formatSwiss(grandTotal)} ${currency}</strong></p>
-              <p>Pour toute question, n'hésitez pas à nous contacter.</p>
+              <p><strong>Montant total: ${formatSwiss(total)} ${currency}</strong></p>
               <p>Cordialement,<br>L'équipe Caprices VIP</p>
-              <hr style="border-color: #DAA520;">
-              <p style="font-size: 12px; color: #666;">vip@caprices.ch</p>
             </div>
           `,
           pdfBase64,
@@ -2887,9 +2865,7 @@ function InvoicesView({ event }) {
       })
 
       const data = await response.json()
-      
       if (!response.ok) throw new Error(data.error)
-      
       toast.success(`Facture envoyée à ${table.client_email}`)
     } catch (error) {
       toast.error(`Erreur: ${error.message}`)
