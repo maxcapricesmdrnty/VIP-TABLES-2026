@@ -2819,7 +2819,7 @@ function InvoicesView({ event }) {
     doc.text(`${formatSwiss(grandTotal)} ${currency}`, 175, yPos, { align: 'right' })
     
     // Payments section
-    const allPayments = tables.flatMap(t => payments[t.id] || [])
+    const allPayments = tablesToProcess.flatMap(t => payments[t.id] || [])
     const totalPaid = allPayments.reduce((sum, p) => sum + p.amount, 0)
     const remaining = grandTotal - totalPaid
     
