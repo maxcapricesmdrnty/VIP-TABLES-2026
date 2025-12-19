@@ -1692,6 +1692,21 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
           <GuichetView event={event} eventDays={eventDays} />
         )}
 
+        {/* Team Management View */}
+        {view === 'team' && (
+          <TeamManagementView event={event} />
+        )}
+
+        {/* Server View */}
+        {view === 'serveur' && (
+          <ServerOrderView event={event} eventDays={eventDays} />
+        )}
+
+        {/* Bar View */}
+        {view === 'bar' && (
+          <BarView event={event} />
+        )}
+
         {/* Invoices View */}
         {view === 'invoices' && (
           <InvoicesView event={event} tables={tables} onEventUpdate={onEventUpdate} />
