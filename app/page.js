@@ -1664,7 +1664,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
 
         {/* Invoices View */}
         {view === 'invoices' && (
-          <InvoicesView event={event} tables={tables} />
+          <InvoicesView event={event} tables={tables} onEventUpdate={onEventUpdate} />
         )}
 
         {/* Venues View */}
