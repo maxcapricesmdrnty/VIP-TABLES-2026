@@ -2729,6 +2729,54 @@ function InvoicesView({ event, onEventUpdate }) {
     }
   }
 
+  // Save billing settings
+  const saveBillingSettings = async () => {
+    setSavingSettings(true)
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update(billingSettings)
+        .eq('id', event.id)
+      
+      if (error) throw error
+      toast.success('Billing settings saved!')
+      if (onEventUpdate) onEventUpdate()
+    } catch (error) {
+      toast.error('Error: ' + error.message)
+    } finally {
+      setSavingSettings(false)
+    }
+  }
+
+  // Upload logo
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    setUploadingLogo(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('eventId', event.id)
+      
+      const response = await fetch('/api/upload-logo', {
+        method: 'POST',
+        body: formData
+      })
+      
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error)
+      
+      setBillingSettings(prev => ({ ...prev, billing_logo_url: data.logoUrl }))
+      toast.success('Logo uploaded!')
+      if (onEventUpdate) onEventUpdate()
+    } catch (error) {
+      toast.error('Error: ' + error.message)
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
+
   // Format amount Swiss style: 1'500.00
   const formatSwiss = (amount) => {
     return amount.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
