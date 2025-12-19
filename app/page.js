@@ -2854,7 +2854,7 @@ function InvoicesView({ event }) {
     doc.setFontSize(9)
     doc.setTextColor(100, 100, 100)
     doc.setFont(undefined, 'normal')
-    const totalBudget = tables.reduce((sum, t) => sum + (t.sold_price || t.standard_price || 0), 0)
+    const totalBudget = tablesToProcess.reduce((sum, t) => sum + (t.sold_price || t.standard_price || 0), 0)
     doc.text(`Budget boissons inclus: ${formatSwiss(totalBudget)} ${currency}`, 25, yPos)
     
     // Footer
