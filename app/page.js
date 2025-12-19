@@ -2775,31 +2775,25 @@ function InvoicesView({ event }) {
       doc.setFontSize(8)
       doc.text('vip@caprices.ch', 105, 272, { align: 'center' })
       
-      // Download using data URI - opens in new tab
+      // Download PDF directly
       const fileName = `Facture_${table.table_number}_${format(new Date(), 'yyyyMMdd')}.pdf`
-      const pdfDataUri = doc.output('datauristring')
+      const pdfBlob = doc.output('blob')
+      const blobUrl = window.URL.createObjectURL(pdfBlob)
       
-      // Open in new window for download
-      const newWindow = window.open()
-      if (newWindow) {
-        newWindow.document.write(`
-          <html>
-            <head><title>${fileName}</title></head>
-            <body style="margin:0">
-              <embed width="100%" height="100%" src="${pdfDataUri}" type="application/pdf" />
-            </body>
-          </html>
-        `)
-        newWindow.document.title = fileName
-      } else {
-        // Fallback: direct download
-        const link = document.createElement('a')
-        link.href = pdfDataUri
-        link.download = fileName
-        link.click()
-      }
+      const downloadLink = document.createElement('a')
+      downloadLink.href = blobUrl
+      downloadLink.download = fileName
+      downloadLink.style.display = 'none'
+      document.body.appendChild(downloadLink)
+      downloadLink.click()
       
-      toast.success('PDF ouvert!')
+      // Cleanup
+      setTimeout(() => {
+        document.body.removeChild(downloadLink)
+        window.URL.revokeObjectURL(blobUrl)
+      }, 100)
+      
+      toast.success('PDF téléchargé!')
     } catch (error) {
       console.error('PDF error:', error)
       toast.error('Erreur PDF: ' + error.message)
