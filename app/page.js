@@ -2865,6 +2865,10 @@ function InvoicesView({ event }) {
     toast.success('Facture générée!')
     
     return doc
+    } catch (error) {
+      console.error('PDF generation error:', error)
+      toast.error('Erreur génération PDF: ' + error.message)
+    }
   }
 
   // Send invoice by email
