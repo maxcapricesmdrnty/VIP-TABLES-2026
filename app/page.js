@@ -2852,22 +2852,22 @@ function GuichetView({ event, eventDays }) {
     }
   }
 
-  // Add note
+  // Add note - uses the shared 'notes' field (bidirectional with staff notes)
   const handleAddNote = async () => {
     if (!selectedClient || !newNote) return
     setSavingNote(true)
     try {
       // Add note to all tables of the client
       for (const table of selectedClient.tables) {
-        const existingNotes = table.guichet_notes || ''
+        const existingNotes = table.notes || ''
         const timestamp = format(new Date(), 'dd/MM HH:mm')
         const updatedNotes = existingNotes 
-          ? `${existingNotes}\n[${timestamp}] ${newNote}`
-          : `[${timestamp}] ${newNote}`
+          ? `${existingNotes}\n[Guichet ${timestamp}] ${newNote}`
+          : `[Guichet ${timestamp}] ${newNote}`
         
         const { error } = await supabase
           .from('tables')
-          .update({ guichet_notes: updatedNotes })
+          .update({ notes: updatedNotes })
           .eq('id', table.id)
         if (error) throw error
       }
