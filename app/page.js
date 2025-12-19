@@ -3654,116 +3654,166 @@ function InvoicesView({ event, onEventUpdate }) {
 
       {/* Invoice Preview Modal */}
       <Dialog open={showInvoiceModal} onOpenChange={setShowInvoiceModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-amber-500" />
-              Prévisualisation de la facture
+              Invoice Preview {isConsolidated && '(Consolidated)'}
             </DialogTitle>
             <DialogDescription>
-              Table {selectedInvoiceTable?.table_number} - {selectedInvoiceTable?.client_name || 'Client'}
+              {isConsolidated 
+                ? `${selectedInvoiceTables.length} tables - ${selectedInvoiceTable?.client_name || 'Client'}`
+                : `Table ${selectedInvoiceTable?.table_number} - ${selectedInvoiceTable?.client_name || 'Client'}`
+              }
             </DialogDescription>
           </DialogHeader>
           
           {selectedInvoiceTable && (
             <div className="space-y-6">
-              {/* Invoice Preview */}
-              <div className="border rounded-lg p-6 bg-white text-black">
-                <div className="text-center mb-6">
-                  <h2 className="text-2xl font-bold text-amber-600">FACTURE</h2>
-                  <p className="text-gray-600">{event.name}</p>
+              {/* Invoice Preview - New English Format */}
+              <div className="border rounded-lg p-6 bg-white text-black text-sm">
+                {/* Header */}
+                <div className="text-center mb-4">
+                  {billingSettings.billing_logo_url && (
+                    <img src={billingSettings.billing_logo_url} alt="Logo" className="h-12 mx-auto mb-2" />
+                  )}
+                  <h2 className="text-xl font-bold text-[#4682B4]">{billingSettings.billing_company_name || 'VIP'}</h2>
+                  <p className="text-gray-600">
+                    {isConsolidated ? 'Consolidated Proforma - Table Reservations' : 'Proforma - Table Reservation'}
+                  </p>
+                  <p className="text-gray-500 text-xs">Date: {format(new Date(), 'dd/MM/yyyy')}</p>
                 </div>
                 
-                <div className="flex justify-between mb-6">
-                  <div>
-                    <p className="text-sm text-gray-500">Facture N°</p>
-                    <p className="font-mono">INV-{(selectedInvoiceTable.id || '').slice(0, 8).toUpperCase()}</p>
+                {/* Two column info */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="bg-[#4682B4]/10 p-3 rounded">
+                    <h3 className="font-bold text-[#4682B4] text-xs mb-2">Client Information</h3>
+                    <p className="font-medium">{selectedInvoiceTable.client_name || 'N/A'}</p>
+                    {selectedInvoiceTable.client_email && <p className="text-xs">{selectedInvoiceTable.client_email}</p>}
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">Date</p>
-                    <p>{format(new Date(), 'dd/MM/yyyy')}</p>
-                  </div>
-                </div>
-                
-                <div className="mb-6">
-                  <p className="text-sm text-gray-500 mb-1">Client</p>
-                  <p className="font-semibold">{selectedInvoiceTable.client_name || 'N/A'}</p>
-                  {selectedInvoiceTable.client_email && <p className="text-sm">{selectedInvoiceTable.client_email}</p>}
-                  {selectedInvoiceTable.client_phone && <p className="text-sm">{selectedInvoiceTable.client_phone}</p>}
-                </div>
-                
-                <div className="border-t border-b py-4 mb-4">
-                  <div className="flex justify-between items-center bg-amber-100 p-2 rounded mb-2">
-                    <span className="font-semibold">Description</span>
-                    <span className="font-semibold">Montant</span>
-                  </div>
-                  <div className="flex justify-between items-center p-2">
-                    <span>Table {selectedInvoiceTable.table_number} - Réservation VIP</span>
-                    <span>{formatSwiss(calculateTableTotal(selectedInvoiceTable))} {event.currency}</span>
+                  <div className="bg-[#4682B4]/10 p-3 rounded">
+                    <h3 className="font-bold text-[#4682B4] text-xs mb-2">Reservation Summary</h3>
+                    <p className="text-xs">Total Tables: {selectedInvoiceTables.length}</p>
+                    <p className="text-xs">Days: {getInvoiceDays().join(', ')}</p>
+                    <p className="text-xs">Tables: {selectedInvoiceTables.map(t => t.table_number).join(', ')}</p>
                   </div>
                 </div>
                 
-                <div className="flex justify-between items-center text-lg font-bold">
-                  <span>TOTAL</span>
-                  <span className="text-amber-600">{formatSwiss(calculateTableTotal(selectedInvoiceTable))} {event.currency}</span>
+                {/* Detailed Reservations */}
+                <div className="mb-4">
+                  <div className="bg-[#4682B4] text-white px-3 py-1 rounded-t font-bold text-xs">
+                    Detailed Reservations
+                  </div>
+                  <div className="border border-t-0 rounded-b p-2">
+                    {getInvoiceDays().map(day => (
+                      <div key={day} className="mb-2">
+                        <p className="font-semibold text-xs">Day {day} - Tables: {getTablesForDay(day).map(t => t.table_number).join(', ')}</p>
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-gray-100">
+                              <th className="text-left p-1">Description</th>
+                              <th className="text-center p-1">Qty</th>
+                              <th className="text-right p-1">Unit Price</th>
+                              <th className="text-right p-1">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {getTablesForDay(day).map(t => (
+                              <tr key={t.id}>
+                                <td className="p-1">Table {t.table_number} Reservation</td>
+                                <td className="text-center p-1">1</td>
+                                <td className="text-right p-1">{formatSwiss(calculateTableTotal(t))} {event.currency}</td>
+                                <td className="text-right p-1">{formatSwiss(calculateTableTotal(t))} {event.currency}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <p className="text-right text-xs font-semibold mt-1">
+                          Day {day} Subtotal: {formatSwiss(getTablesForDay(day).reduce((s, t) => s + calculateTableTotal(t), 0))} {event.currency}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 
-                <div className="text-center mt-6 text-sm text-gray-500">
-                  <p>Merci de votre confiance!</p>
-                  <p>vip@caprices.ch</p>
+                {/* Grand Total */}
+                <div className="bg-[#4682B4] text-white p-3 rounded text-center mb-4">
+                  <span className="font-bold text-lg">Grand Total: {formatSwiss(getGrandTotal())} {event.currency}</span>
+                </div>
+                
+                {/* Banking Info */}
+                {billingSettings.billing_iban && (
+                  <div className="mb-4">
+                    <div className="bg-[#4682B4] text-white px-3 py-1 rounded-t font-bold text-xs">
+                      Banking Information
+                    </div>
+                    <div className="border border-t-0 rounded-b p-2 text-xs space-y-1">
+                      {billingSettings.billing_beneficiary && <p>Beneficiary: {billingSettings.billing_beneficiary}</p>}
+                      {billingSettings.billing_address && <p>Address: {billingSettings.billing_address}</p>}
+                      {billingSettings.billing_iban && <p>IBAN: {billingSettings.billing_iban}</p>}
+                      {billingSettings.billing_bic && <p>BIC/SWIFT: {billingSettings.billing_bic}</p>}
+                      {billingSettings.billing_bank_name && <p>Bank: {billingSettings.billing_bank_name}</p>}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Footer */}
+                <div className="text-center text-xs text-gray-500">
+                  <p>{billingSettings.billing_thank_you || 'Thank you for your trust'} - {billingSettings.billing_company_name}!</p>
+                  <p>{billingSettings.billing_vat_text}</p>
                 </div>
               </div>
               
               {/* Email Options */}
               <div className="space-y-4">
-                <Label className="text-base font-semibold">Envoyer à :</Label>
+                <Label className="text-base font-semibold">Send to:</Label>
                 
                 <div className="space-y-3">
                   {/* Option VIP */}
                   <div 
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${invoiceRecipient === 'vip' ? 'border-amber-500 bg-amber-50' : 'border-border hover:bg-muted/50'}`}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${invoiceRecipient === 'vip' ? 'border-amber-500 bg-amber-500/10' : 'border-border hover:bg-muted/50'}`}
                     onClick={() => setInvoiceRecipient('vip')}
                   >
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${invoiceRecipient === 'vip' ? 'border-amber-500' : 'border-muted-foreground'}`}>
                       {invoiceRecipient === 'vip' && <div className="w-2 h-2 rounded-full bg-amber-500" />}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium">Caprices VIP (copie interne)</p>
-                      <p className="text-sm text-muted-foreground">vip@caprices.ch</p>
+                      <p className="font-medium">Internal Copy</p>
+                      <p className="text-sm text-muted-foreground">{billingSettings.billing_email || 'vip@caprices.ch'}</p>
                     </div>
                   </div>
                   
                   {/* Option Client */}
                   <div 
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${invoiceRecipient === 'client' ? 'border-amber-500 bg-amber-50' : 'border-border hover:bg-muted/50'} ${!selectedInvoiceTable.client_email ? 'opacity-50' : ''}`}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${invoiceRecipient === 'client' ? 'border-amber-500 bg-amber-500/10' : 'border-border hover:bg-muted/50'} ${!selectedInvoiceTable.client_email ? 'opacity-50' : ''}`}
                     onClick={() => selectedInvoiceTable.client_email && setInvoiceRecipient('client')}
                   >
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${invoiceRecipient === 'client' ? 'border-amber-500' : 'border-muted-foreground'}`}>
                       {invoiceRecipient === 'client' && <div className="w-2 h-2 rounded-full bg-amber-500" />}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium">Email du client</p>
+                      <p className="font-medium">Client Email</p>
                       <p className="text-sm text-muted-foreground">
-                        {selectedInvoiceTable.client_email || 'Non renseigné'}
+                        {selectedInvoiceTable.client_email || 'Not provided'}
                       </p>
                     </div>
                   </div>
                   
                   {/* Option Custom */}
                   <div 
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${invoiceRecipient === 'custom' ? 'border-amber-500 bg-amber-50' : 'border-border hover:bg-muted/50'}`}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${invoiceRecipient === 'custom' ? 'border-amber-500 bg-amber-500/10' : 'border-border hover:bg-muted/50'}`}
                     onClick={() => setInvoiceRecipient('custom')}
                   >
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${invoiceRecipient === 'custom' ? 'border-amber-500' : 'border-muted-foreground'}`}>
                       {invoiceRecipient === 'custom' && <div className="w-2 h-2 rounded-full bg-amber-500" />}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium">Autre adresse email</p>
+                      <p className="font-medium">Other Email Address</p>
                       {invoiceRecipient === 'custom' && (
                         <Input 
                           type="email"
-                          className="mt-2"
-                          placeholder="email@exemple.com"
+                          className="mt-2 bg-background"
+                          placeholder="email@example.com"
                           value={customEmail}
                           onChange={(e) => setCustomEmail(e.target.value)}
                           onClick={(e) => e.stopPropagation()}
@@ -3778,7 +3828,7 @@ function InvoicesView({ event, onEventUpdate }) {
           
           <DialogFooter className="flex gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setShowInvoiceModal(false)}>
-              Annuler
+              Cancel
             </Button>
             <Button 
               onClick={sendInvoiceEmail}
@@ -3788,12 +3838,12 @@ function InvoicesView({ event, onEventUpdate }) {
               {sendingEmail === selectedInvoiceTable?.id ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Envoi...
+                  Sending...
                 </>
               ) : (
                 <>
                   <FileText className="w-4 h-4 mr-2" />
-                  Envoyer la facture
+                  Send Invoice
                 </>
               )}
             </Button>
