@@ -3012,7 +3012,7 @@ function GuichetView({ event, eventDays }) {
             const allBraceletsGiven = client.tables.every(t => t.bracelets_given)
             const paymentStatus = getPaymentStatus(clientTotal, clientPaid)
             const tableNumbers = client.tables.map(t => t.table_number).join(', ')
-            const clientNotes = client.tables.map(t => t.guichet_notes).filter(Boolean).join('\n')
+            const clientNotes = client.tables.map(t => t.notes).filter(Boolean).join('\n')
 
             return (
               <Card key={idx} className={`overflow-hidden ${allBraceletsGiven ? 'border-green-500/50 bg-green-500/5' : ''}`}>
