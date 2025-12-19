@@ -2711,92 +2711,43 @@ function InvoicesView({ event }) {
     }
   }
 
-  // Generate PDF Invoice - Using blob download
-  const generateInvoice = (table) => {
+  // Generate PDF Invoice via API
+  const generateInvoice = async (table) => {
     try {
-      const doc = new jsPDF()
-      const currency = event?.currency || 'CHF'
+      toast.info('Génération du PDF...')
       
-      // Header
-      doc.setFontSize(24)
-      doc.setTextColor(218, 165, 32)
-      doc.text('FACTURE', 105, 25, { align: 'center' })
+      const response = await fetch('/api/invoice/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table, event, consolidated: false })
+      })
       
-      doc.setFontSize(14)
-      doc.setTextColor(0, 0, 0)
-      doc.text(event?.name || 'Événement', 105, 35, { align: 'center' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error)
       
-      // Invoice info
-      doc.setFontSize(10)
-      doc.text(`Facture N°: INV-${(table.id || '').slice(0, 8).toUpperCase()}`, 20, 55)
-      doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, 20, 62)
-      doc.text(`Table: ${table.table_number || 'N/A'}`, 20, 69)
+      // Convert base64 to blob and download
+      const byteCharacters = atob(data.pdf.split(',')[1])
+      const byteNumbers = new Array(byteCharacters.length)
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i)
+      }
+      const byteArray = new Uint8Array(byteNumbers)
+      const blob = new Blob([byteArray], { type: 'application/pdf' })
       
-      // Client info
-      doc.setFontSize(11)
-      doc.setFont(undefined, 'bold')
-      doc.text('Client:', 20, 85)
-      doc.setFont(undefined, 'normal')
-      doc.setFontSize(10)
-      doc.text(table.client_name || 'N/A', 20, 93)
-      doc.text(table.client_email || '', 20, 100)
-      doc.text(table.client_phone || '', 20, 107)
-      
-      // Amount
-      let yPos = 130
-      doc.setFillColor(218, 165, 32)
-      doc.rect(20, yPos, 170, 8, 'F')
-      doc.setTextColor(255, 255, 255)
-      doc.setFont(undefined, 'bold')
-      doc.text('Description', 25, yPos + 6)
-      doc.text('Montant', 175, yPos + 6, { align: 'right' })
-      
-      yPos += 15
-      doc.setTextColor(0, 0, 0)
-      doc.setFont(undefined, 'normal')
-      const total = calculateTableTotal(table)
-      doc.text(`Table ${table.table_number} - Réservation VIP`, 25, yPos)
-      doc.text(`${formatSwiss(total)} ${currency}`, 175, yPos, { align: 'right' })
-      
-      // Total
-      yPos += 15
-      doc.setDrawColor(218, 165, 32)
-      doc.line(20, yPos, 190, yPos)
-      yPos += 8
-      doc.setFontSize(12)
-      doc.setFont(undefined, 'bold')
-      doc.text('TOTAL', 25, yPos)
-      doc.text(`${formatSwiss(total)} ${currency}`, 175, yPos, { align: 'right' })
-      
-      // Footer
-      doc.setFontSize(9)
-      doc.setFont(undefined, 'normal')
-      doc.text('Merci de votre confiance!', 105, 265, { align: 'center' })
-      doc.setFontSize(8)
-      doc.text('vip@caprices.ch', 105, 272, { align: 'center' })
-      
-      // Download PDF directly
-      const fileName = `Facture_${table.table_number}_${format(new Date(), 'yyyyMMdd')}.pdf`
-      const pdfBlob = doc.output('blob')
-      const blobUrl = window.URL.createObjectURL(pdfBlob)
-      
-      const downloadLink = document.createElement('a')
-      downloadLink.href = blobUrl
-      downloadLink.download = fileName
-      downloadLink.style.display = 'none'
-      document.body.appendChild(downloadLink)
-      downloadLink.click()
-      
-      // Cleanup
-      setTimeout(() => {
-        document.body.removeChild(downloadLink)
-        window.URL.revokeObjectURL(blobUrl)
-      }, 100)
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = data.fileName
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
       
       toast.success('PDF téléchargé!')
     } catch (error) {
       console.error('PDF error:', error)
-      toast.error('Erreur PDF: ' + error.message)
+      toast.error('Erreur: ' + error.message)
     }
   }
 
