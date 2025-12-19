@@ -2410,8 +2410,8 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                 <Label>Prix négocié ({currency})</Label>
                 <Input
                   type="number"
-                  value={form.sold_price}
-                  onChange={(e) => setForm({...form, sold_price: parseFloat(e.target.value) || 0})}
+                  value={form.sold_price === 0 ? '' : form.sold_price}
+                  onChange={(e) => setForm({...form, sold_price: e.target.value === '' ? 0 : parseFloat(e.target.value)})}
                 />
               </div>
               <div>
