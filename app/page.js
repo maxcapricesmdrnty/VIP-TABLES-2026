@@ -2803,12 +2803,35 @@ function InvoicesView({ event }) {
     }
   }
 
-  // Send invoice by email - Simplified
-  const sendInvoiceEmail = async (table) => {
-    if (!table.client_email) {
-      toast.error('Email client manquant')
+  // Open invoice preview modal
+  const openInvoicePreview = (table) => {
+    setSelectedInvoiceTable(table)
+    setInvoiceRecipient(table.client_email ? 'client' : 'vip')
+    setCustomEmail('')
+    setShowInvoiceModal(true)
+  }
+
+  // Get recipient email based on selection
+  const getRecipientEmail = () => {
+    switch (invoiceRecipient) {
+      case 'vip': return 'vip@caprices.ch'
+      case 'client': return selectedInvoiceTable?.client_email || ''
+      case 'custom': return customEmail
+      default: return ''
+    }
+  }
+
+  // Send invoice by email with selected recipient
+  const sendInvoiceEmail = async () => {
+    const recipientEmail = getRecipientEmail()
+    
+    if (!recipientEmail || !recipientEmail.includes('@')) {
+      toast.error('Email invalide')
       return
     }
+
+    const table = selectedInvoiceTable
+    if (!table) return
 
     setSendingEmail(table.id)
     
@@ -2872,7 +2895,7 @@ function InvoicesView({ event }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: table.client_email,
+          to: recipientEmail,
           subject: `Facture Caprices VIP - ${table.client_name || 'Client'}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -2890,7 +2913,8 @@ function InvoicesView({ event }) {
 
       const data = await response.json()
       if (!response.ok) throw new Error(data.error)
-      toast.success(`Facture envoyée à ${table.client_email}`)
+      toast.success(`Facture envoyée à ${recipientEmail}`)
+      setShowInvoiceModal(false)
     } catch (error) {
       toast.error(`Erreur: ${error.message}`)
     } finally {
