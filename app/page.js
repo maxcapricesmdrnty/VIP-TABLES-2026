@@ -2901,7 +2901,7 @@ function TeamManagementView({ event }) {
             <Card key={member.id} className={`p-4 ${!member.is_active ? 'opacity-50' : ''}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${member.role === 'admin' ? 'bg-red-500' : member.role === 'serveur' ? 'bg-blue-500' : 'bg-purple-500'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${member.role === 'admin' ? 'bg-red-500' : member.role === 'chef_equipe' ? 'bg-amber-500' : member.role === 'serveur' ? 'bg-blue-500' : 'bg-purple-500'}`}>
                     {member.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
