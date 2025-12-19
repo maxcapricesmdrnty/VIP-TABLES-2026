@@ -3780,8 +3780,8 @@ function InvoicesView({ event, onEventUpdate }) {
                 
                 {/* Footer */}
                 <div className="text-center text-xs text-gray-500">
-                  <p>{billingSettings.billing_thank_you || 'Thank you for your trust'} - {billingSettings.billing_company_name}!</p>
-                  <p>{billingSettings.billing_vat_text}</p>
+                  <p>{billingSettings.billing_thank_you || event.billing_thank_you || 'Thank you for your trust'} - {billingSettings.billing_company_name || event.billing_company_name || 'VIP'}!</p>
+                  <p>{billingSettings.billing_vat_text || event.billing_vat_text || 'VAT not applicable at this stage'}</p>
                 </div>
               </div>
               
