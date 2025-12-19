@@ -2918,7 +2918,7 @@ function GuichetView({ event, eventDays }) {
                   {day ? format(parseISO(day), 'EEEE dd MMMM', { locale: fr }) : 'Date invalide'}
                 </SelectItem>
               )) : (
-                <SelectItem value="" disabled>Aucun jour configuré</SelectItem>
+                <div className="p-2 text-sm text-muted-foreground">Aucun jour configuré</div>
               )}
             </SelectContent>
           </Select>
