@@ -2892,10 +2892,22 @@ function InvoicesView({ event, onEventUpdate }) {
     }
   }
 
-  // Open invoice preview modal
+  // Open invoice preview modal (single table)
   const openInvoicePreview = (table) => {
     setSelectedInvoiceTable(table)
+    setSelectedInvoiceTables([table])
+    setIsConsolidated(false)
     setInvoiceRecipient(table.client_email ? 'client' : 'vip')
+    setCustomEmail('')
+    setShowInvoiceModal(true)
+  }
+
+  // Open invoice preview modal (consolidated - multiple tables)
+  const openConsolidatedInvoicePreview = (tables) => {
+    setSelectedInvoiceTable(tables[0])
+    setSelectedInvoiceTables(tables)
+    setIsConsolidated(true)
+    setInvoiceRecipient(tables[0]?.client_email ? 'client' : 'vip')
     setCustomEmail('')
     setShowInvoiceModal(true)
   }
@@ -2903,11 +2915,27 @@ function InvoicesView({ event, onEventUpdate }) {
   // Get recipient email based on selection
   const getRecipientEmail = () => {
     switch (invoiceRecipient) {
-      case 'vip': return 'vip@caprices.ch'
+      case 'vip': return billingSettings.billing_email || 'vip@caprices.ch'
       case 'client': return selectedInvoiceTable?.client_email || ''
       case 'custom': return customEmail
       default: return ''
     }
+  }
+
+  // Get all unique days from selected tables
+  const getInvoiceDays = () => {
+    const days = [...new Set(selectedInvoiceTables.map(t => t.day))].sort()
+    return days
+  }
+
+  // Get tables for a specific day
+  const getTablesForDay = (day) => {
+    return selectedInvoiceTables.filter(t => t.day === day)
+  }
+
+  // Calculate grand total for all selected tables
+  const getGrandTotal = () => {
+    return selectedInvoiceTables.reduce((sum, t) => sum + calculateTableTotal(t), 0)
   }
 
   // Send invoice by email with selected recipient
