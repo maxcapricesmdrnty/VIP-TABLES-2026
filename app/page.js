@@ -3174,6 +3174,155 @@ function InvoicesView({ event }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Invoice Preview Modal */}
+      <Dialog open={showInvoiceModal} onOpenChange={setShowInvoiceModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-amber-500" />
+              Prévisualisation de la facture
+            </DialogTitle>
+            <DialogDescription>
+              Table {selectedInvoiceTable?.table_number} - {selectedInvoiceTable?.client_name || 'Client'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedInvoiceTable && (
+            <div className="space-y-6">
+              {/* Invoice Preview */}
+              <div className="border rounded-lg p-6 bg-white text-black">
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl font-bold text-amber-600">FACTURE</h2>
+                  <p className="text-gray-600">{event.name}</p>
+                </div>
+                
+                <div className="flex justify-between mb-6">
+                  <div>
+                    <p className="text-sm text-gray-500">Facture N°</p>
+                    <p className="font-mono">INV-{(selectedInvoiceTable.id || '').slice(0, 8).toUpperCase()}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">Date</p>
+                    <p>{format(new Date(), 'dd/MM/yyyy')}</p>
+                  </div>
+                </div>
+                
+                <div className="mb-6">
+                  <p className="text-sm text-gray-500 mb-1">Client</p>
+                  <p className="font-semibold">{selectedInvoiceTable.client_name || 'N/A'}</p>
+                  {selectedInvoiceTable.client_email && <p className="text-sm">{selectedInvoiceTable.client_email}</p>}
+                  {selectedInvoiceTable.client_phone && <p className="text-sm">{selectedInvoiceTable.client_phone}</p>}
+                </div>
+                
+                <div className="border-t border-b py-4 mb-4">
+                  <div className="flex justify-between items-center bg-amber-100 p-2 rounded mb-2">
+                    <span className="font-semibold">Description</span>
+                    <span className="font-semibold">Montant</span>
+                  </div>
+                  <div className="flex justify-between items-center p-2">
+                    <span>Table {selectedInvoiceTable.table_number} - Réservation VIP</span>
+                    <span>{formatSwiss(calculateTableTotal(selectedInvoiceTable))} {event.currency}</span>
+                  </div>
+                </div>
+                
+                <div className="flex justify-between items-center text-lg font-bold">
+                  <span>TOTAL</span>
+                  <span className="text-amber-600">{formatSwiss(calculateTableTotal(selectedInvoiceTable))} {event.currency}</span>
+                </div>
+                
+                <div className="text-center mt-6 text-sm text-gray-500">
+                  <p>Merci de votre confiance!</p>
+                  <p>vip@caprices.ch</p>
+                </div>
+              </div>
+              
+              {/* Email Options */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Envoyer à :</Label>
+                
+                <div className="space-y-3">
+                  {/* Option VIP */}
+                  <div 
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${invoiceRecipient === 'vip' ? 'border-amber-500 bg-amber-50' : 'border-border hover:bg-muted/50'}`}
+                    onClick={() => setInvoiceRecipient('vip')}
+                  >
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${invoiceRecipient === 'vip' ? 'border-amber-500' : 'border-muted-foreground'}`}>
+                      {invoiceRecipient === 'vip' && <div className="w-2 h-2 rounded-full bg-amber-500" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">Caprices VIP (copie interne)</p>
+                      <p className="text-sm text-muted-foreground">vip@caprices.ch</p>
+                    </div>
+                  </div>
+                  
+                  {/* Option Client */}
+                  <div 
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${invoiceRecipient === 'client' ? 'border-amber-500 bg-amber-50' : 'border-border hover:bg-muted/50'} ${!selectedInvoiceTable.client_email ? 'opacity-50' : ''}`}
+                    onClick={() => selectedInvoiceTable.client_email && setInvoiceRecipient('client')}
+                  >
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${invoiceRecipient === 'client' ? 'border-amber-500' : 'border-muted-foreground'}`}>
+                      {invoiceRecipient === 'client' && <div className="w-2 h-2 rounded-full bg-amber-500" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">Email du client</p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedInvoiceTable.client_email || 'Non renseigné'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Option Custom */}
+                  <div 
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${invoiceRecipient === 'custom' ? 'border-amber-500 bg-amber-50' : 'border-border hover:bg-muted/50'}`}
+                    onClick={() => setInvoiceRecipient('custom')}
+                  >
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${invoiceRecipient === 'custom' ? 'border-amber-500' : 'border-muted-foreground'}`}>
+                      {invoiceRecipient === 'custom' && <div className="w-2 h-2 rounded-full bg-amber-500" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">Autre adresse email</p>
+                      {invoiceRecipient === 'custom' && (
+                        <Input 
+                          type="email"
+                          className="mt-2"
+                          placeholder="email@exemple.com"
+                          value={customEmail}
+                          onChange={(e) => setCustomEmail(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="flex gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowInvoiceModal(false)}>
+              Annuler
+            </Button>
+            <Button 
+              onClick={sendInvoiceEmail}
+              disabled={sendingEmail === selectedInvoiceTable?.id || (invoiceRecipient === 'custom' && !customEmail)}
+              className="bg-gradient-to-r from-amber-500 to-amber-600 text-black hover:from-amber-600 hover:to-amber-700"
+            >
+              {sendingEmail === selectedInvoiceTable?.id ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Envoi...
+                </>
+              ) : (
+                <>
+                  <FileText className="w-4 h-4 mr-2" />
+                  Envoyer la facture
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
