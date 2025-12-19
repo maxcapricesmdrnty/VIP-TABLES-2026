@@ -1000,6 +1000,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
   const mainNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'tables', label: 'Tables', icon: Table2 },
+    { id: 'guichet', label: 'Guichet', icon: Ticket },
     { id: 'invoices', label: 'Factures', icon: Receipt },
   ]
 
