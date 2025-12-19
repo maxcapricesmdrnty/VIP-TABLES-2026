@@ -2810,9 +2810,10 @@ function TeamManagementView({ event }) {
 
   const getRoleBadge = (role) => {
     switch (role) {
-      case 'admin': return <Badge className="bg-red-500">Admin</Badge>
-      case 'serveur': return <Badge className="bg-blue-500">Serveur</Badge>
-      case 'bar': return <Badge className="bg-purple-500">Bar</Badge>
+      case 'admin': return <Badge className="bg-red-500">👑 Admin</Badge>
+      case 'chef_equipe': return <Badge className="bg-amber-500">⭐ Chef d'équipe</Badge>
+      case 'serveur': return <Badge className="bg-blue-500">🍾 Serveur</Badge>
+      case 'bar': return <Badge className="bg-purple-500">🍸 Bar</Badge>
       default: return <Badge>{role}</Badge>
     }
   }
