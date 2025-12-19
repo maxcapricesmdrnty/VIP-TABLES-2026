@@ -2865,10 +2865,17 @@ function TeamManagementView({ event }) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">👑 Admin - Accès complet</SelectItem>
-                    <SelectItem value="serveur">🍾 Serveur - Prise de commandes</SelectItem>
+                    <SelectItem value="chef_equipe">⭐ Chef d'équipe - Tout sauf configuration</SelectItem>
+                    <SelectItem value="serveur">🍾 Serveur - Prise de commandes uniquement</SelectItem>
                     <SelectItem value="bar">🍸 Bar - Vue bar uniquement</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {newMember.role === 'admin' && 'Peut tout faire : configuration, réservations, factures, service'}
+                  {newMember.role === 'chef_equipe' && 'Peut gérer les réservations, factures, guichet et service. Pas de configuration.'}
+                  {newMember.role === 'serveur' && 'Accès uniquement à la prise de commandes (Service > Serveur)'}
+                  {newMember.role === 'bar' && 'Accès uniquement à la vue bar (Service > Bar)'}
+                </p>
               </div>
             </div>
             <DialogFooter>
