@@ -2805,7 +2805,7 @@ function InvoicesView({ event }) {
         doc.setTextColor(0, 0, 0)
       }
       
-      if (idx < tables.length - 1) yPos += 3
+      if (idx < tablesToProcess.length - 1) yPos += 3
     })
     
     // Total
