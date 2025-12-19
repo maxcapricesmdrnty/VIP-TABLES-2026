@@ -3739,18 +3739,35 @@ function InvoicesView({ event, onEventUpdate }) {
                   <span className="font-bold text-lg">Grand Total: {formatSwiss(getGrandTotal())} {event.currency}</span>
                 </div>
                 
-                {/* Banking Info */}
-                {billingSettings.billing_iban && (
+                {/* Banking Info - Always show if any field is filled */}
+                {(billingSettings.billing_iban || billingSettings.billing_beneficiary || billingSettings.billing_bank_name || 
+                  event.billing_iban || event.billing_beneficiary || event.billing_bank_name) && (
                   <div className="mb-4">
                     <div className="bg-[#4682B4] text-white px-3 py-1 rounded-t font-bold text-xs">
                       Banking Information
                     </div>
                     <div className="border border-t-0 rounded-b p-2 text-xs space-y-1">
-                      {billingSettings.billing_beneficiary && <p>Beneficiary: {billingSettings.billing_beneficiary}</p>}
-                      {billingSettings.billing_address && <p>Address: {billingSettings.billing_address}</p>}
-                      {billingSettings.billing_iban && <p>IBAN: {billingSettings.billing_iban}</p>}
-                      {billingSettings.billing_bic && <p>BIC/SWIFT: {billingSettings.billing_bic}</p>}
-                      {billingSettings.billing_bank_name && <p>Bank: {billingSettings.billing_bank_name}</p>}
+                      {(billingSettings.billing_beneficiary || event.billing_beneficiary) && (
+                        <p>Beneficiary: {billingSettings.billing_beneficiary || event.billing_beneficiary}</p>
+                      )}
+                      {(billingSettings.billing_address || event.billing_address) && (
+                        <p>Address: {billingSettings.billing_address || event.billing_address}</p>
+                      )}
+                      {(billingSettings.billing_account_number || event.billing_account_number) && (
+                        <p>Account Number: {billingSettings.billing_account_number || event.billing_account_number}</p>
+                      )}
+                      {(billingSettings.billing_iban || event.billing_iban) && (
+                        <p>IBAN: {billingSettings.billing_iban || event.billing_iban}</p>
+                      )}
+                      {(billingSettings.billing_bic || event.billing_bic) && (
+                        <p>BIC/SWIFT: {billingSettings.billing_bic || event.billing_bic}</p>
+                      )}
+                      {(billingSettings.billing_bank_name || event.billing_bank_name) && (
+                        <p>Bank: {billingSettings.billing_bank_name || event.billing_bank_name}</p>
+                      )}
+                      {(billingSettings.billing_bank_address || event.billing_bank_address) && (
+                        <p>Bank Address: {billingSettings.billing_bank_address || event.billing_bank_address}</p>
+                      )}
                     </div>
                   </div>
                 )}
