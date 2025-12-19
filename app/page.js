@@ -1828,10 +1828,10 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                             <Label>Nombre de tables</Label>
                             <Input
                               type="number"
-                              value={layoutForm[zone].count}
+                              value={layoutForm[zone].count === 0 ? '' : layoutForm[zone].count}
                               onChange={(e) => setLayoutForm({
                                 ...layoutForm,
-                                [zone]: { ...layoutForm[zone], count: parseInt(e.target.value) || 0 }
+                                [zone]: { ...layoutForm[zone], count: e.target.value === '' ? 0 : parseInt(e.target.value) }
                               })}
                             />
                           </div>
@@ -1841,10 +1841,10 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                             <Label>Capacité/table</Label>
                             <Input
                               type="number"
-                              value={layoutForm[zone].capacity}
+                              value={layoutForm[zone].capacity === 0 ? '' : layoutForm[zone].capacity}
                               onChange={(e) => setLayoutForm({
                                 ...layoutForm,
-                                [zone]: { ...layoutForm[zone], capacity: parseInt(e.target.value) || 0 }
+                                [zone]: { ...layoutForm[zone], capacity: e.target.value === '' ? 0 : parseInt(e.target.value) }
                               })}
                             />
                           </div>
@@ -1852,10 +1852,10 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                             <Label>Prix ({event.currency})</Label>
                             <Input
                               type="number"
-                              value={layoutForm[zone].price}
+                              value={layoutForm[zone].price === 0 ? '' : layoutForm[zone].price}
                               onChange={(e) => setLayoutForm({
                                 ...layoutForm,
-                                [zone]: { ...layoutForm[zone], price: parseInt(e.target.value) || 0 }
+                                [zone]: { ...layoutForm[zone], price: e.target.value === '' ? 0 : parseInt(e.target.value) }
                               })}
                             />
                           </div>
