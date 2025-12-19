@@ -2938,12 +2938,12 @@ function InvoicesView({ event, onEventUpdate }) {
     return selectedInvoiceTables.reduce((sum, t) => sum + calculateTableTotal(t), 0)
   }
 
-  // Send invoice by email with selected recipient
+  // Send invoice by email with selected recipient (supports single and consolidated)
   const sendInvoiceEmail = async () => {
     const recipientEmail = getRecipientEmail()
     
     if (!recipientEmail || !recipientEmail.includes('@')) {
-      toast.error('Email invalide')
+      toast.error('Invalid email address')
       return
     }
 
@@ -2955,72 +2955,216 @@ function InvoicesView({ event, onEventUpdate }) {
     try {
       const doc = new jsPDF()
       const currency = event?.currency || 'CHF'
-      const total = calculateTableTotal(table)
+      const grandTotal = getGrandTotal()
+      const tables = selectedInvoiceTables
+      const days = getInvoiceDays()
+      const tableNumbers = tables.map(t => t.table_number).join(', ')
+      const companyName = billingSettings.billing_company_name || 'VIP'
       
-      // Simple PDF
+      // Colors
+      const primaryColor = [70, 130, 180] // Steel blue like the PDF
+      
+      // Header - Company name
       doc.setFontSize(24)
-      doc.setTextColor(218, 165, 32)
-      doc.text('FACTURE', 105, 25, { align: 'center' })
+      doc.setTextColor(...primaryColor)
+      doc.setFont(undefined, 'bold')
+      doc.text(companyName, 105, 20, { align: 'center' })
+      
+      // Subtitle
       doc.setFontSize(14)
       doc.setTextColor(0, 0, 0)
-      doc.text(event?.name || 'Événement', 105, 35, { align: 'center' })
-      
-      doc.setFontSize(10)
-      doc.text(`Facture N°: INV-${(table.id || '').slice(0, 8).toUpperCase()}`, 20, 55)
-      doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, 20, 62)
-      
-      doc.setFontSize(11)
-      doc.setFont(undefined, 'bold')
-      doc.text('Client:', 20, 80)
       doc.setFont(undefined, 'normal')
-      doc.setFontSize(10)
-      doc.text(table.client_name || 'N/A', 20, 88)
-      doc.text(table.client_email || '', 20, 95)
+      const docType = isConsolidated ? 'Consolidated Proforma - Table Reservations' : 'Proforma - Table Reservation'
+      doc.text(docType, 105, 30, { align: 'center' })
       
-      let yPos = 120
-      doc.setFillColor(218, 165, 32)
+      // Date right aligned
+      doc.setFontSize(10)
+      doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, 190, 40, { align: 'right' })
+      
+      // Two columns: Client Info and Reservation Summary
+      let yPos = 55
+      
+      // Client Information - Left box
+      doc.setFillColor(...primaryColor)
+      doc.rect(20, yPos, 80, 8, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFont(undefined, 'bold')
+      doc.setFontSize(10)
+      doc.text('Client Information', 25, yPos + 6)
+      
+      doc.setTextColor(0, 0, 0)
+      doc.setFont(undefined, 'normal')
+      doc.text(`Name: ${table.client_name || 'N/A'}`, 25, yPos + 18)
+      if (table.client_email) doc.text(`Email: ${table.client_email}`, 25, yPos + 26)
+      if (table.client_phone) doc.text(`Phone: ${table.client_phone}`, 25, yPos + 34)
+      
+      // Reservation Summary - Right box
+      doc.setFillColor(...primaryColor)
+      doc.rect(110, yPos, 80, 8, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFont(undefined, 'bold')
+      doc.text('Reservation Summary', 115, yPos + 6)
+      
+      doc.setTextColor(0, 0, 0)
+      doc.setFont(undefined, 'normal')
+      doc.text(`Total Tables: ${tables.length}`, 115, yPos + 18)
+      doc.text(`Days: ${days.join(', ')}`, 115, yPos + 26)
+      doc.text(`Table Numbers: ${tableNumbers}`, 115, yPos + 34)
+      
+      // Detailed Reservations
+      yPos = 110
+      doc.setFillColor(...primaryColor)
       doc.rect(20, yPos, 170, 8, 'F')
       doc.setTextColor(255, 255, 255)
       doc.setFont(undefined, 'bold')
-      doc.text('Description', 25, yPos + 6)
-      doc.text('Montant', 175, yPos + 6, { align: 'right' })
+      doc.text('Detailed Reservations', 25, yPos + 6)
+      
+      yPos += 15
+      doc.setTextColor(0, 0, 0)
+      
+      // Group by day
+      days.forEach(day => {
+        const dayTables = getTablesForDay(day)
+        const dayTotal = dayTables.reduce((sum, t) => sum + calculateTableTotal(t), 0)
+        
+        // Day header
+        doc.setFont(undefined, 'bold')
+        doc.setFontSize(10)
+        doc.text(`Day ${day}`, 25, yPos)
+        doc.setFont(undefined, 'normal')
+        doc.text(`Tables: ${dayTables.map(t => t.table_number).join(', ')}`, 60, yPos)
+        yPos += 8
+        
+        // Table header row
+        doc.setFillColor(240, 240, 240)
+        doc.rect(25, yPos - 4, 160, 7, 'F')
+        doc.setFontSize(9)
+        doc.text('Description', 28, yPos)
+        doc.text('Qty', 100, yPos)
+        doc.text('Unit Price', 120, yPos)
+        doc.text('Total', 165, yPos)
+        yPos += 8
+        
+        // Table rows
+        dayTables.forEach(t => {
+          const tTotal = calculateTableTotal(t)
+          doc.text(`Table ${t.table_number} Reservation`, 28, yPos)
+          doc.text('1', 100, yPos)
+          doc.text(`${formatSwiss(tTotal)} ${currency}`, 120, yPos)
+          doc.text(`${formatSwiss(tTotal)} ${currency}`, 165, yPos)
+          yPos += 7
+        })
+        
+        // Day subtotal
+        doc.setFont(undefined, 'bold')
+        doc.text(`Day ${day} Subtotal: ${formatSwiss(dayTotal)} ${currency}`, 130, yPos, { align: 'right' })
+        doc.setFont(undefined, 'normal')
+        yPos += 12
+      })
+      
+      // Grand Total
+      yPos += 5
+      doc.setFillColor(...primaryColor)
+      doc.rect(20, yPos, 170, 12, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(14)
+      doc.setFont(undefined, 'bold')
+      doc.text(`Grand Total: ${formatSwiss(grandTotal)} ${currency}`, 105, yPos + 9, { align: 'center' })
+      
+      // Banking Information
+      yPos += 25
+      doc.setTextColor(0, 0, 0)
+      doc.setFillColor(...primaryColor)
+      doc.rect(20, yPos, 170, 8, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(10)
+      doc.text('Banking Information', 25, yPos + 6)
       
       yPos += 15
       doc.setTextColor(0, 0, 0)
       doc.setFont(undefined, 'normal')
-      doc.text(`Table ${table.table_number} - Réservation VIP`, 25, yPos)
-      doc.text(`${formatSwiss(total)} ${currency}`, 175, yPos, { align: 'right' })
+      doc.setFontSize(9)
+      
+      if (billingSettings.billing_beneficiary) {
+        doc.text(`Beneficiary: ${billingSettings.billing_beneficiary}`, 25, yPos)
+        yPos += 6
+      }
+      if (billingSettings.billing_address) {
+        doc.text(`Address: ${billingSettings.billing_address}`, 25, yPos)
+        yPos += 6
+      }
+      if (billingSettings.billing_account_number) {
+        doc.text(`Account Number: ${billingSettings.billing_account_number}`, 25, yPos)
+        yPos += 6
+      }
+      if (billingSettings.billing_iban) {
+        doc.text(`IBAN: ${billingSettings.billing_iban}`, 25, yPos)
+        yPos += 6
+      }
+      if (billingSettings.billing_bic) {
+        doc.text(`BIC/SWIFT: ${billingSettings.billing_bic}`, 25, yPos)
+        yPos += 6
+      }
+      if (billingSettings.billing_bank_name) {
+        doc.text(`Bank: ${billingSettings.billing_bank_name}`, 25, yPos)
+        yPos += 6
+      }
+      if (billingSettings.billing_bank_address) {
+        doc.text(`Bank Address: ${billingSettings.billing_bank_address}`, 25, yPos)
+        yPos += 6
+      }
+      
+      // Terms & Conditions
+      yPos += 10
+      doc.setFillColor(...primaryColor)
+      doc.rect(20, yPos, 170, 8, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFont(undefined, 'bold')
+      doc.text('Terms & Conditions', 25, yPos + 6)
       
       yPos += 15
-      doc.setDrawColor(218, 165, 32)
-      doc.line(20, yPos, 190, yPos)
-      yPos += 8
-      doc.setFontSize(12)
-      doc.setFont(undefined, 'bold')
-      doc.text('TOTAL', 25, yPos)
-      doc.text(`${formatSwiss(total)} ${currency}`, 175, yPos, { align: 'right' })
-      
-      doc.setFontSize(9)
+      doc.setTextColor(0, 0, 0)
       doc.setFont(undefined, 'normal')
-      doc.text('Merci de votre confiance!', 105, 265, { align: 'center' })
-      doc.text('vip@caprices.ch', 105, 272, { align: 'center' })
+      doc.setFontSize(8)
+      
+      const terms = (billingSettings.billing_terms || '').split('\n')
+      terms.forEach(term => {
+        if (term.trim()) {
+          doc.text(`• ${term.trim()}`, 25, yPos)
+          yPos += 5
+        }
+      })
+      
+      // Footer
+      doc.setFontSize(10)
+      doc.setFont(undefined, 'normal')
+      doc.text(`${billingSettings.billing_thank_you || 'Thank you for your trust'} - ${companyName}!`, 105, 270, { align: 'center' })
+      doc.setFontSize(8)
+      doc.text(billingSettings.billing_vat_text || 'VAT not applicable at this stage', 105, 277, { align: 'center' })
+      doc.text(`This ${isConsolidated ? 'consolidated proforma' : 'proforma'} was automatically generated on ${format(new Date(), 'dd/MM/yyyy')}`, 105, 283, { align: 'center' })
       
       const pdfBase64 = doc.output('datauristring').split(',')[1]
-      const fileName = `Facture_${table.table_number}.pdf`
+      const clientNameClean = (table.client_name || 'Client').replace(/[^a-zA-Z0-9]/g, '_')
+      const fileName = isConsolidated 
+        ? `Invoice_${clientNameClean}_${companyName}.pdf`
+        : `Invoice_Table_${table.table_number}_${companyName}.pdf`
       
       const response = await fetch('/api/invoice/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: recipientEmail,
-          subject: `Facture Caprices VIP - ${table.client_name || 'Client'}`,
+          subject: `${companyName} - ${isConsolidated ? 'Consolidated ' : ''}Invoice - ${table.client_name || 'Client'}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #DAA520;">Caprices Festival - VIP</h2>
-              <p>Bonjour ${table.client_name || ''},</p>
-              <p>Veuillez trouver ci-joint votre facture pour votre réservation VIP.</p>
-              <p><strong>Montant total: ${formatSwiss(total)} ${currency}</strong></p>
-              <p>Cordialement,<br>L'équipe Caprices VIP</p>
+              <h2 style="color: #4682B4;">${companyName}</h2>
+              <p>Dear ${table.client_name || 'Client'},</p>
+              <p>Please find attached your ${isConsolidated ? 'consolidated ' : ''}invoice for your VIP table reservation.</p>
+              <p><strong>Total Amount: ${formatSwiss(grandTotal)} ${currency}</strong></p>
+              <p>If you have any questions, please don't hesitate to contact us.</p>
+              <p>Best regards,<br>The ${companyName} Team</p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+              <p style="font-size: 12px; color: #666;">${billingSettings.billing_email || 'vip@caprices.ch'}</p>
             </div>
           `,
           pdfBase64,
@@ -3030,10 +3174,10 @@ function InvoicesView({ event, onEventUpdate }) {
 
       const data = await response.json()
       if (!response.ok) throw new Error(data.error)
-      toast.success(`Facture envoyée à ${recipientEmail}`)
+      toast.success(`Invoice sent to ${recipientEmail}`)
       setShowInvoiceModal(false)
     } catch (error) {
-      toast.error(`Erreur: ${error.message}`)
+      toast.error(`Error: ${error.message}`)
     } finally {
       setSendingEmail(null)
     }
