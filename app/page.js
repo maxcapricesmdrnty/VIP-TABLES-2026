@@ -2772,7 +2772,7 @@ function InvoicesView({ event }) {
     yPos += 12
     
     let grandTotal = 0
-    tables.forEach((t, idx) => {
+    tablesToProcess.forEach((t, idx) => {
       const total = calculateTableTotal(t)
       grandTotal += total
       
