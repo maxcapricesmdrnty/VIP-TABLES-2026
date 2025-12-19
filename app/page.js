@@ -2725,26 +2725,26 @@ function InvoicesView({ event }) {
       const data = await response.json()
       if (!response.ok) throw new Error(data.error)
       
-      // Convert base64 to blob and download
-      const byteCharacters = atob(data.pdf.split(',')[1])
-      const byteNumbers = new Array(byteCharacters.length)
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i)
+      // Open PDF in new tab - user can save from there
+      const pdfWindow = window.open('', '_blank')
+      if (pdfWindow) {
+        pdfWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>${data.fileName}</title>
+            <style>body{margin:0;}</style>
+          </head>
+          <body>
+            <iframe src="${data.pdf}" width="100%" height="100%" style="border:none;position:absolute;top:0;left:0;right:0;bottom:0;"></iframe>
+          </body>
+          </html>
+        `)
+        pdfWindow.document.close()
+        toast.success('PDF ouvert dans un nouvel onglet!')
+      } else {
+        toast.error('Popup bloquée - autorisez les popups pour ce site')
       }
-      const byteArray = new Uint8Array(byteNumbers)
-      const blob = new Blob([byteArray], { type: 'application/pdf' })
-      
-      // Create download link
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = data.fileName
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-      
-      toast.success('PDF téléchargé!')
     } catch (error) {
       console.error('PDF error:', error)
       toast.error('Erreur: ' + error.message)
