@@ -2878,11 +2878,13 @@ function TeamManagementView({ event }) {
   )
 }
 
-// Server Order Component (Mobile-First)
+// Server Order Component (Mobile-First) - With Pre-order Support
 function ServerOrderView({ event, eventDays }) {
   const [selectedDay, setSelectedDay] = useState('')
   const [tables, setTables] = useState([])
   const [selectedTable, setSelectedTable] = useState(null)
+  const [preOrder, setPreOrder] = useState(null)
+  const [preOrderItems, setPreOrderItems] = useState([])
   const [menuItems, setMenuItems] = useState([])
   const [cart, setCart] = useState([])
   const [loading, setLoading] = useState(false)
@@ -2891,6 +2893,7 @@ function ServerOrderView({ event, eventDays }) {
   const [serverName, setServerName] = useState('')
   const [showServerDialog, setShowServerDialog] = useState(true)
   const [sending, setSending] = useState(false)
+  const [activeTab, setActiveTab] = useState('preorder') // preorder, add
 
   const availableDays = (eventDays || []).map(d => d?.date || d?.day).filter(Boolean).sort()
 
@@ -2908,6 +2911,12 @@ function ServerOrderView({ event, eventDays }) {
   useEffect(() => {
     fetchMenuItems()
   }, [event.id])
+
+  useEffect(() => {
+    if (selectedTable) {
+      fetchPreOrder()
+    }
+  }, [selectedTable])
 
   const fetchTables = async () => {
     setLoading(true)
@@ -2927,13 +2936,45 @@ function ServerOrderView({ event, eventDays }) {
     }
   }
 
+  const fetchPreOrder = async () => {
+    if (!selectedTable) return
+    try {
+      // Fetch pre-order from orders table
+      const { data: order } = await supabase
+        .from('orders')
+        .select('*, order_items(*, menu_items(name, category))')
+        .eq('table_id', selectedTable.id)
+        .eq('status', 'confirmed')
+        .single()
+      
+      if (order) {
+        setPreOrder(order)
+        // Transform items with served count
+        const items = (order.order_items || []).map(item => ({
+          ...item,
+          name: item.menu_items?.name || item.item_name || 'Article',
+          category: item.menu_items?.category || '',
+          served: item.served_quantity || 0,
+          remaining: item.quantity - (item.served_quantity || 0)
+        }))
+        setPreOrderItems(items)
+      } else {
+        setPreOrder(null)
+        setPreOrderItems([])
+      }
+    } catch (error) {
+      console.error('Error fetching pre-order:', error)
+      setPreOrder(null)
+      setPreOrderItems([])
+    }
+  }
+
   const fetchMenuItems = async () => {
     try {
       const { data } = await supabase
         .from('menu_items')
         .select('*')
         .eq('event_id', event.id)
-        .eq('is_available', true)
         .order('category')
       setMenuItems(data || [])
     } catch (error) {
@@ -2980,22 +3021,56 @@ function ServerOrderView({ event, eventDays }) {
   }
 
   const getCartTotal = () => cart.reduce((s, c) => s + (c.price * c.quantity), 0)
-
-  const getWithinBudget = () => {
+  
+  const getRemainingBudget = () => {
     if (!selectedTable) return 0
-    const remaining = (selectedTable.beverage_budget || 0) - (selectedTable.consumed_amount || 0)
-    return Math.min(remaining, getCartTotal())
+    const budget = selectedTable.beverage_budget || 0
+    const consumed = selectedTable.consumed_amount || 0
+    return Math.max(0, budget - consumed)
   }
 
-  const getSupplement = () => Math.max(0, getCartTotal() - getWithinBudget())
+  const getWithinBudget = () => Math.min(getRemainingBudget(), getCartTotal())
+  const getSupplement = () => Math.max(0, getCartTotal() - getRemainingBudget())
 
   const formatSwiss = (amount) => (amount || 0).toLocaleString('de-CH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 
+  // Mark pre-order item as served
+  const markAsServed = async (item) => {
+    if (item.remaining <= 0) return
+    try {
+      const newServed = (item.served || 0) + 1
+      await supabase
+        .from('order_items')
+        .update({ served_quantity: newServed })
+        .eq('id', item.id)
+      
+      // Update consumed amount on table
+      const newConsumed = (selectedTable.consumed_amount || 0) + item.unit_price
+      await supabase
+        .from('tables')
+        .update({ consumed_amount: newConsumed })
+        .eq('id', selectedTable.id)
+      
+      toast.success(`${item.name} servi!`)
+      fetchPreOrder()
+      fetchTables()
+      // Update local selectedTable
+      setSelectedTable(prev => ({...prev, consumed_amount: newConsumed}))
+    } catch (error) {
+      toast.error('Erreur: ' + error.message)
+    }
+  }
+
+  // Send new order to bar
   const sendOrder = async () => {
     if (!selectedTable || cart.length === 0) return
     setSending(true)
     try {
-      // Create order
+      const cartTotal = getCartTotal()
+      const withinBudget = getWithinBudget()
+      const supplement = getSupplement()
+
+      // Create live order
       const { data: order, error: orderError } = await supabase
         .from('live_orders')
         .insert({
@@ -3003,9 +3078,9 @@ function ServerOrderView({ event, eventDays }) {
           event_id: event.id,
           server_name: serverName,
           status: 'new',
-          total_amount: getCartTotal(),
-          within_budget: getWithinBudget(),
-          supplement: getSupplement()
+          total_amount: cartTotal,
+          within_budget: withinBudget,
+          supplement: supplement
         })
         .select()
         .single()
@@ -3027,15 +3102,18 @@ function ServerOrderView({ event, eventDays }) {
       if (itemsError) throw itemsError
 
       // Update table consumed amount
-      const newConsumed = (selectedTable.consumed_amount || 0) + getCartTotal()
+      const newConsumed = (selectedTable.consumed_amount || 0) + cartTotal
       await supabase
         .from('tables')
         .update({ consumed_amount: newConsumed })
         .eq('id', selectedTable.id)
 
-      toast.success('Commande envoyée au bar!')
+      const message = supplement > 0 
+        ? `Commande envoyée! ⚠️ ${formatSwiss(supplement)} ${event.currency} à encaisser`
+        : 'Commande envoyée au bar!'
+      toast.success(message)
       setCart([])
-      setSelectedTable(null)
+      setSelectedTable(prev => ({...prev, consumed_amount: newConsumed}))
       fetchTables()
     } catch (error) {
       toast.error('Erreur: ' + error.message)
@@ -3083,7 +3161,7 @@ function ServerOrderView({ event, eventDays }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ShoppingCart className="w-6 h-6 text-purple-500" />
-          <h2 className="text-xl font-semibold">Commandes</h2>
+          <h2 className="text-xl font-semibold">Service</h2>
           <Badge variant="outline">{serverName}</Badge>
         </div>
         <Select value={selectedDay} onValueChange={setSelectedDay}>
@@ -3100,154 +3178,246 @@ function ServerOrderView({ event, eventDays }) {
         </Select>
       </div>
 
-      {/* Table Selection or Order Interface */}
+      {/* Table Selection */}
       {!selectedTable ? (
         <div className="space-y-3">
           <p className="text-muted-foreground">Sélectionnez une table:</p>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {tables.map(table => {
-              const status = getBudgetStatus(table)
-              const remaining = (table.beverage_budget || 0) - (table.consumed_amount || 0)
-              return (
-                <Card 
-                  key={table.id}
-                  className={`p-4 cursor-pointer hover:border-purple-500 transition-all ${status.color.replace('bg-', 'border-')}`}
-                  onClick={() => setSelectedTable(table)}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-lg">{table.table_number}</span>
-                    <span>{status.label}</span>
-                  </div>
-                  <p className="text-sm truncate">{table.client_name || 'Client'}</p>
-                  <p className={`text-sm font-semibold ${status.text}`}>
-                    {formatSwiss(remaining)} {event.currency}
-                  </p>
-                </Card>
-              )
-            })}
-          </div>
+          {loading ? (
+            <div className="flex justify-center py-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {tables.map(table => {
+                const status = getBudgetStatus(table)
+                const budget = table.beverage_budget || 0
+                const consumed = table.consumed_amount || 0
+                const remaining = budget - consumed
+                return (
+                  <Card 
+                    key={table.id}
+                    className={`p-4 cursor-pointer hover:border-purple-500 transition-all border-2 ${remaining > budget * 0.5 ? 'border-green-500/50' : remaining > budget * 0.1 ? 'border-yellow-500/50' : 'border-red-500/50'}`}
+                    onClick={() => { setSelectedTable(table); setActiveTab('preorder'); }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-xl">{table.table_number}</span>
+                      <span className="text-lg">{status.label}</span>
+                    </div>
+                    <p className="text-sm truncate mb-1">{table.client_name || 'Client'}</p>
+                    <div className="text-xs text-muted-foreground">
+                      Budget: {formatSwiss(budget)} {event.currency}
+                    </div>
+                    <div className={`text-sm font-bold ${status.text}`}>
+                      Reste: {formatSwiss(remaining)} {event.currency}
+                    </div>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 gap-4">
-          {/* Left: Menu */}
-          <div className="space-y-3">
+        <div className="space-y-4">
+          {/* Table Header */}
+          <Card className="p-4">
             <div className="flex items-center justify-between">
-              <Button variant="outline" size="sm" onClick={() => setSelectedTable(null)}>
-                ← Changer table
+              <Button variant="outline" size="sm" onClick={() => { setSelectedTable(null); setPreOrder(null); setCart([]); }}>
+                ← Retour
               </Button>
+              <div className="text-center flex-1">
+                <p className="font-bold text-xl">{selectedTable.table_number}</p>
+                <p className="text-sm text-muted-foreground">{selectedTable.client_name}</p>
+              </div>
               <div className="text-right">
-                <p className="font-bold">{selectedTable.table_number} - {selectedTable.client_name}</p>
-                <p className={`text-sm ${getBudgetStatus(selectedTable).text}`}>
-                  Reste: {formatSwiss((selectedTable.beverage_budget || 0) - (selectedTable.consumed_amount || 0))} {event.currency}
+                <p className="text-xs text-muted-foreground">Budget restant</p>
+                <p className={`text-xl font-bold ${getBudgetStatus(selectedTable).text}`}>
+                  {formatSwiss(getRemainingBudget())} {event.currency}
                 </p>
               </div>
             </div>
+          </Card>
 
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            {/* Categories */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              <Button
-                size="sm"
-                variant={selectedCategory === 'all' ? 'default' : 'outline'}
-                onClick={() => setSelectedCategory('all')}
-                className={selectedCategory === 'all' ? 'bg-purple-500' : ''}
-              >
-                Tout
-              </Button>
-              {categories.map(cat => (
-                <Button
-                  key={cat}
-                  size="sm"
-                  variant={selectedCategory === cat ? 'default' : 'outline'}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={selectedCategory === cat ? 'bg-purple-500' : ''}
-                >
-                  {cat}
-                </Button>
-              ))}
-            </div>
-
-            {/* Products Grid */}
-            <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto">
-              {filteredItems.map(item => (
-                <Card 
-                  key={item.id}
-                  className="p-3 cursor-pointer hover:bg-purple-500/10 hover:border-purple-500 transition-all"
-                  onClick={() => addToCart(item)}
-                >
-                  <p className="font-medium text-sm truncate">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">{item.category}</p>
-                  <p className="text-purple-500 font-bold">{formatSwiss(item.price)} {event.currency}</p>
-                </Card>
-              ))}
-            </div>
+          {/* Tabs */}
+          <div className="flex gap-2">
+            <Button 
+              variant={activeTab === 'preorder' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('preorder')}
+              className={activeTab === 'preorder' ? 'bg-purple-500' : ''}
+            >
+              📋 Pré-commande
+            </Button>
+            <Button 
+              variant={activeTab === 'add' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('add')}
+              className={activeTab === 'add' ? 'bg-purple-500' : ''}
+            >
+              ➕ Ajouter
+            </Button>
           </div>
 
-          {/* Right: Cart */}
-          <div className="space-y-3">
+          {/* Pre-order Tab */}
+          {activeTab === 'preorder' && (
             <Card className="p-4">
-              <h3 className="font-bold mb-3 flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4" />
-                Panier ({cart.reduce((s, c) => s + c.quantity, 0)} articles)
+              <h3 className="font-bold mb-4 flex items-center gap-2">
+                📋 Articles pré-commandés
+                {preOrder && <Badge className="bg-green-500">Confirmée</Badge>}
               </h3>
               
-              {cart.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">Panier vide</p>
+              {!preOrder || preOrderItems.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  Aucune pré-commande pour cette table
+                </p>
               ) : (
-                <div className="space-y-2 max-h-[30vh] overflow-y-auto">
-                  {cart.map(item => (
-                    <div key={item.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                <div className="space-y-2">
+                  {preOrderItems.map(item => (
+                    <div 
+                      key={item.id} 
+                      className={`flex items-center justify-between p-3 rounded-lg ${item.remaining > 0 ? 'bg-muted/50' : 'bg-green-500/10 border border-green-500/30'}`}
+                    >
                       <div className="flex-1">
-                        <p className="font-medium text-sm">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">{formatSwiss(item.price)} x {item.quantity}</p>
+                        <p className="font-medium">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">{item.category}</p>
+                        <p className="text-sm">
+                          <span className="text-green-500">{item.served || 0} servi(s)</span>
+                          {item.remaining > 0 && <span className="text-muted-foreground"> / {item.quantity} commandé(s)</span>}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button size="sm" variant="outline" onClick={() => removeFromCart(item.id)}>-</Button>
-                        <span className="w-6 text-center">{item.quantity}</span>
-                        <Button size="sm" variant="outline" onClick={() => addToCart(item)}>+</Button>
+                        <span className="text-sm font-medium">{formatSwiss(item.unit_price)} {event.currency}</span>
+                        {item.remaining > 0 ? (
+                          <Button 
+                            size="lg"
+                            onClick={() => markAsServed(item)}
+                            className="bg-green-500 hover:bg-green-600 text-white px-6"
+                          >
+                            Servir ({item.remaining})
+                          </Button>
+                        ) : (
+                          <Badge className="bg-green-500">✓ Tout servi</Badge>
+                        )}
                       </div>
                     </div>
                   ))}
+                  
+                  <div className="border-t pt-4 mt-4">
+                    <div className="flex justify-between text-sm">
+                      <span>Total pré-commande:</span>
+                      <span className="font-bold">{formatSwiss(preOrder.total_amount)} {event.currency}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-green-500">
+                      <span>Déjà servi:</span>
+                      <span>{formatSwiss(selectedTable.consumed_amount || 0)} {event.currency}</span>
+                    </div>
+                  </div>
                 </div>
               )}
+            </Card>
+          )}
 
-              <div className="border-t mt-4 pt-4 space-y-2">
-                <div className="flex justify-between">
-                  <span>Total</span>
-                  <span className="font-bold">{formatSwiss(getCartTotal())} {event.currency}</span>
+          {/* Add Tab */}
+          {activeTab === 'add' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* Products */}
+              <div className="space-y-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-green-500">Dans forfait</span>
-                  <span className="text-green-500">{formatSwiss(getWithinBudget())} {event.currency}</span>
+
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  <Button
+                    size="sm"
+                    variant={selectedCategory === 'all' ? 'default' : 'outline'}
+                    onClick={() => setSelectedCategory('all')}
+                    className={selectedCategory === 'all' ? 'bg-purple-500' : ''}
+                  >
+                    Tout
+                  </Button>
+                  {categories.map(cat => (
+                    <Button
+                      key={cat}
+                      size="sm"
+                      variant={selectedCategory === cat ? 'default' : 'outline'}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={selectedCategory === cat ? 'bg-purple-500' : ''}
+                    >
+                      {cat}
+                    </Button>
+                  ))}
                 </div>
-                {getSupplement() > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-orange-500">⚠️ Supplément</span>
-                    <span className="text-orange-500">{formatSwiss(getSupplement())} {event.currency}</span>
-                  </div>
-                )}
+
+                <div className="grid grid-cols-2 gap-2 max-h-[40vh] overflow-y-auto">
+                  {filteredItems.map(item => (
+                    <Card 
+                      key={item.id}
+                      className="p-3 cursor-pointer hover:bg-purple-500/10 hover:border-purple-500 transition-all"
+                      onClick={() => addToCart(item)}
+                    >
+                      <p className="font-medium text-sm truncate">{item.name}</p>
+                      <p className="text-xs text-muted-foreground">{item.category}</p>
+                      <p className="text-purple-500 font-bold">{formatSwiss(item.price)} {event.currency}</p>
+                    </Card>
+                  ))}
+                </div>
               </div>
 
-              <Button 
-                onClick={sendOrder}
-                disabled={cart.length === 0 || sending}
-                className="w-full mt-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-lg py-6"
-              >
-                {sending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
-                Envoyer au Bar
-              </Button>
-            </Card>
-          </div>
+              {/* Cart */}
+              <Card className="p-4">
+                <h3 className="font-bold mb-3">🛒 Nouvelle commande</h3>
+                
+                {cart.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">Sélectionnez des produits</p>
+                ) : (
+                  <div className="space-y-2 max-h-[25vh] overflow-y-auto">
+                    {cart.map(item => (
+                      <div key={item.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{item.name}</p>
+                          <p className="text-xs text-muted-foreground">{formatSwiss(item.price)} x {item.quantity}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" variant="outline" onClick={() => removeFromCart(item.id)}>-</Button>
+                          <span className="w-6 text-center">{item.quantity}</span>
+                          <Button size="sm" variant="outline" onClick={() => addToCart(item)}>+</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="border-t mt-4 pt-4 space-y-2">
+                  <div className="flex justify-between">
+                    <span>Total</span>
+                    <span className="font-bold">{formatSwiss(getCartTotal())} {event.currency}</span>
+                  </div>
+                  {getWithinBudget() > 0 && (
+                    <div className="flex justify-between text-sm text-green-500">
+                      <span>✓ Dans forfait</span>
+                      <span>{formatSwiss(getWithinBudget())} {event.currency}</span>
+                    </div>
+                  )}
+                  {getSupplement() > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-orange-500 font-bold">⚠️ À encaisser</span>
+                      <span className="text-orange-500 font-bold">{formatSwiss(getSupplement())} {event.currency}</span>
+                    </div>
+                  )}
+                </div>
+
+                <Button 
+                  onClick={sendOrder}
+                  disabled={cart.length === 0 || sending}
+                  className={`w-full mt-4 text-lg py-6 ${getSupplement() > 0 ? 'bg-gradient-to-r from-orange-500 to-orange-600' : 'bg-gradient-to-r from-purple-500 to-purple-600'} text-white`}
+                >
+                  {sending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                  {getSupplement() > 0 ? `Envoyer (${formatSwiss(getSupplement())} à encaisser)` : 'Envoyer au Bar'}
+                </Button>
+              </Card>
+            </div>
+          )}
         </div>
       )}
     </div>
