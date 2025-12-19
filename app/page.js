@@ -2775,19 +2775,31 @@ function InvoicesView({ event }) {
       doc.setFontSize(8)
       doc.text('vip@caprices.ch', 105, 272, { align: 'center' })
       
-      // Download using blob method
+      // Download using data URI - opens in new tab
       const fileName = `Facture_${table.table_number}_${format(new Date(), 'yyyyMMdd')}.pdf`
-      const pdfBlob = doc.output('blob')
-      const url = URL.createObjectURL(pdfBlob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = fileName
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
+      const pdfDataUri = doc.output('datauristring')
       
-      toast.success('PDF téléchargé!')
+      // Open in new window for download
+      const newWindow = window.open()
+      if (newWindow) {
+        newWindow.document.write(`
+          <html>
+            <head><title>${fileName}</title></head>
+            <body style="margin:0">
+              <embed width="100%" height="100%" src="${pdfDataUri}" type="application/pdf" />
+            </body>
+          </html>
+        `)
+        newWindow.document.title = fileName
+      } else {
+        // Fallback: direct download
+        const link = document.createElement('a')
+        link.href = pdfDataUri
+        link.download = fileName
+        link.click()
+      }
+      
+      toast.success('PDF ouvert!')
     } catch (error) {
       console.error('PDF error:', error)
       toast.error('Erreur PDF: ' + error.message)
