@@ -2635,10 +2635,16 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
 // Invoices View Component
 function InvoicesView({ event }) {
   const [reservedTables, setReservedTables] = useState([])
+  const [payments, setPayments] = useState({})
   const [loading, setLoading] = useState(true)
+  const [sendingEmail, setSendingEmail] = useState(null)
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false)
+  const [selectedTableForPayment, setSelectedTableForPayment] = useState(null)
+  const [paymentForm, setPaymentForm] = useState({ amount: '', method: 'virement', reference: '', notes: '' })
 
   useEffect(() => {
     fetchReservedTables()
+    fetchPayments()
   }, [event.id])
 
   const fetchReservedTables = async () => {
@@ -2657,65 +2663,356 @@ function InvoicesView({ event }) {
     }
   }
 
-  const generateInvoice = (table) => {
+  const fetchPayments = async () => {
+    try {
+      const { data } = await supabase
+        .from('payments')
+        .select('*')
+        .order('payment_date', { ascending: false })
+      
+      // Group payments by table_id
+      const grouped = (data || []).reduce((acc, p) => {
+        if (!acc[p.table_id]) acc[p.table_id] = []
+        acc[p.table_id].push(p)
+        return acc
+      }, {})
+      setPayments(grouped)
+    } catch (error) {
+      console.error('Error fetching payments:', error)
+    }
+  }
+
+  // Format amount Swiss style: 1'500.00
+  const formatSwiss = (amount) => {
+    return amount.toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  }
+
+  // Calculate total for a table
+  const calculateTableTotal = (table) => {
+    const basePrice = table.sold_price || table.standard_price || 0
+    const additionalPersons = (table.additional_persons || 0) * (table.additional_person_price || 0)
+    const onSiteRevenue = table.on_site_additional_revenue || 0
+    return basePrice + additionalPersons + onSiteRevenue
+  }
+
+  // Calculate paid amount for a table
+  const getPaidAmount = (tableId) => {
+    const tablePayments = payments[tableId] || []
+    return tablePayments.reduce((sum, p) => sum + (p.amount || 0), 0)
+  }
+
+  // Generate PDF Invoice
+  const generateInvoice = (table, consolidated = false, clientTables = null) => {
     const doc = new jsPDF()
     const currency = event.currency
+    const tables = consolidated ? clientTables : [table]
     
+    // Header
     doc.setFontSize(24)
     doc.setTextColor(218, 165, 32)
-    doc.text('FACTURE', 105, 30, { align: 'center' })
+    doc.text(consolidated ? 'FACTURE CONSOLIDÉE' : 'FACTURE', 105, 25, { align: 'center' })
     
-    doc.setFontSize(16)
+    doc.setFontSize(14)
     doc.setTextColor(0, 0, 0)
-    doc.text(event.name, 105, 40, { align: 'center' })
+    doc.text(event.name, 105, 35, { align: 'center' })
     
+    // Invoice info
     doc.setFontSize(10)
-    doc.text(`Facture N: INV-${table.id.slice(0, 8).toUpperCase()}`, 20, 60)
-    doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, 20, 67)
-    doc.text(`Table: ${table.table_number}`, 20, 74)
-    doc.text(`Date reservation: ${format(parseISO(table.day), 'dd MMMM yyyy', { locale: fr })}`, 20, 81)
+    const invoiceNum = consolidated 
+      ? `CONS-${table.client_email?.slice(0, 6) || 'X'}-${format(new Date(), 'yyyyMMdd')}`.toUpperCase()
+      : `INV-${table.id.slice(0, 8).toUpperCase()}`
     
-    doc.setFontSize(12)
-    doc.text('Client:', 20, 100)
+    doc.text(`Facture N°: ${invoiceNum}`, 20, 55)
+    doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, 20, 62)
+    
+    // Client info
+    doc.setFontSize(11)
+    doc.setFont(undefined, 'bold')
+    doc.text('Client:', 20, 80)
+    doc.setFont(undefined, 'normal')
     doc.setFontSize(10)
-    doc.text(table.client_name || 'N/A', 20, 108)
-    doc.text(table.client_email || '', 20, 115)
-    doc.text(table.client_phone || '', 20, 122)
+    doc.text(table.client_name || 'N/A', 20, 88)
+    if (table.client_email) doc.text(table.client_email, 20, 95)
+    if (table.client_phone) doc.text(table.client_phone, 20, 102)
+    if (table.client_address) doc.text(table.client_address, 20, 109)
     
-    let yPos = 150
+    // Table header
+    let yPos = 130
     doc.setFillColor(218, 165, 32)
     doc.rect(20, yPos, 170, 8, 'F')
-    doc.setTextColor(0, 0, 0)
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(10)
+    doc.setFont(undefined, 'bold')
     doc.text('Description', 25, yPos + 6)
-    doc.text('Montant', 165, yPos + 6, { align: 'right' })
+    doc.text('Date', 100, yPos + 6)
+    doc.text('Montant', 175, yPos + 6, { align: 'right' })
     
-    yPos += 15
-    doc.text(`Table ${table.table_number} - Reservation VIP`, 25, yPos)
-    doc.text(`${(table.sold_price || 0).toLocaleString()} ${currency}`, 165, yPos, { align: 'right' })
+    // Table rows
+    doc.setTextColor(0, 0, 0)
+    doc.setFont(undefined, 'normal')
+    yPos += 12
     
-    yPos += 15
+    let grandTotal = 0
+    tables.forEach((t, idx) => {
+      const total = calculateTableTotal(t)
+      grandTotal += total
+      
+      // Table line
+      doc.text(`Table ${t.table_number} - Réservation VIP`, 25, yPos)
+      doc.text(format(parseISO(t.day), 'dd/MM/yyyy'), 100, yPos)
+      doc.text(`${formatSwiss(t.sold_price || 0)} ${currency}`, 175, yPos, { align: 'right' })
+      yPos += 7
+      
+      // Additional persons
+      if (t.additional_persons > 0) {
+        const addAmount = t.additional_persons * (t.additional_person_price || 0)
+        doc.setFontSize(9)
+        doc.setTextColor(100, 100, 100)
+        doc.text(`  + ${t.additional_persons} pers. supp. × ${formatSwiss(t.additional_person_price || 0)}`, 25, yPos)
+        doc.text(`${formatSwiss(addAmount)} ${currency}`, 175, yPos, { align: 'right' })
+        yPos += 6
+        doc.setFontSize(10)
+        doc.setTextColor(0, 0, 0)
+      }
+      
+      // On-site revenue
+      if (t.on_site_additional_revenue > 0) {
+        doc.setFontSize(9)
+        doc.setTextColor(100, 100, 100)
+        doc.text(`  + Revenus supplémentaires sur place`, 25, yPos)
+        doc.text(`${formatSwiss(t.on_site_additional_revenue)} ${currency}`, 175, yPos, { align: 'right' })
+        yPos += 6
+        doc.setFontSize(10)
+        doc.setTextColor(0, 0, 0)
+      }
+      
+      if (idx < tables.length - 1) yPos += 3
+    })
+    
+    // Total
+    yPos += 5
     doc.setDrawColor(218, 165, 32)
     doc.line(20, yPos, 190, yPos)
-    yPos += 10
+    yPos += 8
     doc.setFontSize(12)
     doc.setFont(undefined, 'bold')
     doc.text('TOTAL', 25, yPos)
-    doc.text(`${(table.total_price || 0).toLocaleString()} ${currency}`, 165, yPos, { align: 'right' })
+    doc.text(`${formatSwiss(grandTotal)} ${currency}`, 175, yPos, { align: 'right' })
     
+    // Payments section
+    const allPayments = tables.flatMap(t => payments[t.id] || [])
+    const totalPaid = allPayments.reduce((sum, p) => sum + p.amount, 0)
+    const remaining = grandTotal - totalPaid
+    
+    if (allPayments.length > 0) {
+      yPos += 15
+      doc.setFontSize(10)
+      doc.setFont(undefined, 'bold')
+      doc.text('Paiements reçus:', 25, yPos)
+      doc.setFont(undefined, 'normal')
+      yPos += 7
+      
+      allPayments.forEach(p => {
+        doc.text(`${format(parseISO(p.payment_date), 'dd/MM/yyyy')} - ${p.payment_method}`, 30, yPos)
+        doc.text(`-${formatSwiss(p.amount)} ${currency}`, 175, yPos, { align: 'right' })
+        yPos += 6
+      })
+      
+      yPos += 5
+      doc.setFont(undefined, 'bold')
+      if (remaining > 0) {
+        doc.setTextColor(200, 0, 0)
+        doc.text('RESTE À PAYER:', 25, yPos)
+        doc.text(`${formatSwiss(remaining)} ${currency}`, 175, yPos, { align: 'right' })
+      } else {
+        doc.setTextColor(0, 150, 0)
+        doc.text('SOLDÉ', 25, yPos)
+      }
+    }
+    
+    // Budget info
+    yPos += 20
+    doc.setFontSize(9)
+    doc.setTextColor(100, 100, 100)
+    doc.setFont(undefined, 'normal')
+    const totalBudget = tables.reduce((sum, t) => sum + (t.sold_price || t.standard_price || 0), 0)
+    doc.text(`Budget boissons inclus: ${formatSwiss(totalBudget)} ${currency}`, 25, yPos)
+    
+    // Footer
+    doc.setFontSize(9)
+    doc.setTextColor(0, 0, 0)
+    doc.text('Merci de votre confiance!', 105, 265, { align: 'center' })
     doc.setFontSize(8)
-    doc.text('Merci de votre confiance!', 105, 270, { align: 'center' })
+    doc.text('Caprices Festival - Gstaad', 105, 272, { align: 'center' })
+    doc.text('vip@caprices.ch', 105, 278, { align: 'center' })
     
-    doc.save(`Facture_${table.table_number}_${format(new Date(), 'yyyyMMdd')}.pdf`)
-    toast.success('Facture generee!')
+    const fileName = consolidated 
+      ? `Facture_Consolidee_${table.client_name?.replace(/\s+/g, '_') || 'Client'}_${format(new Date(), 'yyyyMMdd')}.pdf`
+      : `Facture_${table.table_number}_${format(new Date(), 'yyyyMMdd')}.pdf`
+    
+    doc.save(fileName)
+    toast.success('Facture générée!')
+    
+    return doc
   }
 
+  // Send invoice by email
+  const sendInvoiceEmail = async (table, consolidated = false, clientTables = null) => {
+    if (!table.client_email) {
+      toast.error('Email client manquant')
+      return
+    }
+
+    setSendingEmail(consolidated ? `cons_${table.client_email}` : table.id)
+    
+    try {
+      const doc = new jsPDF()
+      const tables = consolidated ? clientTables : [table]
+      const currency = event.currency
+      
+      // Generate PDF content (same as generateInvoice but don't save)
+      // ... (recreate PDF in memory)
+      doc.setFontSize(24)
+      doc.setTextColor(218, 165, 32)
+      doc.text(consolidated ? 'FACTURE CONSOLIDÉE' : 'FACTURE', 105, 25, { align: 'center' })
+      doc.setFontSize(14)
+      doc.setTextColor(0, 0, 0)
+      doc.text(event.name, 105, 35, { align: 'center' })
+      
+      const invoiceNum = consolidated 
+        ? `CONS-${table.client_email?.slice(0, 6) || 'X'}-${format(new Date(), 'yyyyMMdd')}`.toUpperCase()
+        : `INV-${table.id.slice(0, 8).toUpperCase()}`
+      
+      doc.setFontSize(10)
+      doc.text(`Facture N°: ${invoiceNum}`, 20, 55)
+      doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, 20, 62)
+      
+      doc.setFontSize(11)
+      doc.setFont(undefined, 'bold')
+      doc.text('Client:', 20, 80)
+      doc.setFont(undefined, 'normal')
+      doc.setFontSize(10)
+      doc.text(table.client_name || 'N/A', 20, 88)
+      if (table.client_email) doc.text(table.client_email, 20, 95)
+      if (table.client_phone) doc.text(table.client_phone, 20, 102)
+      
+      let yPos = 130
+      doc.setFillColor(218, 165, 32)
+      doc.rect(20, yPos, 170, 8, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(10)
+      doc.setFont(undefined, 'bold')
+      doc.text('Description', 25, yPos + 6)
+      doc.text('Date', 100, yPos + 6)
+      doc.text('Montant', 175, yPos + 6, { align: 'right' })
+      
+      doc.setTextColor(0, 0, 0)
+      doc.setFont(undefined, 'normal')
+      yPos += 12
+      
+      let grandTotal = 0
+      tables.forEach(t => {
+        grandTotal += calculateTableTotal(t)
+        doc.text(`Table ${t.table_number} - Réservation VIP`, 25, yPos)
+        doc.text(format(parseISO(t.day), 'dd/MM/yyyy'), 100, yPos)
+        doc.text(`${formatSwiss(t.sold_price || 0)} ${currency}`, 175, yPos, { align: 'right' })
+        yPos += 8
+      })
+      
+      yPos += 5
+      doc.setDrawColor(218, 165, 32)
+      doc.line(20, yPos, 190, yPos)
+      yPos += 8
+      doc.setFontSize(12)
+      doc.setFont(undefined, 'bold')
+      doc.text('TOTAL', 25, yPos)
+      doc.text(`${formatSwiss(grandTotal)} ${currency}`, 175, yPos, { align: 'right' })
+      
+      doc.setFontSize(9)
+      doc.setFont(undefined, 'normal')
+      doc.text('Merci de votre confiance!', 105, 265, { align: 'center' })
+      doc.text('Caprices Festival - Gstaad | vip@caprices.ch', 105, 272, { align: 'center' })
+      
+      // Get base64
+      const pdfBase64 = doc.output('datauristring').split(',')[1]
+      
+      const fileName = consolidated 
+        ? `Facture_Consolidee_${table.client_name?.replace(/\s+/g, '_') || 'Client'}.pdf`
+        : `Facture_${table.table_number}.pdf`
+      
+      const response = await fetch('/api/invoice/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: table.client_email,
+          subject: `Facture Caprices VIP - ${table.client_name || 'Client'}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #DAA520;">Caprices Festival - VIP</h2>
+              <p>Bonjour ${table.client_name || ''},</p>
+              <p>Veuillez trouver ci-joint votre facture pour votre réservation VIP.</p>
+              <p><strong>Montant total: ${formatSwiss(grandTotal)} ${currency}</strong></p>
+              <p>Pour toute question, n'hésitez pas à nous contacter.</p>
+              <p>Cordialement,<br>L'équipe Caprices VIP</p>
+              <hr style="border-color: #DAA520;">
+              <p style="font-size: 12px; color: #666;">vip@caprices.ch</p>
+            </div>
+          `,
+          pdfBase64,
+          fileName
+        })
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) throw new Error(data.error)
+      
+      toast.success(`Facture envoyée à ${table.client_email}`)
+    } catch (error) {
+      toast.error(`Erreur: ${error.message}`)
+    } finally {
+      setSendingEmail(null)
+    }
+  }
+
+  // Add payment
+  const addPayment = async () => {
+    if (!selectedTableForPayment || !paymentForm.amount) {
+      toast.error('Montant requis')
+      return
+    }
+
+    try {
+      const { error } = await supabase.from('payments').insert({
+        table_id: selectedTableForPayment.id,
+        amount: parseFloat(paymentForm.amount),
+        payment_method: paymentForm.method,
+        reference: paymentForm.reference,
+        notes: paymentForm.notes,
+        payment_date: new Date().toISOString().split('T')[0]
+      })
+
+      if (error) throw error
+
+      toast.success('Paiement enregistré!')
+      setShowPaymentDialog(false)
+      setPaymentForm({ amount: '', method: 'virement', reference: '', notes: '' })
+      fetchPayments()
+      fetchReservedTables()
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  // Group by client (email or phone)
   const groupedByClient = reservedTables.reduce((acc, table) => {
-    const key = table.client_email || table.client_phone || table.id
+    const key = table.client_email?.toLowerCase() || table.client_phone || table.id
     if (!acc[key]) {
       acc[key] = {
         client_name: table.client_name,
         client_email: table.client_email,
         client_phone: table.client_phone,
+        client_address: table.client_address,
         tables: []
       }
     }
@@ -2733,60 +3030,222 @@ function InvoicesView({ event }) {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Factures Clients</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Facturation Clients</h2>
+        <Badge variant="outline">{reservedTables.length} réservations</Badge>
+      </div>
       
       {Object.keys(groupedByClient).length === 0 ? (
         <Card className="p-8 text-center">
-          <p className="text-muted-foreground">Aucune reservation a facturer</p>
+          <p className="text-muted-foreground">Aucune réservation à facturer</p>
         </Card>
       ) : (
         <div className="space-y-4">
-          {Object.values(groupedByClient).map((client, idx) => (
-            <Card key={idx}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle>{client.client_name || 'Client sans nom'}</CardTitle>
-                    <CardDescription>
-                      {client.client_email} - {client.client_phone}
-                    </CardDescription>
-                  </div>
-                  <Badge>{client.tables.length} table{client.tables.length > 1 ? 's' : ''}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {client.tables.map(table => (
-                    <div key={table.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div>
-                        <span className="font-medium">{table.table_number}</span>
-                        <span className="text-muted-foreground ml-2">
-                          {format(parseISO(table.day), 'dd MMM yyyy', { locale: fr })}
-                        </span>
-                        <Badge className="ml-2" variant={table.status === 'paye' ? 'default' : 'secondary'}>
-                          {table.status}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <span className="font-bold">{(table.total_price || 0).toLocaleString()} {event.currency}</span>
-                        <Button size="sm" variant="outline" onClick={() => generateInvoice(table)}>
-                          <Download className="w-4 h-4 mr-1" /> PDF
-                        </Button>
-                      </div>
+          {Object.values(groupedByClient).map((client, idx) => {
+            const clientTotal = client.tables.reduce((sum, t) => sum + calculateTableTotal(t), 0)
+            const clientPaid = client.tables.reduce((sum, t) => sum + getPaidAmount(t.id), 0)
+            const clientRemaining = clientTotal - clientPaid
+            
+            return (
+              <Card key={idx} className={clientRemaining <= 0 ? 'border-green-500/50' : ''}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        {client.client_name || 'Client sans nom'}
+                        {clientRemaining <= 0 && <Badge className="bg-green-500">Soldé</Badge>}
+                      </CardTitle>
+                      <CardDescription>
+                        {client.client_email} {client.client_phone && `• ${client.client_phone}`}
+                      </CardDescription>
                     </div>
-                  ))}
-                </div>
-                <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                  <span className="font-semibold">Total client:</span>
-                  <span className="text-xl font-bold text-amber-400">
-                    {client.tables.reduce((sum, t) => sum + (t.total_price || 0), 0).toLocaleString()} {event.currency}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                    <div className="flex items-center gap-2">
+                      <Badge>{client.tables.length} table{client.tables.length > 1 ? 's' : ''}</Badge>
+                      {client.tables.length > 1 && (
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="outline" onClick={() => generateInvoice(client.tables[0], true, client.tables)}>
+                            <Download className="w-4 h-4 mr-1" /> Consolidée
+                          </Button>
+                          {client.client_email && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => sendInvoiceEmail(client.tables[0], true, client.tables)}
+                              disabled={sendingEmail === `cons_${client.client_email}`}
+                            >
+                              {sendingEmail === `cons_${client.client_email}` ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <FileText className="w-4 h-4" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {client.tables.map(table => {
+                      const tableTotal = calculateTableTotal(table)
+                      const tablePaid = getPaidAmount(table.id)
+                      const tableRemaining = tableTotal - tablePaid
+                      
+                      return (
+                        <div key={table.id} className="p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="font-medium">{table.table_number}</span>
+                              <span className="text-muted-foreground text-sm">
+                                {format(parseISO(table.day), 'dd MMM yyyy', { locale: fr })}
+                              </span>
+                              <Badge variant={table.status === 'paye' ? 'default' : 'secondary'} className="text-xs">
+                                {table.status}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-right mr-4">
+                                <div className="font-bold">{formatSwiss(tableTotal)} {event.currency}</div>
+                                {tablePaid > 0 && (
+                                  <div className="text-xs text-green-500">Payé: {formatSwiss(tablePaid)}</div>
+                                )}
+                                {tableRemaining > 0 && (
+                                  <div className="text-xs text-orange-500">Reste: {formatSwiss(tableRemaining)}</div>
+                                )}
+                              </div>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => {
+                                  setSelectedTableForPayment(table)
+                                  setShowPaymentDialog(true)
+                                }}
+                              >
+                                <Plus className="w-4 h-4" />
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => generateInvoice(table)}>
+                                <Download className="w-4 h-4" />
+                              </Button>
+                              {table.client_email && (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => sendInvoiceEmail(table)}
+                                  disabled={sendingEmail === table.id}
+                                >
+                                  {sendingEmail === table.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <FileText className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Show payments */}
+                          {payments[table.id]?.length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-border/50">
+                              <div className="text-xs text-muted-foreground mb-1">Paiements:</div>
+                              {payments[table.id].map(p => (
+                                <div key={p.id} className="flex justify-between text-xs">
+                                  <span>{format(parseISO(p.payment_date), 'dd/MM/yy')} - {p.payment_method}</span>
+                                  <span className="text-green-500">{formatSwiss(p.amount)} {event.currency}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  
+                  {/* Client total */}
+                  <div className="mt-4 pt-4 border-t flex justify-between items-center">
+                    <div>
+                      <span className="font-semibold">Total client:</span>
+                      {clientPaid > 0 && (
+                        <span className="ml-4 text-sm text-green-500">Payé: {formatSwiss(clientPaid)} {event.currency}</span>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-amber-400">
+                        {formatSwiss(clientTotal)} {event.currency}
+                      </div>
+                      {clientRemaining > 0 && (
+                        <div className="text-sm text-orange-500">
+                          Reste à payer: {formatSwiss(clientRemaining)} {event.currency}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
+
+      {/* Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enregistrer un paiement</DialogTitle>
+            <DialogDescription>
+              Table {selectedTableForPayment?.table_number} - {selectedTableForPayment?.client_name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Montant ({event.currency})</Label>
+              <Input
+                type="number"
+                value={paymentForm.amount}
+                onChange={(e) => setPaymentForm({...paymentForm, amount: e.target.value})}
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <Label>Méthode de paiement</Label>
+              <Select value={paymentForm.method} onValueChange={(v) => setPaymentForm({...paymentForm, method: v})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="virement">Virement bancaire</SelectItem>
+                  <SelectItem value="carte">Carte de crédit</SelectItem>
+                  <SelectItem value="twint">TWINT</SelectItem>
+                  <SelectItem value="especes">Espèces</SelectItem>
+                  <SelectItem value="autre">Autre</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Référence (optionnel)</Label>
+              <Input
+                value={paymentForm.reference}
+                onChange={(e) => setPaymentForm({...paymentForm, reference: e.target.value})}
+                placeholder="N° de transaction..."
+              />
+            </div>
+            <div>
+              <Label>Notes (optionnel)</Label>
+              <Textarea
+                value={paymentForm.notes}
+                onChange={(e) => setPaymentForm({...paymentForm, notes: e.target.value})}
+                placeholder="Notes..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>Annuler</Button>
+            <Button onClick={addPayment} className="bg-gradient-to-r from-amber-500 to-amber-600 text-black">
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
