@@ -65,3 +65,9 @@ CREATE POLICY "Allow authenticated to manage live_order_items" ON live_order_ite
 
 -- Reload PostgREST schema cache
 SELECT pg_notify('pgrst', 'reload schema');
+
+-- Add served_quantity to order_items for tracking served items from pre-orders
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS served_quantity INTEGER DEFAULT 0;
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS item_name TEXT;
+
+SELECT pg_notify('pgrst', 'reload schema');
