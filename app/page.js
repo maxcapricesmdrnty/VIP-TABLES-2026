@@ -2960,36 +2960,6 @@ function GuichetView({ event, eventDays }) {
         </Select>
       </div>
 
-      {/* Stats Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="p-3">
-          <div className="text-2xl font-bold text-amber-500">{filteredClients.length}</div>
-          <div className="text-xs text-muted-foreground">Clients</div>
-        </Card>
-        <Card className="p-3">
-          <div className="text-2xl font-bold text-blue-500">
-            {filteredClients.reduce((s, c) => s + c.tables.reduce((ts, t) => ts + calculateBracelets(t).total, 0), 0)}
-          </div>
-          <div className="text-xs text-muted-foreground">Bracelets total</div>
-        </Card>
-        <Card className="p-3">
-          <div className="text-2xl font-bold text-green-500">
-            {filteredClients.filter(c => c.tables.every(t => t.bracelets_given)).length}
-          </div>
-          <div className="text-xs text-muted-foreground">Bracelets remis</div>
-        </Card>
-        <Card className="p-3">
-          <div className="text-2xl font-bold text-orange-500">
-            {filteredClients.filter(c => {
-              const total = c.tables.reduce((s, t) => s + calculateTableTotal(t), 0)
-              const paid = c.tables.reduce((s, t) => s + getPaidAmount(t.id), 0)
-              return paid < total
-            }).length}
-          </div>
-          <div className="text-xs text-muted-foreground">Paiements en attente</div>
-        </Card>
-      </div>
-
       {/* Client List */}
       {loading ? (
         <div className="flex justify-center py-12">
