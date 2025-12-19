@@ -2494,6 +2494,18 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Numéro de table physique */}
+          <div className="bg-muted/30 p-3 rounded-lg">
+            <Label className="text-amber-400">N° Table physique (optionnel)</Label>
+            <Input
+              value={form.display_number}
+              onChange={(e) => setForm({...form, display_number: e.target.value})}
+              placeholder="Ex: Table 12, VIP 3..."
+              className="mt-1"
+            />
+            <p className="text-xs text-muted-foreground mt-1">Numéro visible sur la table réelle dans la salle</p>
+          </div>
+
           <div>
             <h3 className="font-semibold mb-3 text-amber-400">Informations Client</h3>
             <div className="grid grid-cols-2 gap-4">
