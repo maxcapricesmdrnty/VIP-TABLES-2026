@@ -1683,8 +1683,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                       <Label>Capacité</Label>
                       <Input
                         type="number"
-                        value={venueForm.capacity}
-                        onChange={(e) => setVenueForm({...venueForm, capacity: parseInt(e.target.value)})}
+                        value={venueForm.capacity === 0 ? '' : venueForm.capacity}
+                        onChange={(e) => setVenueForm({...venueForm, capacity: e.target.value === '' ? 0 : parseInt(e.target.value)})}
                       />
                     </div>
                   </div>
