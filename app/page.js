@@ -424,7 +424,7 @@ export default function Home() {
 }
 
 // Event Dashboard Component
-function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
+function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventUpdate }) {
   const [venues, setVenues] = useState([])
   const [eventDays, setEventDays] = useState([])
   const [selectedVenue, setSelectedVenue] = useState(null)
