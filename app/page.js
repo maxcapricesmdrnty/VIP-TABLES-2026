@@ -1908,8 +1908,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                             <Input
                               type="number"
                               min="1"
-                              value={cat.rows}
-                              onChange={(e) => updateBackCategory(cat.id, 'rows', parseInt(e.target.value) || 1)}
+                              value={cat.rows === 0 ? '' : cat.rows}
+                              onChange={(e) => updateBackCategory(cat.id, 'rows', e.target.value === '' ? 1 : parseInt(e.target.value))}
                             />
                           </div>
                           <div>
@@ -1917,8 +1917,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                             <Input
                               type="number"
                               min="1"
-                              value={cat.tablesPerRow}
-                              onChange={(e) => updateBackCategory(cat.id, 'tablesPerRow', parseInt(e.target.value) || 1)}
+                              value={cat.tablesPerRow === 0 ? '' : cat.tablesPerRow}
+                              onChange={(e) => updateBackCategory(cat.id, 'tablesPerRow', e.target.value === '' ? 1 : parseInt(e.target.value))}
                             />
                           </div>
                           <div>
@@ -1933,16 +1933,16 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                             <Label>Capacité/table</Label>
                             <Input
                               type="number"
-                              value={cat.capacity}
-                              onChange={(e) => updateBackCategory(cat.id, 'capacity', parseInt(e.target.value) || 0)}
+                              value={cat.capacity === 0 ? '' : cat.capacity}
+                              onChange={(e) => updateBackCategory(cat.id, 'capacity', e.target.value === '' ? 0 : parseInt(e.target.value))}
                             />
                           </div>
                           <div>
                             <Label>Prix ({event.currency})</Label>
                             <Input
                               type="number"
-                              value={cat.price}
-                              onChange={(e) => updateBackCategory(cat.id, 'price', parseInt(e.target.value) || 0)}
+                              value={cat.price === 0 ? '' : cat.price}
+                              onChange={(e) => updateBackCategory(cat.id, 'price', e.target.value === '' ? 0 : parseInt(e.target.value))}
                             />
                           </div>
                         </div>
