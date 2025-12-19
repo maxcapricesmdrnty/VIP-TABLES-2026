@@ -2437,8 +2437,8 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                   type="number"
                   min="0"
                   max="100"
-                  value={form.concierge_commission}
-                  onChange={(e) => setForm({...form, concierge_commission: parseFloat(e.target.value) || 0})}
+                  value={form.concierge_commission === 0 ? '' : form.concierge_commission}
+                  onChange={(e) => setForm({...form, concierge_commission: e.target.value === '' ? 0 : parseFloat(e.target.value)})}
                 />
               </div>
               <div>
