@@ -3113,7 +3113,16 @@ function InvoicesView({ event }) {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge>{client.tables.length} table{client.tables.length > 1 ? 's' : ''}</Badge>
-                      {/* Facture consolidée - à réactiver plus tard */}
+                      {client.tables.length > 1 && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => generateConsolidatedInvoice(client.tables)}
+                          className="text-purple-400 border-purple-400 hover:bg-purple-400/10"
+                        >
+                          <Download className="w-4 h-4 mr-1" /> Consolidée
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
