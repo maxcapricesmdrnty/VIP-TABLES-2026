@@ -2376,26 +2376,60 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
   }
 
   const copyVipLink = async () => {
-    if (vipLink) {
+    if (!vipLink) return
+    
+    // Method 1: Modern Clipboard API
+    if (navigator.clipboard && window.isSecureContext) {
       try {
         await navigator.clipboard.writeText(vipLink)
         toast.success('Lien copié!')
+        return
       } catch (err) {
-        // Fallback: create a temporary input element
-        const textArea = document.createElement('textarea')
-        textArea.value = vipLink
-        textArea.style.position = 'fixed'
-        textArea.style.left = '-999999px'
-        document.body.appendChild(textArea)
-        textArea.select()
-        try {
-          document.execCommand('copy')
-          toast.success('Lien copié!')
-        } catch (e) {
-          toast.error('Impossible de copier. Sélectionnez le lien manuellement.')
-        }
-        document.body.removeChild(textArea)
+        console.log('Clipboard API failed, trying fallback')
       }
+    }
+    
+    // Method 2: execCommand fallback
+    const textArea = document.createElement('textarea')
+    textArea.value = vipLink
+    textArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px'
+    document.body.appendChild(textArea)
+    textArea.focus()
+    textArea.select()
+    
+    try {
+      const success = document.execCommand('copy')
+      if (success) {
+        toast.success('Lien copié!')
+      } else {
+        throw new Error('execCommand failed')
+      }
+    } catch (e) {
+      // Method 3: Show manual copy dialog
+      toast.info('Sélectionnez et copiez le lien manuellement (Ctrl+C / Cmd+C)')
+      // Select the input field
+      const inputField = document.querySelector('input[readonly]')
+      if (inputField) {
+        inputField.select()
+      }
+    }
+    document.body.removeChild(textArea)
+  }
+
+  const shareVipLink = () => {
+    if (!vipLink) return
+    
+    // Use Web Share API if available (mobile)
+    if (navigator.share) {
+      navigator.share({
+        title: `Pré-commande VIP - Table ${table.table_number}`,
+        text: `Bonjour ${table.client_name || ''}, voici votre lien de pré-commande VIP:`,
+        url: vipLink
+      }).catch(() => {})
+    } else {
+      // Fallback: open WhatsApp with link
+      const text = encodeURIComponent(`Bonjour ${table.client_name || ''}, voici votre lien de pré-commande VIP: ${vipLink}`)
+      window.open(`https://wa.me/?text=${text}`, '_blank')
     }
   }
 
