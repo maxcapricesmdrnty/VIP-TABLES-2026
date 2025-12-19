@@ -2298,11 +2298,18 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
       
       setVipLink(data.link)
       
-      // Copy to clipboard
-      await navigator.clipboard.writeText(data.link)
-      toast.success('Lien VIP copié!', {
-        description: data.isExisting ? 'Lien existant récupéré' : 'Nouveau lien généré'
-      })
+      // Try to copy to clipboard (may fail due to browser permissions)
+      try {
+        await navigator.clipboard.writeText(data.link)
+        toast.success('Lien VIP généré et copié!', {
+          description: data.isExisting ? 'Lien existant récupéré' : 'Nouveau lien généré'
+        })
+      } catch (clipboardError) {
+        // Clipboard failed, but link is still generated
+        toast.success('Lien VIP généré!', {
+          description: 'Cliquez sur l\'icône copier pour copier le lien'
+        })
+      }
       
     } catch (error) {
       toast.error('Erreur: ' + error.message)
