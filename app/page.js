@@ -2713,10 +2713,18 @@ function InvoicesView({ event }) {
 
   // Generate PDF Invoice
   const generateInvoice = (table, consolidated = false, clientTables = null) => {
+    console.log('generateInvoice called', { table, consolidated, event })
     try {
+      if (!table) {
+        toast.error('Table non définie')
+        return
+      }
+      
       const doc = new jsPDF()
-      const currency = event.currency
-      const tables = consolidated ? clientTables : [table]
+      const currency = event?.currency || 'CHF'
+      const tablesToProcess = consolidated ? clientTables : [table]
+      
+      console.log('Creating PDF for tables:', tablesToProcess)
       
       // Header
       doc.setFontSize(24)
