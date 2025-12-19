@@ -2669,7 +2669,8 @@ function GuichetView({ event, eventDays }) {
   const [savingNote, setSavingNote] = useState(false)
 
   // Get unique days from eventDays - filter out undefined/null values
-  const availableDays = (eventDays || []).map(d => d?.day).filter(Boolean).sort()
+  // Note: event_days table uses 'date' column, not 'day'
+  const availableDays = (eventDays || []).map(d => d?.date || d?.day).filter(Boolean).sort()
 
   useEffect(() => {
     if (availableDays.length > 0 && !selectedDay) {
