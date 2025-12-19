@@ -2320,8 +2320,25 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
 
   const copyVipLink = async () => {
     if (vipLink) {
-      await navigator.clipboard.writeText(vipLink)
-      toast.success('Lien copié!')
+      try {
+        await navigator.clipboard.writeText(vipLink)
+        toast.success('Lien copié!')
+      } catch (err) {
+        // Fallback: create a temporary input element
+        const textArea = document.createElement('textarea')
+        textArea.value = vipLink
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-999999px'
+        document.body.appendChild(textArea)
+        textArea.select()
+        try {
+          document.execCommand('copy')
+          toast.success('Lien copié!')
+        } catch (e) {
+          toast.error('Impossible de copier. Sélectionnez le lien manuellement.')
+        }
+        document.body.removeChild(textArea)
+      }
     }
   }
 
