@@ -2150,7 +2150,10 @@ function TableCell({ table, currency, onClick }) {
       onClick={onClick}
       className={`p-2 rounded-lg border-2 cursor-pointer transition-all w-[130px] h-[100px] flex flex-col justify-center ${getStatusClass(table.status)}`}
     >
-      <div className="font-bold text-center text-base">{table.table_number}</div>
+      <div className="font-bold text-center text-base">
+        {table.display_number || table.table_number}
+        {table.display_number && <span className="text-[10px] font-normal text-muted-foreground ml-1">({table.table_number})</span>}
+      </div>
       
       {hasReservation ? (
         <>
