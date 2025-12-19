@@ -1663,6 +1663,11 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
           </div>
         )}
 
+        {/* Guichet View */}
+        {view === 'guichet' && (
+          <GuichetView event={event} eventDays={eventDays} />
+        )}
+
         {/* Invoices View */}
         {view === 'invoices' && (
           <InvoicesView event={event} tables={tables} onEventUpdate={onEventUpdate} />
