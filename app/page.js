@@ -2455,32 +2455,32 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                 <Label>Nombre de personnes supp.</Label>
                 <Input
                   type="number"
-                  value={form.additional_persons}
-                  onChange={(e) => setForm({...form, additional_persons: parseInt(e.target.value) || 0})}
+                  value={form.additional_persons === 0 ? '' : form.additional_persons}
+                  onChange={(e) => setForm({...form, additional_persons: e.target.value === '' ? 0 : parseInt(e.target.value)})}
                 />
               </div>
               <div>
                 <Label>Prix par personne ({currency})</Label>
                 <Input
                   type="number"
-                  value={form.additional_person_price}
-                  onChange={(e) => setForm({...form, additional_person_price: parseFloat(e.target.value) || 0})}
+                  value={form.additional_person_price === 0 ? '' : form.additional_person_price}
+                  onChange={(e) => setForm({...form, additional_person_price: e.target.value === '' ? 0 : parseFloat(e.target.value)})}
                 />
               </div>
               <div>
                 <Label>Personnes ajoutées sur place</Label>
                 <Input
                   type="number"
-                  value={form.on_site_additional_persons}
-                  onChange={(e) => setForm({...form, on_site_additional_persons: parseInt(e.target.value) || 0})}
+                  value={form.on_site_additional_persons === 0 ? '' : form.on_site_additional_persons}
+                  onChange={(e) => setForm({...form, on_site_additional_persons: e.target.value === '' ? 0 : parseInt(e.target.value)})}
                 />
               </div>
               <div>
                 <Label>Revenus supp. sur place ({currency})</Label>
                 <Input
                   type="number"
-                  value={form.on_site_additional_revenue}
-                  onChange={(e) => setForm({...form, on_site_additional_revenue: parseFloat(e.target.value) || 0})}
+                  value={form.on_site_additional_revenue === 0 ? '' : form.on_site_additional_revenue}
+                  onChange={(e) => setForm({...form, on_site_additional_revenue: e.target.value === '' ? 0 : parseFloat(e.target.value)})}
                 />
               </div>
             </div>
