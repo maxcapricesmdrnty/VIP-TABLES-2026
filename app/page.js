@@ -1009,6 +1009,12 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     { id: 'venues', label: 'Salles', icon: Users },
     { id: 'layout', label: 'Plan', icon: Settings },
     { id: 'menu', label: 'Menu', icon: Wine },
+    { id: 'team', label: 'Équipe', icon: UserCheck },
+  ]
+  
+  const serviceNavItems = [
+    { id: 'serveur', label: 'Serveur', icon: ShoppingCart },
+    { id: 'bar', label: 'Bar', icon: Wine },
   ]
 
   return (
