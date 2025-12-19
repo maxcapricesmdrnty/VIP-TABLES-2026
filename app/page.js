@@ -3147,7 +3147,8 @@ function InvoicesView({ event, onEventUpdate }) {
       doc.setFont(undefined, 'normal')
       doc.setFontSize(8)
       
-      const terms = (billingSettings.billing_terms || '').split('\n')
+      const termsText = billingSettings.billing_terms || event.billing_terms || ''
+      const terms = termsText.split('\n')
       terms.forEach(term => {
         if (term.trim()) {
           doc.text(`• ${term.trim()}`, 25, yPos)
@@ -3156,11 +3157,15 @@ function InvoicesView({ event, onEventUpdate }) {
       })
       
       // Footer
+      const thankYou = billingSettings.billing_thank_you || event.billing_thank_you || 'Thank you for your trust'
+      const vatText = billingSettings.billing_vat_text || event.billing_vat_text || 'VAT not applicable at this stage'
+      const contactEmail = billingSettings.billing_email || event.billing_email || 'vip@caprices.ch'
+      
       doc.setFontSize(10)
       doc.setFont(undefined, 'normal')
-      doc.text(`${billingSettings.billing_thank_you || 'Thank you for your trust'} - ${companyName}!`, 105, 270, { align: 'center' })
+      doc.text(`${thankYou} - ${companyName}!`, 105, 270, { align: 'center' })
       doc.setFontSize(8)
-      doc.text(billingSettings.billing_vat_text || 'VAT not applicable at this stage', 105, 277, { align: 'center' })
+      doc.text(vatText, 105, 277, { align: 'center' })
       doc.text(`This ${isConsolidated ? 'consolidated proforma' : 'proforma'} was automatically generated on ${format(new Date(), 'dd/MM/yyyy')}`, 105, 283, { align: 'center' })
       
       const pdfBase64 = doc.output('datauristring').split(',')[1]
@@ -3184,7 +3189,7 @@ function InvoicesView({ event, onEventUpdate }) {
               <p>If you have any questions, please don't hesitate to contact us.</p>
               <p>Best regards,<br>The ${companyName} Team</p>
               <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-              <p style="font-size: 12px; color: #666;">${billingSettings.billing_email || 'vip@caprices.ch'}</p>
+              <p style="font-size: 12px; color: #666;">${contactEmail}</p>
             </div>
           `,
           pdfBase64,
