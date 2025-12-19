@@ -2971,7 +2971,7 @@ function InvoicesView({ event, onEventUpdate }) {
       const tables = selectedInvoiceTables
       const days = getInvoiceDays()
       const tableNumbers = tables.map(t => t.table_number).join(', ')
-      const companyName = billingSettings.billing_company_name || 'VIP'
+      const companyName = billingSettings.billing_company_name || event.billing_company_name || 'VIP'
       
       // Colors
       const primaryColor = [70, 130, 180] // Steel blue like the PDF
