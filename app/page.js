@@ -2657,14 +2657,22 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                         readOnly 
                         className="text-xs bg-zinc-800/50"
                       />
-                      <Button size="icon" variant="outline" onClick={copyVipLink}>
+                      <Button size="icon" variant="outline" onClick={copyVipLink} title="Copier">
                         <Copy className="w-4 h-4" />
                       </Button>
-                      <Button size="icon" variant="outline" onClick={() => window.open(vipLink, '_blank')}>
+                      <Button size="icon" variant="outline" onClick={shareVipLink} title="Partager (WhatsApp)" className="text-green-500">
                         <ExternalLink className="w-4 h-4" />
                       </Button>
                     </div>
-                    <p className="text-xs text-green-400">✓ Lien prêt à envoyer au client</p>
+                    <div className="flex gap-2 mt-2">
+                      <Button size="sm" variant="outline" onClick={copyVipLink} className="flex-1">
+                        <Copy className="w-3 h-3 mr-1" /> Copier le lien
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={shareVipLink} className="flex-1 text-green-500 border-green-500">
+                        <ExternalLink className="w-3 h-3 mr-1" /> WhatsApp
+                      </Button>
+                    </div>
+                    <p className="text-xs text-green-400 mt-2">✓ Lien prêt à envoyer au client</p>
                   </div>
                 ) : (
                   <Button 
