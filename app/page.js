@@ -3587,7 +3587,7 @@ function InvoicesView({ event, onEventUpdate }) {
               </Card>
             )
           })}
-            </div>
+          </div>
           )}
         </>
       )}
