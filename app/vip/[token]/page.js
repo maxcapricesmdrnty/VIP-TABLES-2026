@@ -234,7 +234,6 @@ export default function VipOrderPage() {
               variant="outline"
               onClick={() => {
                 setConfirmed(false)
-                loadOrderData()
               }}
             >
               Modifier ma sélection
