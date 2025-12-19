@@ -2913,11 +2913,13 @@ function GuichetView({ event, eventDays }) {
               <SelectValue placeholder="Sélectionner un jour" />
             </SelectTrigger>
             <SelectContent>
-              {availableDays.map(day => (
+              {availableDays.length > 0 ? availableDays.map(day => (
                 <SelectItem key={day} value={day}>
-                  {format(parseISO(day), 'EEEE dd MMMM', { locale: fr })}
+                  {day ? format(parseISO(day), 'EEEE dd MMMM', { locale: fr }) : 'Date invalide'}
                 </SelectItem>
-              ))}
+              )) : (
+                <SelectItem value="" disabled>Aucun jour configuré</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>
