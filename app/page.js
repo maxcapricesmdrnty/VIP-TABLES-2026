@@ -241,6 +241,17 @@ export default function Home() {
     )
   }
 
+  // Refresh selected event data
+  const refreshSelectedEvent = async () => {
+    if (!selectedEvent) return
+    const { data } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', selectedEvent.id)
+      .single()
+    if (data) setSelectedEvent(data)
+  }
+
   if (selectedEvent) {
     return (
       <EventDashboard 
@@ -253,6 +264,7 @@ export default function Home() {
         }}
         user={user}
         onLogout={handleLogout}
+        onEventUpdate={refreshSelectedEvent}
       />
     )
   }
