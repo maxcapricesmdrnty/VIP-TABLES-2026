@@ -1050,6 +1050,24 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
             </Button>
           ))}
 
+          {/* Service Section */}
+          <div className="pt-4 space-y-1">
+            <p className={`text-xs text-muted-foreground uppercase tracking-wider ${sidebarOpen ? 'px-3 mb-2' : 'text-center'}`}>
+              {sidebarOpen ? 'Service' : '•••'}
+            </p>
+            {serviceNavItems.map(item => (
+              <Button
+                key={item.id}
+                variant={view === item.id ? 'secondary' : 'ghost'}
+                onClick={() => setView(item.id)}
+                className={`w-full justify-start ${view === item.id ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : ''}`}
+              >
+                <item.icon className="w-4 h-4 shrink-0" />
+                {sidebarOpen && <span className="ml-2">{item.label}</span>}
+              </Button>
+            ))}
+          </div>
+
           {/* Configuration Section */}
           <div className="pt-4">
             <Button
@@ -1082,24 +1100,6 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                 ))}
               </div>
             )}
-          </div>
-          
-          {/* Service Section */}
-          <div className="space-y-1">
-            <p className={`text-xs text-muted-foreground uppercase tracking-wider ${sidebarOpen ? 'px-3 mb-2' : 'text-center'}`}>
-              {sidebarOpen ? 'Service' : '•••'}
-            </p>
-            {serviceNavItems.map(item => (
-              <Button
-                key={item.id}
-                variant={view === item.id ? 'secondary' : 'ghost'}
-                onClick={() => setView(item.id)}
-                className={`w-full justify-start ${view === item.id ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : ''}`}
-              >
-                <item.icon className="w-4 h-4 shrink-0" />
-                {sidebarOpen && <span className="ml-2">{item.label}</span>}
-              </Button>
-            ))}
           </div>
         </nav>
 
