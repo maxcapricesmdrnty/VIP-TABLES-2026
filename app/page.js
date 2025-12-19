@@ -1817,41 +1817,83 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                     <strong>Configuration spécifique</strong> pour le {format(parseISO(selectedDay), 'EEEE dd MMMM', { locale: fr })}. 
                     Cette configuration sera utilisée uniquement pour ce jour.
                   </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={async () => {
-                      // Copy default layout to this day
-                      const { data: defaultLayouts } = await supabase
-                        .from('table_layouts')
-                        .select('*')
-                        .eq('venue_id', selectedVenue.id)
-                        .is('date', null)
-                      
-                      if (defaultLayouts && defaultLayouts.length > 0) {
-                        // Delete existing for this day
-                        await supabase
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={async () => {
+                        // Copy default layout to this day
+                        const { data: defaultLayouts } = await supabase
                           .from('table_layouts')
-                          .delete()
+                          .select('*')
+                          .eq('venue_id', selectedVenue.id)
+                          .is('date', null)
+                        
+                        if (defaultLayouts && defaultLayouts.length > 0) {
+                          // Delete existing for this day
+                          await supabase
+                            .from('table_layouts')
+                            .delete()
+                            .eq('venue_id', selectedVenue.id)
+                            .eq('date', selectedDay)
+                          
+                          // Copy default layouts
+                          const newLayouts = defaultLayouts.map(l => ({
+                            ...l,
+                            id: undefined,
+                            date: selectedDay
+                          }))
+                          await supabase.from('table_layouts').insert(newLayouts)
+                          toast.success('Configuration par défaut copiée!')
+                          fetchLayouts()
+                        } else {
+                          toast.error('Aucune configuration par défaut trouvée')
+                        }
+                      }}
+                    >
+                      ← Copier config par défaut
+                    </Button>
+                    <Button 
+                      variant="default" 
+                      size="sm"
+                      className="bg-amber-500 hover:bg-amber-600 text-black"
+                      onClick={async () => {
+                        // Set this day's config as the new default
+                        const { data: dayLayouts } = await supabase
+                          .from('table_layouts')
+                          .select('*')
                           .eq('venue_id', selectedVenue.id)
                           .eq('date', selectedDay)
                         
-                        // Copy default layouts
-                        const newLayouts = defaultLayouts.map(l => ({
-                          ...l,
-                          id: undefined,
-                          date: selectedDay
-                        }))
-                        await supabase.from('table_layouts').insert(newLayouts)
-                        toast.success('Configuration par défaut copiée!')
-                        fetchLayouts()
-                      } else {
-                        toast.error('Aucune configuration par défaut trouvée')
-                      }
-                    }}
-                  >
-                    Copier config par défaut
-                  </Button>
+                        if (dayLayouts && dayLayouts.length > 0) {
+                          // Delete existing default layouts
+                          await supabase
+                            .from('table_layouts')
+                            .delete()
+                            .eq('venue_id', selectedVenue.id)
+                            .is('date', null)
+                          
+                          // Copy this day's layouts as default (without date)
+                          const newDefaults = dayLayouts.map(l => ({
+                            venue_id: l.venue_id,
+                            zone: l.zone,
+                            prefix: l.prefix,
+                            count: l.count,
+                            rows: l.rows,
+                            capacity: l.capacity,
+                            price: l.price,
+                            date: null
+                          }))
+                          await supabase.from('table_layouts').insert(newDefaults)
+                          toast.success('Cette configuration est maintenant la configuration par défaut!')
+                        } else {
+                          toast.error('Aucune configuration pour ce jour')
+                        }
+                      }}
+                    >
+                      ⭐ Définir comme défaut
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             )}
