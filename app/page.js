@@ -2919,7 +2919,7 @@ function InvoicesView({ event, onEventUpdate }) {
     setSelectedInvoiceTable(tables[0])
     setSelectedInvoiceTables(tables)
     setIsConsolidated(true)
-    setInvoiceRecipient(tables[0]?.client_email ? 'client' : 'vip')
+    setInvoiceRecipient('vip')
     setCustomEmail('')
     setShowInvoiceModal(true)
   }
