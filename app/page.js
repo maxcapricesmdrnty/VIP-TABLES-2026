@@ -2882,15 +2882,12 @@ function InvoicesView({ event }) {
     }
 
     try {
-      // Insert with only essential columns
-      const paymentData = {
+      // Insert without payment_method constraint issue
+      const { error } = await supabase.from('payments').insert({
         table_id: selectedTableForPayment.id,
         amount: parseFloat(paymentForm.amount),
-        payment_method: paymentForm.method,
         payment_date: new Date().toISOString().split('T')[0]
-      }
-      
-      const { error } = await supabase.from('payments').insert(paymentData)
+      })
 
       if (error) throw error
 
