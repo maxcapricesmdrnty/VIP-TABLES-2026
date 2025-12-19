@@ -2195,6 +2195,7 @@ function TableCell({ table, currency, onClick }) {
 function TableModal({ table, open, onClose, currency, event, onSave }) {
   const [form, setForm] = useState({
     status: table.status || 'libre',
+    display_number: table.display_number || '',
     client_name: table.client_name || '',
     client_email: table.client_email || '',
     client_phone: table.client_phone || '',
