@@ -3534,9 +3534,6 @@ function InvoicesView({ event, onEventUpdate }) {
                               >
                                 <Plus className="w-4 h-4" />
                               </Button>
-                              <Button size="sm" variant="outline" onClick={() => generateInvoice(table)} title="Télécharger PDF">
-                                <Download className="w-4 h-4" />
-                              </Button>
                               <Button 
                                 size="sm" 
                                 variant="outline"
