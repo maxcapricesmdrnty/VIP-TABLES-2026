@@ -2641,6 +2641,12 @@ function InvoicesView({ event }) {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [selectedTableForPayment, setSelectedTableForPayment] = useState(null)
   const [paymentForm, setPaymentForm] = useState({ amount: '', method: 'virement', reference: '', notes: '' })
+  
+  // Invoice preview modal states
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false)
+  const [selectedInvoiceTable, setSelectedInvoiceTable] = useState(null)
+  const [invoiceRecipient, setInvoiceRecipient] = useState('vip') // 'vip', 'client', 'custom'
+  const [customEmail, setCustomEmail] = useState('')
 
   useEffect(() => {
     fetchReservedTables()
