@@ -2985,27 +2985,7 @@ function InvoicesView({ event }) {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge>{client.tables.length} table{client.tables.length > 1 ? 's' : ''}</Badge>
-                      {client.tables.length > 1 && (
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="outline" onClick={() => generateInvoice(client.tables[0], true, client.tables)}>
-                            <Download className="w-4 h-4 mr-1" /> Consolidée
-                          </Button>
-                          {client.client_email && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => sendInvoiceEmail(client.tables[0], true, client.tables)}
-                              disabled={sendingEmail === `cons_${client.client_email}`}
-                            >
-                              {sendingEmail === `cons_${client.client_email}` ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <FileText className="w-4 h-4" />
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                      {/* Facture consolidée - à réactiver plus tard */}
                     </div>
                   </div>
                 </CardHeader>
