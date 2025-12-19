@@ -1390,8 +1390,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                           <Label>Prix ({event.currency})</Label>
                           <Input
                             type="number"
-                            value={menuForm.price}
-                            onChange={(e) => setMenuForm({...menuForm, price: parseFloat(e.target.value) || 0})}
+                            value={menuForm.price === 0 ? '' : menuForm.price}
+                            onChange={(e) => setMenuForm({...menuForm, price: e.target.value === '' ? 0 : parseFloat(e.target.value)})}
                           />
                         </div>
                       </div>
