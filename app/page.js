@@ -2701,16 +2701,27 @@ function InvoicesView({ event }) {
     return tablePayments.reduce((sum, p) => sum + (p.amount || 0), 0)
   }
 
+  // Safe date format helper
+  const formatDate = (dateStr, formatStr = 'dd/MM/yyyy') => {
+    try {
+      if (!dateStr) return 'N/A'
+      return format(parseISO(dateStr), formatStr, { locale: fr })
+    } catch {
+      return dateStr || 'N/A'
+    }
+  }
+
   // Generate PDF Invoice
   const generateInvoice = (table, consolidated = false, clientTables = null) => {
-    const doc = new jsPDF()
-    const currency = event.currency
-    const tables = consolidated ? clientTables : [table]
-    
-    // Header
-    doc.setFontSize(24)
-    doc.setTextColor(218, 165, 32)
-    doc.text(consolidated ? 'FACTURE CONSOLIDÉE' : 'FACTURE', 105, 25, { align: 'center' })
+    try {
+      const doc = new jsPDF()
+      const currency = event.currency
+      const tables = consolidated ? clientTables : [table]
+      
+      // Header
+      doc.setFontSize(24)
+      doc.setTextColor(218, 165, 32)
+      doc.text(consolidated ? 'FACTURE CONSOLIDÉE' : 'FACTURE', 105, 25, { align: 'center' })
     
     doc.setFontSize(14)
     doc.setTextColor(0, 0, 0)
