@@ -2711,172 +2711,72 @@ function InvoicesView({ event }) {
     }
   }
 
-  // Generate PDF Invoice
-  const generateInvoice = (table, consolidated = false, clientTables = null) => {
-    console.log('generateInvoice called', { table, consolidated, event })
-    try {
-      if (!table) {
-        toast.error('Table non définie')
-        return
-      }
-      
-      const doc = new jsPDF()
-      const currency = event?.currency || 'CHF'
-      const tablesToProcess = consolidated ? clientTables : [table]
-      
-      console.log('Creating PDF for tables:', tablesToProcess)
-      
-      // Header
-      doc.setFontSize(24)
-      doc.setTextColor(218, 165, 32)
-      doc.text(consolidated ? 'FACTURE CONSOLIDÉE' : 'FACTURE', 105, 25, { align: 'center' })
+  // Generate PDF Invoice - Simplified version
+  const generateInvoice = (table) => {
+    const doc = new jsPDF()
+    const currency = event?.currency || 'CHF'
+    
+    // Header
+    doc.setFontSize(24)
+    doc.setTextColor(218, 165, 32)
+    doc.text('FACTURE', 105, 25, { align: 'center' })
     
     doc.setFontSize(14)
     doc.setTextColor(0, 0, 0)
-    doc.text(event.name, 105, 35, { align: 'center' })
+    doc.text(event?.name || 'Événement', 105, 35, { align: 'center' })
     
     // Invoice info
     doc.setFontSize(10)
-    const invoiceNum = consolidated 
-      ? `CONS-${table.client_email?.slice(0, 6) || 'X'}-${format(new Date(), 'yyyyMMdd')}`.toUpperCase()
-      : `INV-${table.id.slice(0, 8).toUpperCase()}`
-    
-    doc.text(`Facture N°: ${invoiceNum}`, 20, 55)
+    doc.text(`Facture N°: INV-${(table.id || '').slice(0, 8).toUpperCase()}`, 20, 55)
     doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, 20, 62)
+    doc.text(`Table: ${table.table_number || 'N/A'}`, 20, 69)
     
     // Client info
     doc.setFontSize(11)
     doc.setFont(undefined, 'bold')
-    doc.text('Client:', 20, 80)
+    doc.text('Client:', 20, 85)
     doc.setFont(undefined, 'normal')
     doc.setFontSize(10)
-    doc.text(table.client_name || 'N/A', 20, 88)
-    if (table.client_email) doc.text(table.client_email, 20, 95)
-    if (table.client_phone) doc.text(table.client_phone, 20, 102)
-    if (table.client_address) doc.text(table.client_address, 20, 109)
+    doc.text(table.client_name || 'N/A', 20, 93)
+    doc.text(table.client_email || '', 20, 100)
+    doc.text(table.client_phone || '', 20, 107)
     
-    // Table header
+    // Amount
     let yPos = 130
     doc.setFillColor(218, 165, 32)
     doc.rect(20, yPos, 170, 8, 'F')
     doc.setTextColor(255, 255, 255)
-    doc.setFontSize(10)
     doc.setFont(undefined, 'bold')
     doc.text('Description', 25, yPos + 6)
-    doc.text('Date', 100, yPos + 6)
     doc.text('Montant', 175, yPos + 6, { align: 'right' })
     
-    // Table rows
+    yPos += 15
     doc.setTextColor(0, 0, 0)
     doc.setFont(undefined, 'normal')
-    yPos += 12
-    
-    let grandTotal = 0
-    tablesToProcess.forEach((t, idx) => {
-      const total = calculateTableTotal(t)
-      grandTotal += total
-      
-      // Table line
-      doc.text(`Table ${t.table_number} - Réservation VIP`, 25, yPos)
-      doc.text(formatDate(t.day), 100, yPos)
-      doc.text(`${formatSwiss(t.sold_price || 0)} ${currency}`, 175, yPos, { align: 'right' })
-      yPos += 7
-      
-      // Additional persons
-      if (t.additional_persons > 0) {
-        const addAmount = t.additional_persons * (t.additional_person_price || 0)
-        doc.setFontSize(9)
-        doc.setTextColor(100, 100, 100)
-        doc.text(`  + ${t.additional_persons} pers. supp. × ${formatSwiss(t.additional_person_price || 0)}`, 25, yPos)
-        doc.text(`${formatSwiss(addAmount)} ${currency}`, 175, yPos, { align: 'right' })
-        yPos += 6
-        doc.setFontSize(10)
-        doc.setTextColor(0, 0, 0)
-      }
-      
-      // On-site revenue
-      if (t.on_site_additional_revenue > 0) {
-        doc.setFontSize(9)
-        doc.setTextColor(100, 100, 100)
-        doc.text(`  + Revenus supplémentaires sur place`, 25, yPos)
-        doc.text(`${formatSwiss(t.on_site_additional_revenue)} ${currency}`, 175, yPos, { align: 'right' })
-        yPos += 6
-        doc.setFontSize(10)
-        doc.setTextColor(0, 0, 0)
-      }
-      
-      if (idx < tablesToProcess.length - 1) yPos += 3
-    })
+    const total = calculateTableTotal(table)
+    doc.text(`Table ${table.table_number} - Réservation VIP`, 25, yPos)
+    doc.text(`${formatSwiss(total)} ${currency}`, 175, yPos, { align: 'right' })
     
     // Total
-    yPos += 5
+    yPos += 15
     doc.setDrawColor(218, 165, 32)
     doc.line(20, yPos, 190, yPos)
     yPos += 8
     doc.setFontSize(12)
     doc.setFont(undefined, 'bold')
     doc.text('TOTAL', 25, yPos)
-    doc.text(`${formatSwiss(grandTotal)} ${currency}`, 175, yPos, { align: 'right' })
-    
-    // Payments section
-    const allPayments = tablesToProcess.flatMap(t => payments[t.id] || [])
-    const totalPaid = allPayments.reduce((sum, p) => sum + p.amount, 0)
-    const remaining = grandTotal - totalPaid
-    
-    if (allPayments.length > 0) {
-      yPos += 15
-      doc.setFontSize(10)
-      doc.setFont(undefined, 'bold')
-      doc.text('Paiements reçus:', 25, yPos)
-      doc.setFont(undefined, 'normal')
-      yPos += 7
-      
-      allPayments.forEach(p => {
-        doc.text(`${formatDate(p.payment_date)} - ${p.payment_method}`, 30, yPos)
-        doc.text(`-${formatSwiss(p.amount)} ${currency}`, 175, yPos, { align: 'right' })
-        yPos += 6
-      })
-      
-      yPos += 5
-      doc.setFont(undefined, 'bold')
-      if (remaining > 0) {
-        doc.setTextColor(200, 0, 0)
-        doc.text('RESTE À PAYER:', 25, yPos)
-        doc.text(`${formatSwiss(remaining)} ${currency}`, 175, yPos, { align: 'right' })
-      } else {
-        doc.setTextColor(0, 150, 0)
-        doc.text('SOLDÉ', 25, yPos)
-      }
-    }
-    
-    // Budget info
-    yPos += 20
-    doc.setFontSize(9)
-    doc.setTextColor(100, 100, 100)
-    doc.setFont(undefined, 'normal')
-    const totalBudget = tablesToProcess.reduce((sum, t) => sum + (t.sold_price || t.standard_price || 0), 0)
-    doc.text(`Budget boissons inclus: ${formatSwiss(totalBudget)} ${currency}`, 25, yPos)
+    doc.text(`${formatSwiss(total)} ${currency}`, 175, yPos, { align: 'right' })
     
     // Footer
     doc.setFontSize(9)
-    doc.setTextColor(0, 0, 0)
+    doc.setFont(undefined, 'normal')
     doc.text('Merci de votre confiance!', 105, 265, { align: 'center' })
     doc.setFontSize(8)
-    doc.text('Caprices Festival - Gstaad', 105, 272, { align: 'center' })
-    doc.text('vip@caprices.ch', 105, 278, { align: 'center' })
+    doc.text('vip@caprices.ch', 105, 272, { align: 'center' })
     
-    const fileName = consolidated 
-      ? `Facture_Consolidee_${table.client_name?.replace(/\s+/g, '_') || 'Client'}_${format(new Date(), 'yyyyMMdd')}.pdf`
-      : `Facture_${table.table_number}_${format(new Date(), 'yyyyMMdd')}.pdf`
-    
+    const fileName = `Facture_${table.table_number}_${format(new Date(), 'yyyyMMdd')}.pdf`
     doc.save(fileName)
-    toast.success('Facture générée!')
-    
-    return doc
-    } catch (error) {
-      console.error('PDF generation error:', error)
-      toast.error('Erreur génération PDF: ' + error.message)
-    }
+    toast.success('PDF téléchargé!')
   }
 
   // Send invoice by email
