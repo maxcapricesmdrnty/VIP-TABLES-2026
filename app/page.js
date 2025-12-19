@@ -3058,23 +3058,17 @@ function InvoicesView({ event }) {
                               >
                                 <Plus className="w-4 h-4" />
                               </Button>
-                              <Button size="sm" variant="outline" onClick={() => generateInvoice(table)}>
+                              <Button size="sm" variant="outline" onClick={() => generateInvoice(table)} title="Télécharger PDF">
                                 <Download className="w-4 h-4" />
                               </Button>
-                              {table.client_email && (
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  onClick={() => sendInvoiceEmail(table)}
-                                  disabled={sendingEmail === table.id}
-                                >
-                                  {sendingEmail === table.id ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                  ) : (
-                                    <FileText className="w-4 h-4" />
-                                  )}
-                                </Button>
-                              )}
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => openInvoicePreview(table)}
+                                title="Envoyer par email"
+                              >
+                                <FileText className="w-4 h-4" />
+                              </Button>
                             </div>
                           </div>
                           
