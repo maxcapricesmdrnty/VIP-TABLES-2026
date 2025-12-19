@@ -2650,6 +2650,593 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
 }
 
 
+// Guichet d'Accueil Component
+function GuichetView({ event, eventDays }) {
+  const [selectedDay, setSelectedDay] = useState('')
+  const [tables, setTables] = useState([])
+  const [payments, setPayments] = useState({})
+  const [loading, setLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterPayment, setFilterPayment] = useState('all') // all, paid, partial, pending
+  const [filterBracelets, setFilterBracelets] = useState('all') // all, given, notgiven
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showNoteModal, setShowNoteModal] = useState(false)
+  const [selectedClient, setSelectedClient] = useState(null)
+  const [paymentAmount, setPaymentAmount] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('especes')
+  const [newNote, setNewNote] = useState('')
+  const [savingPayment, setSavingPayment] = useState(false)
+  const [savingNote, setSavingNote] = useState(false)
+
+  // Get unique days from eventDays
+  const availableDays = eventDays?.map(d => d.day).sort() || []
+
+  useEffect(() => {
+    if (availableDays.length > 0 && !selectedDay) {
+      // Default to today if available, otherwise first day
+      const today = new Date().toISOString().split('T')[0]
+      if (availableDays.includes(today)) {
+        setSelectedDay(today)
+      } else {
+        setSelectedDay(availableDays[0])
+      }
+    }
+  }, [availableDays])
+
+  useEffect(() => {
+    if (selectedDay) {
+      fetchTablesForDay()
+      fetchPayments()
+    }
+  }, [selectedDay])
+
+  const fetchTablesForDay = async () => {
+    setLoading(true)
+    try {
+      const { data } = await supabase
+        .from('tables')
+        .select('*')
+        .eq('event_id', event.id)
+        .eq('day', selectedDay)
+        .neq('status', 'libre')
+        .order('client_name')
+      setTables(data || [])
+    } catch (error) {
+      console.error('Error fetching tables:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchPayments = async () => {
+    try {
+      const { data } = await supabase
+        .from('payments')
+        .select('*')
+        .order('payment_date', { ascending: false })
+      
+      const grouped = (data || []).reduce((acc, p) => {
+        if (!acc[p.table_id]) acc[p.table_id] = []
+        acc[p.table_id].push(p)
+        return acc
+      }, {})
+      setPayments(grouped)
+    } catch (error) {
+      console.error('Error fetching payments:', error)
+    }
+  }
+
+  // Calculate total for a table
+  const calculateTableTotal = (table) => {
+    const basePrice = table.sold_price || table.standard_price || 0
+    const additionalPersons = (table.additional_persons || 0) * (table.additional_person_price || 0)
+    const onSiteRevenue = table.on_site_additional_revenue || 0
+    return basePrice + additionalPersons + onSiteRevenue
+  }
+
+  // Get paid amount for a table
+  const getPaidAmount = (tableId) => {
+    const tablePayments = payments[tableId] || []
+    return tablePayments.reduce((sum, p) => sum + (p.amount || 0), 0)
+  }
+
+  // Calculate bracelets for a table
+  const calculateBracelets = (table) => {
+    const base = table.persons || table.capacity || 0
+    const additional = table.additional_persons || 0
+    const onSite = table.on_site_persons || 0
+    return { base, additional, onSite, total: base + additional + onSite }
+  }
+
+  // Group tables by client
+  const groupByClient = () => {
+    const grouped = tables.reduce((acc, table) => {
+      const key = table.client_email || table.client_name || table.id
+      if (!acc[key]) {
+        acc[key] = {
+          client_name: table.client_name,
+          client_email: table.client_email,
+          client_phone: table.client_phone,
+          tables: []
+        }
+      }
+      acc[key].tables.push(table)
+      return acc
+    }, {})
+    return Object.values(grouped)
+  }
+
+  // Filter and search
+  const getFilteredClients = () => {
+    let clients = groupByClient()
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      clients = clients.filter(c => 
+        (c.client_name || '').toLowerCase().includes(query) ||
+        (c.client_email || '').toLowerCase().includes(query) ||
+        c.tables.some(t => t.table_number.toLowerCase().includes(query))
+      )
+    }
+
+    // Payment filter
+    if (filterPayment !== 'all') {
+      clients = clients.filter(c => {
+        const total = c.tables.reduce((s, t) => s + calculateTableTotal(t), 0)
+        const paid = c.tables.reduce((s, t) => s + getPaidAmount(t.id), 0)
+        if (filterPayment === 'paid') return paid >= total
+        if (filterPayment === 'partial') return paid > 0 && paid < total
+        if (filterPayment === 'pending') return paid === 0
+        return true
+      })
+    }
+
+    // Bracelets filter
+    if (filterBracelets !== 'all') {
+      clients = clients.filter(c => {
+        const allGiven = c.tables.every(t => t.bracelets_given)
+        if (filterBracelets === 'given') return allGiven
+        if (filterBracelets === 'notgiven') return !allGiven
+        return true
+      })
+    }
+
+    return clients
+  }
+
+  // Toggle bracelets given
+  const toggleBracelets = async (table) => {
+    const newValue = !table.bracelets_given
+    try {
+      const { error } = await supabase
+        .from('tables')
+        .update({
+          bracelets_given: newValue,
+          bracelets_given_at: newValue ? new Date().toISOString() : null
+        })
+        .eq('id', table.id)
+      
+      if (error) throw error
+      fetchTablesForDay()
+      toast.success(newValue ? 'Bracelets marqués comme remis' : 'Bracelets non remis')
+    } catch (error) {
+      toast.error('Erreur: ' + error.message)
+    }
+  }
+
+  // Add payment
+  const handleAddPayment = async () => {
+    if (!selectedClient || !paymentAmount) return
+    setSavingPayment(true)
+    try {
+      // Add payment to the first table of the client
+      const tableId = selectedClient.tables[0].id
+      const { error } = await supabase.from('payments').insert({
+        table_id: tableId,
+        amount: parseFloat(paymentAmount),
+        payment_date: new Date().toISOString().split('T')[0],
+        payment_method: paymentMethod
+      })
+      if (error) throw error
+      
+      toast.success('Paiement enregistré!')
+      setShowPaymentModal(false)
+      setPaymentAmount('')
+      fetchPayments()
+    } catch (error) {
+      toast.error('Erreur: ' + error.message)
+    } finally {
+      setSavingPayment(false)
+    }
+  }
+
+  // Add note
+  const handleAddNote = async () => {
+    if (!selectedClient || !newNote) return
+    setSavingNote(true)
+    try {
+      // Add note to all tables of the client
+      for (const table of selectedClient.tables) {
+        const existingNotes = table.guichet_notes || ''
+        const timestamp = format(new Date(), 'dd/MM HH:mm')
+        const updatedNotes = existingNotes 
+          ? `${existingNotes}\n[${timestamp}] ${newNote}`
+          : `[${timestamp}] ${newNote}`
+        
+        const { error } = await supabase
+          .from('tables')
+          .update({ guichet_notes: updatedNotes })
+          .eq('id', table.id)
+        if (error) throw error
+      }
+      
+      toast.success('Note ajoutée!')
+      setShowNoteModal(false)
+      setNewNote('')
+      fetchTablesForDay()
+    } catch (error) {
+      toast.error('Erreur: ' + error.message)
+    } finally {
+      setSavingNote(false)
+    }
+  }
+
+  // Format Swiss currency
+  const formatSwiss = (amount) => {
+    return (amount || 0).toLocaleString('de-CH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  }
+
+  // Get payment status color and label
+  const getPaymentStatus = (total, paid) => {
+    if (paid >= total) return { color: 'bg-green-500', label: 'Payé', icon: '🟢' }
+    if (paid > 0) return { color: 'bg-yellow-500', label: 'Partiel', icon: '🟡' }
+    return { color: 'bg-red-500', label: 'En attente', icon: '🔴' }
+  }
+
+  const filteredClients = getFilteredClients()
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Ticket className="w-6 h-6 text-amber-500" />
+          <h2 className="text-xl font-semibold">Guichet d'Accueil</h2>
+        </div>
+        
+        {/* Day Selector */}
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-muted-foreground" />
+          <Select value={selectedDay} onValueChange={setSelectedDay}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Sélectionner un jour" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableDays.map(day => (
+                <SelectItem key={day} value={day}>
+                  {format(parseISO(day), 'EEEE dd MMMM', { locale: fr })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input 
+            placeholder="Rechercher par nom, email ou n° table..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Select value={filterPayment} onValueChange={setFilterPayment}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Paiement" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous paiements</SelectItem>
+            <SelectItem value="paid">🟢 Payé</SelectItem>
+            <SelectItem value="partial">🟡 Partiel</SelectItem>
+            <SelectItem value="pending">🔴 En attente</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterBracelets} onValueChange={setFilterBracelets}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Bracelets" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous bracelets</SelectItem>
+            <SelectItem value="given">✅ Remis</SelectItem>
+            <SelectItem value="notgiven">⏳ Non remis</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Stats Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="p-3">
+          <div className="text-2xl font-bold text-amber-500">{filteredClients.length}</div>
+          <div className="text-xs text-muted-foreground">Clients</div>
+        </Card>
+        <Card className="p-3">
+          <div className="text-2xl font-bold text-blue-500">
+            {filteredClients.reduce((s, c) => s + c.tables.reduce((ts, t) => ts + calculateBracelets(t).total, 0), 0)}
+          </div>
+          <div className="text-xs text-muted-foreground">Bracelets total</div>
+        </Card>
+        <Card className="p-3">
+          <div className="text-2xl font-bold text-green-500">
+            {filteredClients.filter(c => c.tables.every(t => t.bracelets_given)).length}
+          </div>
+          <div className="text-xs text-muted-foreground">Bracelets remis</div>
+        </Card>
+        <Card className="p-3">
+          <div className="text-2xl font-bold text-orange-500">
+            {filteredClients.filter(c => {
+              const total = c.tables.reduce((s, t) => s + calculateTableTotal(t), 0)
+              const paid = c.tables.reduce((s, t) => s + getPaidAmount(t.id), 0)
+              return paid < total
+            }).length}
+          </div>
+          <div className="text-xs text-muted-foreground">Paiements en attente</div>
+        </Card>
+      </div>
+
+      {/* Client List */}
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+      ) : filteredClients.length === 0 ? (
+        <Card className="p-8 text-center">
+          <Ticket className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <p className="text-muted-foreground">
+            {selectedDay ? 'Aucune réservation pour ce jour' : 'Sélectionnez un jour'}
+          </p>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {filteredClients.map((client, idx) => {
+            const clientTotal = client.tables.reduce((s, t) => s + calculateTableTotal(t), 0)
+            const clientPaid = client.tables.reduce((s, t) => s + getPaidAmount(t.id), 0)
+            const clientRemaining = clientTotal - clientPaid
+            const clientBracelets = client.tables.reduce((s, t) => s + calculateBracelets(t).total, 0)
+            const allBraceletsGiven = client.tables.every(t => t.bracelets_given)
+            const paymentStatus = getPaymentStatus(clientTotal, clientPaid)
+            const tableNumbers = client.tables.map(t => t.table_number).join(', ')
+            const clientNotes = client.tables.map(t => t.guichet_notes).filter(Boolean).join('\n')
+
+            return (
+              <Card key={idx} className={`overflow-hidden ${allBraceletsGiven ? 'border-green-500/50 bg-green-500/5' : ''}`}>
+                {/* Client Header */}
+                <div className="p-4 border-b border-border/50">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${allBraceletsGiven ? 'bg-green-500' : 'bg-amber-500'}`} />
+                      <div>
+                        <h3 className="font-semibold text-lg">{client.client_name || 'Client sans nom'}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {client.client_email} {client.client_phone && `• ${client.client_phone}`}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-sm">
+                      Tables: {tableNumbers}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Bracelets Section */}
+                <div className="p-4 bg-muted/30 border-b border-border/50">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex items-center gap-4">
+                      <Ticket className="w-5 h-5 text-amber-500" />
+                      <div>
+                        <span className="text-2xl font-bold">{clientBracelets}</span>
+                        <span className="text-muted-foreground ml-2">bracelets</span>
+                        <div className="text-xs text-muted-foreground">
+                          {client.tables.map(t => {
+                            const b = calculateBracelets(t)
+                            return `${t.table_number}: ${b.base} base${b.additional ? ` + ${b.additional} supp.` : ''}${b.onSite ? ` + ${b.onSite} sur place` : ''}`
+                          }).join(' | ')}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {client.tables.map(table => (
+                        <Button
+                          key={table.id}
+                          variant={table.bracelets_given ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => toggleBracelets(table)}
+                          className={table.bracelets_given ? "bg-green-600 hover:bg-green-700" : ""}
+                        >
+                          {table.bracelets_given ? (
+                            <>
+                              <UserCheck className="w-4 h-4 mr-1" />
+                              {table.table_number} ✓
+                            </>
+                          ) : (
+                            <>
+                              <Ticket className="w-4 h-4 mr-1" />
+                              {table.table_number}
+                            </>
+                          )}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  {client.tables.some(t => t.bracelets_given_at) && (
+                    <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      Remis: {client.tables.filter(t => t.bracelets_given_at).map(t => 
+                        `${t.table_number} à ${format(new Date(t.bracelets_given_at), 'HH:mm')}`
+                      ).join(', ')}
+                    </div>
+                  )}
+                </div>
+
+                {/* Payment Section */}
+                <div className="p-4 border-b border-border/50">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="flex items-center gap-4">
+                      <CreditCard className="w-5 h-5 text-blue-500" />
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <span className="text-muted-foreground">Total:</span>
+                          <span className="font-semibold ml-1">{formatSwiss(clientTotal)} {event.currency}</span>
+                        </div>
+                        <div className="text-muted-foreground">|</div>
+                        <div>
+                          <span className="text-muted-foreground">Payé:</span>
+                          <span className="text-green-500 font-semibold ml-1">{formatSwiss(clientPaid)}</span>
+                        </div>
+                        {clientRemaining > 0 && (
+                          <>
+                            <div className="text-muted-foreground">|</div>
+                            <div>
+                              <span className="text-muted-foreground">Reste:</span>
+                              <span className="text-orange-500 font-semibold ml-1">{formatSwiss(clientRemaining)}</span>
+                            </div>
+                          </>
+                        )}
+                        <Badge className={paymentStatus.color}>{paymentStatus.icon} {paymentStatus.label}</Badge>
+                      </div>
+                    </div>
+                    {clientRemaining > 0 && (
+                      <Button 
+                        size="sm" 
+                        onClick={() => {
+                          setSelectedClient(client)
+                          setPaymentAmount(clientRemaining.toString())
+                          setShowPaymentModal(true)
+                        }}
+                        className="bg-gradient-to-r from-green-500 to-green-600 text-white"
+                      >
+                        <CreditCard className="w-4 h-4 mr-1" />
+                        Encaisser
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Notes Section */}
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2 flex-1">
+                      <StickyNote className="w-5 h-5 text-purple-500 mt-0.5" />
+                      <div className="flex-1">
+                        {clientNotes ? (
+                          <p className="text-sm whitespace-pre-line">{clientNotes}</p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground italic">Aucune note</p>
+                        )}
+                      </div>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedClient(client)
+                        setShowNoteModal(true)
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Note
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Payment Modal */}
+      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Encaisser - {selectedClient?.client_name}</DialogTitle>
+            <DialogDescription>
+              Tables: {selectedClient?.tables.map(t => t.table_number).join(', ')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Montant ({event.currency})</Label>
+              <Input
+                type="number"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                placeholder="0.00"
+                className="text-2xl font-bold"
+              />
+            </div>
+            <div>
+              <Label>Méthode de paiement</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="especes">💵 Espèces</SelectItem>
+                  <SelectItem value="carte">💳 Carte</SelectItem>
+                  <SelectItem value="twint">📱 TWINT</SelectItem>
+                  <SelectItem value="virement">🏦 Virement</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPaymentModal(false)}>Annuler</Button>
+            <Button 
+              onClick={handleAddPayment}
+              disabled={savingPayment || !paymentAmount}
+              className="bg-gradient-to-r from-green-500 to-green-600 text-white"
+            >
+              {savingPayment ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+              Confirmer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Note Modal */}
+      <Dialog open={showNoteModal} onOpenChange={setShowNoteModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajouter une note - {selectedClient?.client_name}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              placeholder="Ex: Client VIP - champagne offert, Arrivée prévue 22h..."
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNoteModal(false)}>Annuler</Button>
+            <Button 
+              onClick={handleAddNote}
+              disabled={savingNote || !newNote}
+              className="bg-gradient-to-r from-purple-500 to-purple-600 text-white"
+            >
+              {savingNote ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <StickyNote className="w-4 h-4 mr-2" />}
+              Ajouter
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
 // Invoices View Component
 function InvoicesView({ event, onEventUpdate }) {
   const [reservedTables, setReservedTables] = useState([])
