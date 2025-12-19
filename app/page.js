@@ -1581,8 +1581,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout }) {
                                 <Label className="text-xs text-muted-foreground">Prix ({event.currency})</Label>
                                 <Input
                                   type="number"
-                                  value={item.price}
-                                  onChange={(e) => updateImportedItem(item.id, 'price', parseFloat(e.target.value) || 0)}
+                                  value={item.price === 0 ? '' : item.price}
+                                  onChange={(e) => updateImportedItem(item.id, 'price', e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                   className="h-8 text-sm"
                                 />
                               </div>
