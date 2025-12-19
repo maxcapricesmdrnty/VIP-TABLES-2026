@@ -3165,7 +3165,7 @@ function InvoicesView({ event }) {
                               <div className="text-xs text-muted-foreground mb-1">Paiements:</div>
                               {payments[table.id].map(p => (
                                 <div key={p.id} className="flex justify-between text-xs">
-                                  <span>{format(parseISO(p.payment_date), 'dd/MM/yy')} - {p.payment_method}</span>
+                                  <span>{formatDate(p.payment_date, 'dd/MM/yy')} - {p.payment_method}</span>
                                   <span className="text-green-500">{formatSwiss(p.amount)} {event.currency}</span>
                                 </div>
                               ))}
