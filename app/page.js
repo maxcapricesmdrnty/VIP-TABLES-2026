@@ -2806,6 +2806,134 @@ function InvoicesView({ event }) {
     }
   }
 
+  // Generate Consolidated PDF Invoice for multiple tables
+  const generateConsolidatedInvoice = (clientTables) => {
+    try {
+      const doc = new jsPDF()
+      const currency = event?.currency || 'CHF'
+      const firstTable = clientTables[0]
+      
+      // Header
+      doc.setFontSize(24)
+      doc.setTextColor(218, 165, 32)
+      doc.text('FACTURE CONSOLIDÉE', 105, 25, { align: 'center' })
+      
+      doc.setFontSize(14)
+      doc.setTextColor(0, 0, 0)
+      doc.text(event?.name || 'Événement', 105, 35, { align: 'center' })
+      
+      // Invoice info
+      doc.setFontSize(10)
+      const invoiceNum = `CONS-${(firstTable.client_email || 'X').slice(0, 6)}-${format(new Date(), 'yyyyMMdd')}`.toUpperCase()
+      doc.text(`Facture N°: ${invoiceNum}`, 20, 55)
+      doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, 20, 62)
+      doc.text(`Nombre de tables: ${clientTables.length}`, 20, 69)
+      
+      // Client info
+      doc.setFontSize(11)
+      doc.setFont(undefined, 'bold')
+      doc.text('Client:', 20, 85)
+      doc.setFont(undefined, 'normal')
+      doc.setFontSize(10)
+      doc.text(firstTable.client_name || 'N/A', 20, 93)
+      doc.text(firstTable.client_email || '', 20, 100)
+      doc.text(firstTable.client_phone || '', 20, 107)
+      
+      // Table header
+      let yPos = 125
+      doc.setFillColor(218, 165, 32)
+      doc.rect(20, yPos, 170, 8, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFont(undefined, 'bold')
+      doc.text('Table', 25, yPos + 6)
+      doc.text('Date', 80, yPos + 6)
+      doc.text('Montant', 175, yPos + 6, { align: 'right' })
+      
+      // Table rows
+      yPos += 12
+      doc.setTextColor(0, 0, 0)
+      doc.setFont(undefined, 'normal')
+      
+      let grandTotal = 0
+      clientTables.forEach((t) => {
+        const tableTotal = calculateTableTotal(t)
+        grandTotal += tableTotal
+        
+        doc.text(`${t.table_number}`, 25, yPos)
+        doc.text(formatDate(t.day, 'dd/MM/yyyy'), 80, yPos)
+        doc.text(`${formatSwiss(tableTotal)} ${currency}`, 175, yPos, { align: 'right' })
+        yPos += 8
+        
+        // Check if we need a new page
+        if (yPos > 250) {
+          doc.addPage()
+          yPos = 30
+        }
+      })
+      
+      // Total
+      yPos += 5
+      doc.setDrawColor(218, 165, 32)
+      doc.line(20, yPos, 190, yPos)
+      yPos += 10
+      doc.setFontSize(14)
+      doc.setFont(undefined, 'bold')
+      doc.text('TOTAL GÉNÉRAL', 25, yPos)
+      doc.text(`${formatSwiss(grandTotal)} ${currency}`, 175, yPos, { align: 'right' })
+      
+      // Payments
+      const allPayments = clientTables.flatMap(t => payments[t.id] || [])
+      const totalPaid = allPayments.reduce((sum, p) => sum + (p.amount || 0), 0)
+      
+      if (totalPaid > 0) {
+        yPos += 15
+        doc.setFontSize(10)
+        doc.setFont(undefined, 'normal')
+        doc.text(`Acomptes reçus: ${formatSwiss(totalPaid)} ${currency}`, 25, yPos)
+        yPos += 7
+        const remaining = grandTotal - totalPaid
+        if (remaining > 0) {
+          doc.setFont(undefined, 'bold')
+          doc.setTextColor(200, 0, 0)
+          doc.text(`Reste à payer: ${formatSwiss(remaining)} ${currency}`, 25, yPos)
+        } else {
+          doc.setFont(undefined, 'bold')
+          doc.setTextColor(0, 150, 0)
+          doc.text('SOLDÉ', 25, yPos)
+        }
+      }
+      
+      // Footer
+      doc.setFontSize(9)
+      doc.setTextColor(0, 0, 0)
+      doc.setFont(undefined, 'normal')
+      doc.text('Merci de votre confiance!', 105, 270, { align: 'center' })
+      doc.setFontSize(8)
+      doc.text('vip@caprices.ch', 105, 277, { align: 'center' })
+      
+      // Download
+      const fileName = `Facture_Consolidee_${(firstTable.client_name || 'Client').replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`
+      const pdfDataUri = doc.output('datauristring')
+      
+      const newWindow = window.open()
+      if (newWindow) {
+        newWindow.document.write(`
+          <html>
+            <head><title>${fileName}</title></head>
+            <body style="margin:0">
+              <embed width="100%" height="100%" src="${pdfDataUri}" type="application/pdf" />
+            </body>
+          </html>
+        `)
+      }
+      
+      toast.success('Facture consolidée ouverte!')
+    } catch (error) {
+      console.error('PDF error:', error)
+      toast.error('Erreur PDF: ' + error.message)
+    }
+  }
+
   // Send invoice by email - Simplified
   const sendInvoiceEmail = async (table) => {
     if (!table.client_email) {
