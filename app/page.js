@@ -3672,10 +3672,16 @@ function InvoicesView({ event, onEventUpdate }) {
               <div className="border rounded-lg p-6 bg-white text-black text-sm">
                 {/* Header */}
                 <div className="text-center mb-4">
-                  {billingSettings.billing_logo_url && (
-                    <img src={billingSettings.billing_logo_url} alt="Logo" className="h-12 mx-auto mb-2" />
+                  {(billingSettings.billing_logo_url || event.billing_logo_url) && (
+                    <img 
+                      src={billingSettings.billing_logo_url || event.billing_logo_url} 
+                      alt="Logo" 
+                      className="h-12 mx-auto mb-2 object-contain" 
+                    />
                   )}
-                  <h2 className="text-xl font-bold text-[#4682B4]">{billingSettings.billing_company_name || 'VIP'}</h2>
+                  <h2 className="text-xl font-bold text-[#4682B4]">
+                    {billingSettings.billing_company_name || event.billing_company_name || 'VIP'}
+                  </h2>
                   <p className="text-gray-600">
                     {isConsolidated ? 'Consolidated Proforma - Table Reservations' : 'Proforma - Table Reservation'}
                   </p>
