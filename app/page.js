@@ -2905,23 +2905,24 @@ function InvoicesView({ event }) {
       doc.setFontSize(8)
       doc.text('vip@caprices.ch', 105, 277, { align: 'center' })
       
-      // Download
+      // Download PDF directly
       const fileName = `Facture_Consolidee_${(firstTable.client_name || 'Client').replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`
-      const pdfDataUri = doc.output('datauristring')
+      const pdfBlob = doc.output('blob')
+      const blobUrl = window.URL.createObjectURL(pdfBlob)
       
-      const newWindow = window.open()
-      if (newWindow) {
-        newWindow.document.write(`
-          <html>
-            <head><title>${fileName}</title></head>
-            <body style="margin:0">
-              <embed width="100%" height="100%" src="${pdfDataUri}" type="application/pdf" />
-            </body>
-          </html>
-        `)
-      }
+      const downloadLink = document.createElement('a')
+      downloadLink.href = blobUrl
+      downloadLink.download = fileName
+      downloadLink.style.display = 'none'
+      document.body.appendChild(downloadLink)
+      downloadLink.click()
       
-      toast.success('Facture consolidée ouverte!')
+      setTimeout(() => {
+        document.body.removeChild(downloadLink)
+        window.URL.revokeObjectURL(blobUrl)
+      }, 100)
+      
+      toast.success('Facture consolidée téléchargée!')
     } catch (error) {
       console.error('PDF error:', error)
       toast.error('Erreur PDF: ' + error.message)
