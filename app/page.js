@@ -2633,7 +2633,7 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
 
 
 // Invoices View Component
-function InvoicesView({ event }) {
+function InvoicesView({ event, onEventUpdate }) {
   const [reservedTables, setReservedTables] = useState([])
   const [payments, setPayments] = useState({})
   const [loading, setLoading] = useState(true)
@@ -2645,13 +2645,54 @@ function InvoicesView({ event }) {
   // Invoice preview modal states
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
   const [selectedInvoiceTable, setSelectedInvoiceTable] = useState(null)
-  const [invoiceRecipient, setInvoiceRecipient] = useState('vip') // 'vip', 'client', 'custom'
+  const [selectedInvoiceTables, setSelectedInvoiceTables] = useState([]) // For consolidated
+  const [isConsolidated, setIsConsolidated] = useState(false)
+  const [invoiceRecipient, setInvoiceRecipient] = useState('vip')
   const [customEmail, setCustomEmail] = useState('')
+  
+  // Billing settings tab
+  const [activeTab, setActiveTab] = useState('invoices')
+  const [billingSettings, setBillingSettings] = useState({
+    billing_company_name: event.billing_company_name || 'VIP Gstaad',
+    billing_beneficiary: event.billing_beneficiary || '',
+    billing_address: event.billing_address || '',
+    billing_account_number: event.billing_account_number || '',
+    billing_iban: event.billing_iban || '',
+    billing_bic: event.billing_bic || '',
+    billing_bank_name: event.billing_bank_name || '',
+    billing_bank_address: event.billing_bank_address || '',
+    billing_logo_url: event.billing_logo_url || '',
+    billing_terms: event.billing_terms || 'Payment must be completed within eight days from the date of issue, after which the table will be put back on sale.\nIn case of table cancellation by the client less than two weeks before the event will result in a penalty of 30% of the amount collected.',
+    billing_vat_text: event.billing_vat_text || 'VAT not applicable at this stage',
+    billing_thank_you: event.billing_thank_you || 'Thank you for your trust',
+    billing_email: event.billing_email || 'vip@caprices.ch'
+  })
+  const [savingSettings, setSavingSettings] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
 
   useEffect(() => {
     fetchReservedTables()
     fetchPayments()
   }, [event.id])
+  
+  useEffect(() => {
+    // Update billing settings when event changes
+    setBillingSettings({
+      billing_company_name: event.billing_company_name || 'VIP Gstaad',
+      billing_beneficiary: event.billing_beneficiary || '',
+      billing_address: event.billing_address || '',
+      billing_account_number: event.billing_account_number || '',
+      billing_iban: event.billing_iban || '',
+      billing_bic: event.billing_bic || '',
+      billing_bank_name: event.billing_bank_name || '',
+      billing_bank_address: event.billing_bank_address || '',
+      billing_logo_url: event.billing_logo_url || '',
+      billing_terms: event.billing_terms || 'Payment must be completed within eight days from the date of issue, after which the table will be put back on sale.\nIn case of table cancellation by the client less than two weeks before the event will result in a penalty of 30% of the amount collected.',
+      billing_vat_text: event.billing_vat_text || 'VAT not applicable at this stage',
+      billing_thank_you: event.billing_thank_you || 'Thank you for your trust',
+      billing_email: event.billing_email || 'vip@caprices.ch'
+    })
+  }, [event])
 
   const fetchReservedTables = async () => {
     try {
