@@ -3236,17 +3236,219 @@ function InvoicesView({ event, onEventUpdate }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Facturation Clients</h2>
-        <Badge variant="outline">{reservedTables.length} réservations</Badge>
+      {/* Tab Navigation */}
+      <div className="flex items-center gap-4 border-b border-border">
+        <button
+          onClick={() => setActiveTab('invoices')}
+          className={`pb-2 px-1 text-sm font-medium transition-colors ${activeTab === 'invoices' ? 'border-b-2 border-amber-500 text-amber-500' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <Receipt className="w-4 h-4 inline mr-2" />
+          Invoices
+        </button>
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`pb-2 px-1 text-sm font-medium transition-colors ${activeTab === 'settings' ? 'border-b-2 border-amber-500 text-amber-500' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <Cog className="w-4 h-4 inline mr-2" />
+          Billing Settings
+        </button>
       </div>
-      
-      {Object.keys(groupedByClient).length === 0 ? (
-        <Card className="p-8 text-center">
-          <p className="text-muted-foreground">Aucune réservation à facturer</p>
-        </Card>
-      ) : (
-        <div className="space-y-4">
+
+      {/* Billing Settings Tab */}
+      {activeTab === 'settings' && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Company Information</CardTitle>
+              <CardDescription>These details will appear on your invoices</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Company Name</Label>
+                  <Input 
+                    value={billingSettings.billing_company_name}
+                    onChange={(e) => setBillingSettings({...billingSettings, billing_company_name: e.target.value})}
+                    placeholder="VIP Gstaad"
+                  />
+                </div>
+                <div>
+                  <Label>Contact Email</Label>
+                  <Input 
+                    type="email"
+                    value={billingSettings.billing_email}
+                    onChange={(e) => setBillingSettings({...billingSettings, billing_email: e.target.value})}
+                    placeholder="vip@caprices.ch"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label>Beneficiary Name</Label>
+                <Input 
+                  value={billingSettings.billing_beneficiary}
+                  onChange={(e) => setBillingSettings({...billingSettings, billing_beneficiary: e.target.value})}
+                  placeholder="Gstaad Electronic Music Festival SA"
+                />
+              </div>
+              
+              <div>
+                <Label>Address</Label>
+                <Input 
+                  value={billingSettings.billing_address}
+                  onChange={(e) => setBillingSettings({...billingSettings, billing_address: e.target.value})}
+                  placeholder="c/o T&R Oberland AG, Kirchstrasse 7, 3780 Gstaad"
+                />
+              </div>
+              
+              <div>
+                <Label>Logo</Label>
+                <div className="flex items-center gap-4">
+                  {billingSettings.billing_logo_url && (
+                    <img 
+                      src={billingSettings.billing_logo_url} 
+                      alt="Logo" 
+                      className="h-16 object-contain bg-white p-2 rounded"
+                    />
+                  )}
+                  <div>
+                    <Input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      disabled={uploadingLogo}
+                      className="max-w-xs"
+                    />
+                    {uploadingLogo && <span className="text-sm text-muted-foreground ml-2">Uploading...</span>}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Banking Information</CardTitle>
+              <CardDescription>Payment details for your invoices</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Account Number</Label>
+                  <Input 
+                    value={billingSettings.billing_account_number}
+                    onChange={(e) => setBillingSettings({...billingSettings, billing_account_number: e.target.value})}
+                    placeholder="E56536850"
+                  />
+                </div>
+                <div>
+                  <Label>IBAN</Label>
+                  <Input 
+                    value={billingSettings.billing_iban}
+                    onChange={(e) => setBillingSettings({...billingSettings, billing_iban: e.target.value})}
+                    placeholder="CH9300767000E56536850"
+                  />
+                </div>
+                <div>
+                  <Label>BIC/SWIFT</Label>
+                  <Input 
+                    value={billingSettings.billing_bic}
+                    onChange={(e) => setBillingSettings({...billingSettings, billing_bic: e.target.value})}
+                    placeholder="BCVLCH2LXXX"
+                  />
+                </div>
+                <div>
+                  <Label>Bank Name</Label>
+                  <Input 
+                    value={billingSettings.billing_bank_name}
+                    onChange={(e) => setBillingSettings({...billingSettings, billing_bank_name: e.target.value})}
+                    placeholder="Banque Cantonale Vaudoise"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>Bank Address</Label>
+                <Input 
+                  value={billingSettings.billing_bank_address}
+                  onChange={(e) => setBillingSettings({...billingSettings, billing_bank_address: e.target.value})}
+                  placeholder="Place St-François 14, 1003 Lausanne, Switzerland"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Terms & Footer</CardTitle>
+              <CardDescription>Legal terms and footer text for invoices</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Terms & Conditions (one per line)</Label>
+                <Textarea 
+                  value={billingSettings.billing_terms}
+                  onChange={(e) => setBillingSettings({...billingSettings, billing_terms: e.target.value})}
+                  placeholder="Payment must be completed within eight days..."
+                  rows={4}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Thank You Message</Label>
+                  <Input 
+                    value={billingSettings.billing_thank_you}
+                    onChange={(e) => setBillingSettings({...billingSettings, billing_thank_you: e.target.value})}
+                    placeholder="Thank you for your trust"
+                  />
+                </div>
+                <div>
+                  <Label>VAT Text</Label>
+                  <Input 
+                    value={billingSettings.billing_vat_text}
+                    onChange={(e) => setBillingSettings({...billingSettings, billing_vat_text: e.target.value})}
+                    placeholder="VAT not applicable at this stage"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button 
+              onClick={saveBillingSettings}
+              disabled={savingSettings}
+              className="bg-gradient-to-r from-amber-500 to-amber-600 text-black hover:from-amber-600 hover:to-amber-700"
+            >
+              {savingSettings ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Save Billing Settings
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Invoices Tab */}
+      {activeTab === 'invoices' && (
+        <>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Client Invoices</h2>
+            <Badge variant="outline">{reservedTables.length} reservations</Badge>
+          </div>
+          
+          {Object.keys(groupedByClient).length === 0 ? (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">No reservations to invoice</p>
+            </Card>
+          ) : (
+            <div className="space-y-4">
           {Object.values(groupedByClient).map((client, idx) => {
             const clientTotal = client.tables.reduce((sum, t) => sum + calculateTableTotal(t), 0)
             const clientPaid = client.tables.reduce((sum, t) => sum + getPaidAmount(t.id), 0)
