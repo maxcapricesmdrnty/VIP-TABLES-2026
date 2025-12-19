@@ -2689,6 +2689,749 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
 }
 
 
+// Team Management Component
+function TeamManagementView({ event }) {
+  const [members, setMembers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showAddDialog, setShowAddDialog] = useState(false)
+  const [newMember, setNewMember] = useState({ email: '', name: '', role: 'serveur' })
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    fetchMembers()
+  }, [event.id])
+
+  const fetchMembers = async () => {
+    try {
+      const { data } = await supabase
+        .from('team_members')
+        .select('*')
+        .eq('event_id', event.id)
+        .order('created_at', { ascending: false })
+      setMembers(data || [])
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const addMember = async () => {
+    if (!newMember.email || !newMember.name) {
+      toast.error('Email et nom requis')
+      return
+    }
+    setSaving(true)
+    try {
+      const { error } = await supabase.from('team_members').insert({
+        event_id: event.id,
+        email: newMember.email,
+        name: newMember.name,
+        role: newMember.role
+      })
+      if (error) throw error
+      toast.success('Membre ajouté!')
+      setShowAddDialog(false)
+      setNewMember({ email: '', name: '', role: 'serveur' })
+      fetchMembers()
+    } catch (error) {
+      toast.error('Erreur: ' + error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deleteMember = async (id) => {
+    if (!confirm('Supprimer ce membre?')) return
+    try {
+      const { error } = await supabase.from('team_members').delete().eq('id', id)
+      if (error) throw error
+      toast.success('Membre supprimé')
+      fetchMembers()
+    } catch (error) {
+      toast.error('Erreur: ' + error.message)
+    }
+  }
+
+  const toggleActive = async (member) => {
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .update({ is_active: !member.is_active })
+        .eq('id', member.id)
+      if (error) throw error
+      fetchMembers()
+    } catch (error) {
+      toast.error('Erreur: ' + error.message)
+    }
+  }
+
+  const getRoleBadge = (role) => {
+    switch (role) {
+      case 'admin': return <Badge className="bg-red-500">Admin</Badge>
+      case 'serveur': return <Badge className="bg-blue-500">Serveur</Badge>
+      case 'bar': return <Badge className="bg-purple-500">Bar</Badge>
+      default: return <Badge>{role}</Badge>
+    }
+  }
+
+  if (loading) {
+    return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" /></div>
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <UserCheck className="w-6 h-6 text-amber-500" />
+          <h2 className="text-xl font-semibold">Gestion de l'Équipe</h2>
+        </div>
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogTrigger asChild>
+            <Button className="bg-gradient-to-r from-amber-500 to-amber-600 text-black">
+              <Plus className="w-4 h-4 mr-2" /> Ajouter membre
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nouveau membre</DialogTitle>
+              <DialogDescription>Ajoutez un membre de l'équipe avec son rôle</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Nom</Label>
+                <Input
+                  value={newMember.name}
+                  onChange={(e) => setNewMember({...newMember, name: e.target.value})}
+                  placeholder="Jean Dupont"
+                />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={newMember.email}
+                  onChange={(e) => setNewMember({...newMember, email: e.target.value})}
+                  placeholder="jean@example.com"
+                />
+              </div>
+              <div>
+                <Label>Rôle</Label>
+                <Select value={newMember.role} onValueChange={(v) => setNewMember({...newMember, role: v})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">👑 Admin - Accès complet</SelectItem>
+                    <SelectItem value="serveur">🍾 Serveur - Prise de commandes</SelectItem>
+                    <SelectItem value="bar">🍸 Bar - Vue bar uniquement</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddDialog(false)}>Annuler</Button>
+              <Button onClick={addMember} disabled={saving} className="bg-gradient-to-r from-amber-500 to-amber-600 text-black">
+                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Ajouter
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid gap-3">
+        {members.length === 0 ? (
+          <Card className="p-8 text-center">
+            <UserCheck className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">Aucun membre dans l'équipe</p>
+          </Card>
+        ) : (
+          members.map(member => (
+            <Card key={member.id} className={`p-4 ${!member.is_active ? 'opacity-50' : ''}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${member.role === 'admin' ? 'bg-red-500' : member.role === 'serveur' ? 'bg-blue-500' : 'bg-purple-500'}`}>
+                    {member.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-semibold">{member.name}</p>
+                    <p className="text-sm text-muted-foreground">{member.email}</p>
+                  </div>
+                  {getRoleBadge(member.role)}
+                  {!member.is_active && <Badge variant="outline" className="text-orange-500">Inactif</Badge>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => toggleActive(member)}>
+                    {member.is_active ? 'Désactiver' : 'Activer'}
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={() => deleteMember(member.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Server Order Component (Mobile-First)
+function ServerOrderView({ event, eventDays }) {
+  const [selectedDay, setSelectedDay] = useState('')
+  const [tables, setTables] = useState([])
+  const [selectedTable, setSelectedTable] = useState(null)
+  const [menuItems, setMenuItems] = useState([])
+  const [cart, setCart] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [serverName, setServerName] = useState('')
+  const [showServerDialog, setShowServerDialog] = useState(true)
+  const [sending, setSending] = useState(false)
+
+  const availableDays = (eventDays || []).map(d => d?.date || d?.day).filter(Boolean).sort()
+
+  useEffect(() => {
+    if (availableDays.length > 0 && !selectedDay) {
+      const today = new Date().toISOString().split('T')[0]
+      setSelectedDay(availableDays.includes(today) ? today : availableDays[0])
+    }
+  }, [availableDays])
+
+  useEffect(() => {
+    if (selectedDay) fetchTables()
+  }, [selectedDay])
+
+  useEffect(() => {
+    fetchMenuItems()
+  }, [event.id])
+
+  const fetchTables = async () => {
+    setLoading(true)
+    try {
+      const { data } = await supabase
+        .from('tables')
+        .select('*')
+        .eq('event_id', event.id)
+        .eq('day', selectedDay)
+        .neq('status', 'libre')
+        .order('table_number')
+      setTables(data || [])
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchMenuItems = async () => {
+    try {
+      const { data } = await supabase
+        .from('menu_items')
+        .select('*')
+        .eq('event_id', event.id)
+        .eq('is_available', true)
+        .order('category')
+      setMenuItems(data || [])
+    } catch (error) {
+      console.error('Error:', error)
+    }
+  }
+
+  const getBudgetStatus = (table) => {
+    const budget = table.beverage_budget || 0
+    const consumed = table.consumed_amount || 0
+    const remaining = budget - consumed
+    const percent = budget > 0 ? (remaining / budget) * 100 : 0
+    if (percent > 50) return { color: 'bg-green-500', text: 'text-green-500', label: '🟢' }
+    if (percent > 10) return { color: 'bg-yellow-500', text: 'text-yellow-500', label: '🟡' }
+    return { color: 'bg-red-500', text: 'text-red-500', label: '🔴' }
+  }
+
+  const categories = [...new Set(menuItems.map(i => i.category))].filter(Boolean)
+
+  const filteredItems = menuItems.filter(item => {
+    const matchCategory = selectedCategory === 'all' || item.category === selectedCategory
+    const matchSearch = !searchQuery || 
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.category || '').toLowerCase().includes(searchQuery.toLowerCase())
+    return matchCategory && matchSearch
+  })
+
+  const addToCart = (item) => {
+    const existing = cart.find(c => c.id === item.id)
+    if (existing) {
+      setCart(cart.map(c => c.id === item.id ? {...c, quantity: c.quantity + 1} : c))
+    } else {
+      setCart([...cart, { ...item, quantity: 1 }])
+    }
+  }
+
+  const removeFromCart = (itemId) => {
+    const existing = cart.find(c => c.id === itemId)
+    if (existing && existing.quantity > 1) {
+      setCart(cart.map(c => c.id === itemId ? {...c, quantity: c.quantity - 1} : c))
+    } else {
+      setCart(cart.filter(c => c.id !== itemId))
+    }
+  }
+
+  const getCartTotal = () => cart.reduce((s, c) => s + (c.price * c.quantity), 0)
+
+  const getWithinBudget = () => {
+    if (!selectedTable) return 0
+    const remaining = (selectedTable.beverage_budget || 0) - (selectedTable.consumed_amount || 0)
+    return Math.min(remaining, getCartTotal())
+  }
+
+  const getSupplement = () => Math.max(0, getCartTotal() - getWithinBudget())
+
+  const formatSwiss = (amount) => (amount || 0).toLocaleString('de-CH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+
+  const sendOrder = async () => {
+    if (!selectedTable || cart.length === 0) return
+    setSending(true)
+    try {
+      // Create order
+      const { data: order, error: orderError } = await supabase
+        .from('live_orders')
+        .insert({
+          table_id: selectedTable.id,
+          event_id: event.id,
+          server_name: serverName,
+          status: 'new',
+          total_amount: getCartTotal(),
+          within_budget: getWithinBudget(),
+          supplement: getSupplement()
+        })
+        .select()
+        .single()
+      
+      if (orderError) throw orderError
+
+      // Create order items
+      const items = cart.map(c => ({
+        order_id: order.id,
+        menu_item_id: c.id,
+        item_name: c.name,
+        item_category: c.category,
+        quantity: c.quantity,
+        unit_price: c.price,
+        total_price: c.price * c.quantity
+      }))
+      
+      const { error: itemsError } = await supabase.from('live_order_items').insert(items)
+      if (itemsError) throw itemsError
+
+      // Update table consumed amount
+      const newConsumed = (selectedTable.consumed_amount || 0) + getCartTotal()
+      await supabase
+        .from('tables')
+        .update({ consumed_amount: newConsumed })
+        .eq('id', selectedTable.id)
+
+      toast.success('Commande envoyée au bar!')
+      setCart([])
+      setSelectedTable(null)
+      fetchTables()
+    } catch (error) {
+      toast.error('Erreur: ' + error.message)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  // Server name dialog
+  if (showServerDialog) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card className="p-6 w-full max-w-md">
+          <div className="text-center mb-6">
+            <ShoppingCart className="w-12 h-12 mx-auto mb-4 text-purple-500" />
+            <h2 className="text-xl font-bold">Prise de Commande</h2>
+            <p className="text-muted-foreground">Identifiez-vous pour commencer</p>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <Label>Votre nom</Label>
+              <Input
+                value={serverName}
+                onChange={(e) => setServerName(e.target.value)}
+                placeholder="Ex: Max, Léa..."
+                className="text-lg"
+              />
+            </div>
+            <Button 
+              onClick={() => serverName && setShowServerDialog(false)}
+              disabled={!serverName}
+              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white text-lg py-6"
+            >
+              Commencer
+            </Button>
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ShoppingCart className="w-6 h-6 text-purple-500" />
+          <h2 className="text-xl font-semibold">Commandes</h2>
+          <Badge variant="outline">{serverName}</Badge>
+        </div>
+        <Select value={selectedDay} onValueChange={setSelectedDay}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Jour" />
+          </SelectTrigger>
+          <SelectContent>
+            {availableDays.map(day => (
+              <SelectItem key={day} value={day}>
+                {day ? format(parseISO(day), 'dd MMM', { locale: fr }) : day}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Table Selection or Order Interface */}
+      {!selectedTable ? (
+        <div className="space-y-3">
+          <p className="text-muted-foreground">Sélectionnez une table:</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {tables.map(table => {
+              const status = getBudgetStatus(table)
+              const remaining = (table.beverage_budget || 0) - (table.consumed_amount || 0)
+              return (
+                <Card 
+                  key={table.id}
+                  className={`p-4 cursor-pointer hover:border-purple-500 transition-all ${status.color.replace('bg-', 'border-')}`}
+                  onClick={() => setSelectedTable(table)}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-lg">{table.table_number}</span>
+                    <span>{status.label}</span>
+                  </div>
+                  <p className="text-sm truncate">{table.client_name || 'Client'}</p>
+                  <p className={`text-sm font-semibold ${status.text}`}>
+                    {formatSwiss(remaining)} {event.currency}
+                  </p>
+                </Card>
+              )
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Left: Menu */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Button variant="outline" size="sm" onClick={() => setSelectedTable(null)}>
+                ← Changer table
+              </Button>
+              <div className="text-right">
+                <p className="font-bold">{selectedTable.table_number} - {selectedTable.client_name}</p>
+                <p className={`text-sm ${getBudgetStatus(selectedTable).text}`}>
+                  Reste: {formatSwiss((selectedTable.beverage_budget || 0) - (selectedTable.consumed_amount || 0))} {event.currency}
+                </p>
+              </div>
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Categories */}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              <Button
+                size="sm"
+                variant={selectedCategory === 'all' ? 'default' : 'outline'}
+                onClick={() => setSelectedCategory('all')}
+                className={selectedCategory === 'all' ? 'bg-purple-500' : ''}
+              >
+                Tout
+              </Button>
+              {categories.map(cat => (
+                <Button
+                  key={cat}
+                  size="sm"
+                  variant={selectedCategory === cat ? 'default' : 'outline'}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={selectedCategory === cat ? 'bg-purple-500' : ''}
+                >
+                  {cat}
+                </Button>
+              ))}
+            </div>
+
+            {/* Products Grid */}
+            <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto">
+              {filteredItems.map(item => (
+                <Card 
+                  key={item.id}
+                  className="p-3 cursor-pointer hover:bg-purple-500/10 hover:border-purple-500 transition-all"
+                  onClick={() => addToCart(item)}
+                >
+                  <p className="font-medium text-sm truncate">{item.name}</p>
+                  <p className="text-xs text-muted-foreground">{item.category}</p>
+                  <p className="text-purple-500 font-bold">{formatSwiss(item.price)} {event.currency}</p>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: Cart */}
+          <div className="space-y-3">
+            <Card className="p-4">
+              <h3 className="font-bold mb-3 flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4" />
+                Panier ({cart.reduce((s, c) => s + c.quantity, 0)} articles)
+              </h3>
+              
+              {cart.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">Panier vide</p>
+              ) : (
+                <div className="space-y-2 max-h-[30vh] overflow-y-auto">
+                  {cart.map(item => (
+                    <div key={item.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">{formatSwiss(item.price)} x {item.quantity}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline" onClick={() => removeFromCart(item.id)}>-</Button>
+                        <span className="w-6 text-center">{item.quantity}</span>
+                        <Button size="sm" variant="outline" onClick={() => addToCart(item)}>+</Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="border-t mt-4 pt-4 space-y-2">
+                <div className="flex justify-between">
+                  <span>Total</span>
+                  <span className="font-bold">{formatSwiss(getCartTotal())} {event.currency}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-green-500">Dans forfait</span>
+                  <span className="text-green-500">{formatSwiss(getWithinBudget())} {event.currency}</span>
+                </div>
+                {getSupplement() > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-orange-500">⚠️ Supplément</span>
+                    <span className="text-orange-500">{formatSwiss(getSupplement())} {event.currency}</span>
+                  </div>
+                )}
+              </div>
+
+              <Button 
+                onClick={sendOrder}
+                disabled={cart.length === 0 || sending}
+                className="w-full mt-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-lg py-6"
+              >
+                {sending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                Envoyer au Bar
+              </Button>
+            </Card>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Bar View Component (Kanban)
+function BarView({ event }) {
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchOrders()
+    // Auto-refresh every 5 seconds
+    const interval = setInterval(fetchOrders, 5000)
+    return () => clearInterval(interval)
+  }, [event.id])
+
+  const fetchOrders = async () => {
+    try {
+      const { data } = await supabase
+        .from('live_orders')
+        .select(`
+          *,
+          live_order_items(*),
+          tables(table_number, client_name)
+        `)
+        .eq('event_id', event.id)
+        .in('status', ['new', 'preparing', 'ready'])
+        .order('created_at', { ascending: true })
+      setOrders(data || [])
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const updateStatus = async (orderId, newStatus) => {
+    try {
+      const { error } = await supabase
+        .from('live_orders')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', orderId)
+      if (error) throw error
+      fetchOrders()
+    } catch (error) {
+      toast.error('Erreur: ' + error.message)
+    }
+  }
+
+  const getTimeAgo = (date) => {
+    const mins = Math.floor((Date.now() - new Date(date).getTime()) / 60000)
+    if (mins < 1) return 'À l\'instant'
+    if (mins < 60) return `Il y a ${mins} min`
+    return `Il y a ${Math.floor(mins / 60)}h${mins % 60}min`
+  }
+
+  const newOrders = orders.filter(o => o.status === 'new')
+  const preparingOrders = orders.filter(o => o.status === 'preparing')
+  const readyOrders = orders.filter(o => o.status === 'ready')
+
+  const OrderCard = ({ order, actions }) => (
+    <Card className={`p-4 ${order.status === 'new' ? 'border-red-500 bg-red-500/5' : order.status === 'preparing' ? 'border-yellow-500 bg-yellow-500/5' : 'border-green-500 bg-green-500/5'}`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-bold text-lg">#{order.order_number}</span>
+        <span className="text-xs text-muted-foreground">{getTimeAgo(order.created_at)}</span>
+      </div>
+      <div className="mb-3">
+        <p className="font-semibold">{order.tables?.table_number}</p>
+        <p className="text-sm text-muted-foreground">{order.tables?.client_name}</p>
+      </div>
+      <div className="space-y-1 mb-3 max-h-32 overflow-y-auto">
+        {order.live_order_items?.map((item, i) => (
+          <div key={i} className="flex justify-between text-sm">
+            <span>{item.quantity}x {item.item_name}</span>
+          </div>
+        ))}
+      </div>
+      <div className="text-xs text-muted-foreground mb-3">
+        Serveur: {order.server_name}
+      </div>
+      {actions}
+    </Card>
+  )
+
+  if (loading) {
+    return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" /></div>
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Wine className="w-6 h-6 text-purple-500" />
+          <h2 className="text-xl font-semibold">Bar - Commandes</h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+          <span className="text-sm text-muted-foreground">Actualisation auto</span>
+          <span className="text-lg font-mono">{format(new Date(), 'HH:mm:ss')}</span>
+        </div>
+      </div>
+
+      {/* Kanban Columns */}
+      <div className="grid md:grid-cols-3 gap-4">
+        {/* New Orders */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 p-2 bg-red-500/20 rounded-lg">
+            <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+            <h3 className="font-bold">NOUVELLES ({newOrders.length})</h3>
+          </div>
+          <div className="space-y-3 min-h-[200px]">
+            {newOrders.map(order => (
+              <OrderCard 
+                key={order.id} 
+                order={order}
+                actions={
+                  <Button 
+                    onClick={() => updateStatus(order.id, 'preparing')}
+                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-black"
+                  >
+                    Commencer ▶
+                  </Button>
+                }
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Preparing */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 p-2 bg-yellow-500/20 rounded-lg">
+            <div className="w-3 h-3 bg-yellow-500 rounded-full" />
+            <h3 className="font-bold">EN COURS ({preparingOrders.length})</h3>
+          </div>
+          <div className="space-y-3 min-h-[200px]">
+            {preparingOrders.map(order => (
+              <OrderCard 
+                key={order.id} 
+                order={order}
+                actions={
+                  <Button 
+                    onClick={() => updateStatus(order.id, 'ready')}
+                    className="w-full bg-green-500 hover:bg-green-600 text-white"
+                  >
+                    Prêt ✓
+                  </Button>
+                }
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Ready */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 p-2 bg-green-500/20 rounded-lg">
+            <div className="w-3 h-3 bg-green-500 rounded-full" />
+            <h3 className="font-bold">PRÊTES ({readyOrders.length})</h3>
+          </div>
+          <div className="space-y-3 min-h-[200px]">
+            {readyOrders.map(order => (
+              <OrderCard 
+                key={order.id} 
+                order={order}
+                actions={
+                  <Button 
+                    onClick={() => updateStatus(order.id, 'delivered')}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Livré ✓
+                  </Button>
+                }
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Guichet d'Accueil Component
 function GuichetView({ event, eventDays }) {
   const [selectedDay, setSelectedDay] = useState('')
