@@ -3268,14 +3268,26 @@ function InvoicesView({ event, onEventUpdate }) {
                     <div className="flex items-center gap-2">
                       <Badge>{client.tables.length} table{client.tables.length > 1 ? 's' : ''}</Badge>
                       {client.tables.length > 1 && (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => generateConsolidatedInvoice(client.tables)}
-                          className="text-purple-400 border-purple-400 hover:bg-purple-400/10"
-                        >
-                          <Download className="w-4 h-4 mr-1" /> Consolidée
-                        </Button>
+                        <>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => generateConsolidatedInvoice(client.tables)}
+                            className="text-purple-400 border-purple-400 hover:bg-purple-400/10"
+                            title="Download consolidated invoice"
+                          >
+                            <Download className="w-4 h-4 mr-1" /> PDF
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => openConsolidatedInvoicePreview(client.tables)}
+                            className="text-amber-400 border-amber-400 hover:bg-amber-400/10"
+                            title="Send consolidated invoice by email"
+                          >
+                            <FileText className="w-4 h-4 mr-1" /> Email
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
