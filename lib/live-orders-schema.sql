@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS team_members (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
   name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('admin', 'serveur', 'bar')),
+  role TEXT NOT NULL CHECK (role IN ('admin', 'chef_equipe', 'serveur', 'bar')),
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
