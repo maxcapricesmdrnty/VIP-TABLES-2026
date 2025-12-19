@@ -2824,7 +2824,7 @@ function InvoicesView({ event }) {
       yPos += 7
       
       allPayments.forEach(p => {
-        doc.text(`${format(parseISO(p.payment_date), 'dd/MM/yyyy')} - ${p.payment_method}`, 30, yPos)
+        doc.text(`${formatDate(p.payment_date)} - ${p.payment_method}`, 30, yPos)
         doc.text(`-${formatSwiss(p.amount)} ${currency}`, 175, yPos, { align: 'right' })
         yPos += 6
       })
