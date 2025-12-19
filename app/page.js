@@ -3097,32 +3097,40 @@ function InvoicesView({ event, onEventUpdate }) {
       doc.setFont(undefined, 'normal')
       doc.setFontSize(9)
       
-      if (billingSettings.billing_beneficiary) {
-        doc.text(`Beneficiary: ${billingSettings.billing_beneficiary}`, 25, yPos)
+      const beneficiary = billingSettings.billing_beneficiary || event.billing_beneficiary
+      const address = billingSettings.billing_address || event.billing_address
+      const accountNumber = billingSettings.billing_account_number || event.billing_account_number
+      const iban = billingSettings.billing_iban || event.billing_iban
+      const bic = billingSettings.billing_bic || event.billing_bic
+      const bankName = billingSettings.billing_bank_name || event.billing_bank_name
+      const bankAddress = billingSettings.billing_bank_address || event.billing_bank_address
+      
+      if (beneficiary) {
+        doc.text(`Beneficiary: ${beneficiary}`, 25, yPos)
         yPos += 6
       }
-      if (billingSettings.billing_address) {
-        doc.text(`Address: ${billingSettings.billing_address}`, 25, yPos)
+      if (address) {
+        doc.text(`Address: ${address}`, 25, yPos)
         yPos += 6
       }
-      if (billingSettings.billing_account_number) {
-        doc.text(`Account Number: ${billingSettings.billing_account_number}`, 25, yPos)
+      if (accountNumber) {
+        doc.text(`Account Number: ${accountNumber}`, 25, yPos)
         yPos += 6
       }
-      if (billingSettings.billing_iban) {
-        doc.text(`IBAN: ${billingSettings.billing_iban}`, 25, yPos)
+      if (iban) {
+        doc.text(`IBAN: ${iban}`, 25, yPos)
         yPos += 6
       }
-      if (billingSettings.billing_bic) {
-        doc.text(`BIC/SWIFT: ${billingSettings.billing_bic}`, 25, yPos)
+      if (bic) {
+        doc.text(`BIC/SWIFT: ${bic}`, 25, yPos)
         yPos += 6
       }
-      if (billingSettings.billing_bank_name) {
-        doc.text(`Bank: ${billingSettings.billing_bank_name}`, 25, yPos)
+      if (bankName) {
+        doc.text(`Bank: ${bankName}`, 25, yPos)
         yPos += 6
       }
-      if (billingSettings.billing_bank_address) {
-        doc.text(`Bank Address: ${billingSettings.billing_bank_address}`, 25, yPos)
+      if (bankAddress) {
+        doc.text(`Bank Address: ${bankAddress}`, 25, yPos)
         yPos += 6
       }
       
