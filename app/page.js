@@ -3113,7 +3113,7 @@ function InvoicesView({ event }) {
                             <div className="flex items-center gap-3">
                               <span className="font-medium">{table.table_number}</span>
                               <span className="text-muted-foreground text-sm">
-                                {format(parseISO(table.day), 'dd MMM yyyy', { locale: fr })}
+                                {formatDate(table.day, 'dd MMM yyyy')}
                               </span>
                               <Badge variant={table.status === 'paye' ? 'default' : 'secondary'} className="text-xs">
                                 {table.status}
