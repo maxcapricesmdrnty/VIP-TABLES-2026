@@ -2099,6 +2099,36 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                   ))}
                 </div>
 
+                {/* DJ Booth Toggle */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <span className="text-2xl">🎧</span> DJ Booth (Centre)
+                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">Afficher</span>
+                        <button
+                          onClick={() => setLayoutForm({
+                            ...layoutForm,
+                            center: { ...layoutForm.center, enabled: !layoutForm.center.enabled }
+                          })}
+                          className={`w-12 h-6 rounded-full transition-colors ${layoutForm.center.enabled ? 'bg-green-500' : 'bg-muted'}`}
+                        >
+                          <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${layoutForm.center.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                        </button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      {layoutForm.center.enabled 
+                        ? "Le DJ booth sera affiché dans la prévisualisation et le plan de salle." 
+                        : "Le DJ booth est masqué dans la prévisualisation et le plan de salle."}
+                    </p>
+                  </CardContent>
+                </Card>
+
                 {/* Back Categories */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -2109,15 +2139,24 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                   </div>
                   
                   {layoutForm.backCategories.map((cat, index) => (
-                    <Card key={cat.id}>
+                    <Card key={cat.id} className={cat.enabled === false ? 'opacity-60' : ''}>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                          <Input
-                            value={cat.name}
-                            onChange={(e) => updateBackCategory(cat.id, 'name', e.target.value)}
-                            className="max-w-xs font-semibold"
-                            placeholder="Nom de la catégorie"
-                          />
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => updateBackCategory(cat.id, 'enabled', cat.enabled === false ? true : false)}
+                              className={`w-10 h-5 rounded-full transition-colors flex-shrink-0 ${cat.enabled !== false ? 'bg-green-500' : 'bg-muted'}`}
+                            >
+                              <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${cat.enabled !== false ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                            </button>
+                            <Input
+                              value={cat.name}
+                              onChange={(e) => updateBackCategory(cat.id, 'name', e.target.value)}
+                              className="max-w-xs font-semibold"
+                              placeholder="Nom de la catégorie"
+                              disabled={cat.enabled === false}
+                            />
+                          </div>
                           <Button
                             variant="ghost"
                             size="icon"
