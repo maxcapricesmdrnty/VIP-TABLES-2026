@@ -2237,38 +2237,59 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                   </CardHeader>
                   <CardContent>
                     <div className="flex justify-between items-start p-4 bg-muted rounded-lg">
-                      <div className="flex-1">
-                        <p className="text-center text-sm mb-2 font-semibold">Gauche</p>
-                        <div className="grid grid-cols-2 gap-1 max-w-24 mx-auto">
-                          {Array.from({ length: layoutForm.left.count }).map((_, i) => (
-                            <div key={i} className="w-10 h-8 bg-green-500/30 border border-green-500 rounded flex items-center justify-center text-xs">
-                              {layoutForm.left.prefix}{i + 1}
-                            </div>
-                          ))}
+                      {/* Left Zone - only show if enabled */}
+                      {layoutForm.left.enabled ? (
+                        <div className="flex-1">
+                          <p className="text-center text-sm mb-2 font-semibold">Gauche</p>
+                          <div className="grid grid-cols-2 gap-1 max-w-24 mx-auto">
+                            {Array.from({ length: layoutForm.left.count }).map((_, i) => (
+                              <div key={i} className="w-10 h-8 bg-green-500/30 border border-green-500 rounded flex items-center justify-center text-xs">
+                                {layoutForm.left.prefix}{i + 1}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="flex-1 flex items-center justify-center">
+                          <span className="text-xs text-muted-foreground italic">Zone gauche désactivée</span>
+                        </div>
+                      )}
 
-                      <div className="mx-4">
-                        <div className="w-20 h-20 bg-amber-500/30 border-2 border-amber-500 rounded flex items-center justify-center">
-                          <span className="text-xs font-bold">🎧 DJ</span>
+                      {/* DJ Booth - only show if enabled */}
+                      {layoutForm.center.enabled ? (
+                        <div className="mx-4">
+                          <div className="w-20 h-20 bg-amber-500/30 border-2 border-amber-500 rounded flex items-center justify-center">
+                            <span className="text-xs font-bold">🎧 DJ</span>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="mx-4 w-20 h-20 border-2 border-dashed border-muted rounded flex items-center justify-center">
+                          <span className="text-xs text-muted-foreground">DJ off</span>
+                        </div>
+                      )}
 
-                      <div className="flex-1">
-                        <p className="text-center text-sm mb-2 font-semibold">Droite</p>
-                        <div className="grid grid-cols-2 gap-1 max-w-24 mx-auto">
-                          {Array.from({ length: layoutForm.right.count }).map((_, i) => (
-                            <div key={i} className="w-10 h-8 bg-green-500/30 border border-green-500 rounded flex items-center justify-center text-xs">
-                              {layoutForm.right.prefix}{i + 1}
-                            </div>
-                          ))}
+                      {/* Right Zone - only show if enabled */}
+                      {layoutForm.right.enabled ? (
+                        <div className="flex-1">
+                          <p className="text-center text-sm mb-2 font-semibold">Droite</p>
+                          <div className="grid grid-cols-2 gap-1 max-w-24 mx-auto">
+                            {Array.from({ length: layoutForm.right.count }).map((_, i) => (
+                              <div key={i} className="w-10 h-8 bg-green-500/30 border border-green-500 rounded flex items-center justify-center text-xs">
+                                {layoutForm.right.prefix}{i + 1}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="flex-1 flex items-center justify-center">
+                          <span className="text-xs text-muted-foreground italic">Zone droite désactivée</span>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Preview Back Categories */}
+                    {/* Preview Back Categories - only enabled ones */}
                     <div className="mt-6 space-y-4">
-                      {layoutForm.backCategories.map(cat => {
+                      {layoutForm.backCategories.filter(cat => cat.enabled !== false).map(cat => {
                         const totalTables = cat.rows * cat.tablesPerRow
                         return (
                           <div key={cat.id}>
@@ -2289,6 +2310,11 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                           </div>
                         )
                       })}
+                      {layoutForm.backCategories.filter(cat => cat.enabled === false).length > 0 && (
+                        <p className="text-center text-xs text-muted-foreground italic">
+                          {layoutForm.backCategories.filter(cat => cat.enabled === false).length} catégorie(s) arrière désactivée(s)
+                        </p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
