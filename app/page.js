@@ -2116,6 +2116,51 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Table Numbers Editor */}
+                {selectedDay && tables.filter(t => t.day === selectedDay).length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Edit className="w-5 h-5" />
+                        Numéros de tables physiques
+                      </CardTitle>
+                      <CardDescription>
+                        Définissez les numéros réels des tables tels qu'ils apparaissent dans la salle
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                        {tables
+                          .filter(t => t.day === selectedDay)
+                          .sort((a, b) => a.table_number.localeCompare(b.table_number))
+                          .map(table => (
+                            <div key={table.id} className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">{table.table_number}</Label>
+                              <Input
+                                placeholder="N° physique"
+                                defaultValue={table.display_number || ''}
+                                onBlur={async (e) => {
+                                  const newValue = e.target.value.trim()
+                                  if (newValue !== (table.display_number || '')) {
+                                    await supabase
+                                      .from('tables')
+                                      .update({ display_number: newValue || null })
+                                      .eq('id', table.id)
+                                    toast.success(`Table ${table.table_number} → ${newValue || 'sans numéro'}`)
+                                  }
+                                }}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                          ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-3">
+                        💡 Les numéros sont sauvegardés automatiquement quand vous quittez le champ
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
               </>
             )}
           </div>
