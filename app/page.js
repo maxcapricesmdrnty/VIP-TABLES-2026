@@ -4800,7 +4800,7 @@ function InvoicesView({ event, onEventUpdate }) {
         doc.setFontSize(10)
         doc.text(`Day ${day}`, 25, yPos)
         doc.setFont(undefined, 'normal')
-        doc.text(`Tables: ${dayTables.map(t => t.table_number).join(', ')}`, 60, yPos)
+        doc.text(`Tables: ${dayTables.map(t => getTableDisplay(t)).join(', ')}`, 60, yPos)
         yPos += 8
         
         // Table header row
