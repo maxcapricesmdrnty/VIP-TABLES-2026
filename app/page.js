@@ -451,7 +451,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     right: { enabled: true, prefix: 'R', count: 4, rows: 2, capacity: 10, price: 5000 },
     center: { enabled: true }, // DJ booth
     backCategories: [
-      { id: '1', name: 'Tables Arrière', prefix: 'B', rows: 1, tablesPerRow: 4, capacity: 10, price: 3000 }
+      { id: '1', name: 'Tables Arrière', prefix: 'B', rows: 1, tablesPerRow: 4, capacity: 10, price: 3000, enabled: true }
     ]
   })
   
