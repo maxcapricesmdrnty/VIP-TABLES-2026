@@ -1992,58 +1992,74 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {['left', 'right'].map(zone => (
                     <Card key={zone}>
-                      <CardHeader>
-                        <CardTitle>Zone {zone === 'left' ? 'Gauche' : 'Droite'}</CardTitle>
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                          <CardTitle>Zone {zone === 'left' ? 'Gauche' : 'Droite'}</CardTitle>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">Activer</span>
+                            <button
+                              onClick={() => setLayoutForm({
+                                ...layoutForm,
+                                [zone]: { ...layoutForm[zone], enabled: !layoutForm[zone].enabled }
+                              })}
+                              className={`w-12 h-6 rounded-full transition-colors ${layoutForm[zone].enabled ? 'bg-green-500' : 'bg-muted'}`}
+                            >
+                              <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${layoutForm[zone].enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                            </button>
+                          </div>
+                        </div>
                       </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label>Préfixe</Label>
-                            <Input
-                              value={layoutForm[zone].prefix}
-                              onChange={(e) => setLayoutForm({
-                                ...layoutForm,
-                                [zone]: { ...layoutForm[zone], prefix: e.target.value }
-                              })}
-                            />
+                      {layoutForm[zone].enabled && (
+                        <CardContent className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>Préfixe</Label>
+                              <Input
+                                value={layoutForm[zone].prefix}
+                                onChange={(e) => setLayoutForm({
+                                  ...layoutForm,
+                                  [zone]: { ...layoutForm[zone], prefix: e.target.value }
+                                })}
+                              />
+                            </div>
+                            <div>
+                              <Label>Nombre de tables</Label>
+                              <Input
+                                type="number"
+                                value={layoutForm[zone].count === 0 ? '' : layoutForm[zone].count}
+                                onChange={(e) => setLayoutForm({
+                                  ...layoutForm,
+                                  [zone]: { ...layoutForm[zone], count: e.target.value === '' ? 0 : parseInt(e.target.value) }
+                                })}
+                              />
+                            </div>
                           </div>
-                          <div>
-                            <Label>Nombre de tables</Label>
-                            <Input
-                              type="number"
-                              value={layoutForm[zone].count === 0 ? '' : layoutForm[zone].count}
-                              onChange={(e) => setLayoutForm({
-                                ...layoutForm,
-                                [zone]: { ...layoutForm[zone], count: e.target.value === '' ? 0 : parseInt(e.target.value) }
-                              })}
-                            />
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>Capacité/table</Label>
+                              <Input
+                                type="number"
+                                value={layoutForm[zone].capacity === 0 ? '' : layoutForm[zone].capacity}
+                                onChange={(e) => setLayoutForm({
+                                  ...layoutForm,
+                                  [zone]: { ...layoutForm[zone], capacity: e.target.value === '' ? 0 : parseInt(e.target.value) }
+                                })}
+                              />
+                            </div>
+                            <div>
+                              <Label>Prix ({event.currency})</Label>
+                              <Input
+                                type="number"
+                                value={layoutForm[zone].price === 0 ? '' : layoutForm[zone].price}
+                                onChange={(e) => setLayoutForm({
+                                  ...layoutForm,
+                                  [zone]: { ...layoutForm[zone], price: e.target.value === '' ? 0 : parseInt(e.target.value) }
+                                })}
+                              />
+                            </div>
                           </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label>Capacité/table</Label>
-                            <Input
-                              type="number"
-                              value={layoutForm[zone].capacity === 0 ? '' : layoutForm[zone].capacity}
-                              onChange={(e) => setLayoutForm({
-                                ...layoutForm,
-                                [zone]: { ...layoutForm[zone], capacity: e.target.value === '' ? 0 : parseInt(e.target.value) }
-                              })}
-                            />
-                          </div>
-                          <div>
-                            <Label>Prix ({event.currency})</Label>
-                            <Input
-                              type="number"
-                              value={layoutForm[zone].price === 0 ? '' : layoutForm[zone].price}
-                              onChange={(e) => setLayoutForm({
-                                ...layoutForm,
-                                [zone]: { ...layoutForm[zone], price: e.target.value === '' ? 0 : parseInt(e.target.value) }
-                              })}
-                            />
-                          </div>
-                        </div>
-                      </CardContent>
+                        </CardContent>
+                      )}
                     </Card>
                   ))}
                 </div>
