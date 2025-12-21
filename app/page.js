@@ -5468,7 +5468,7 @@ function InvoicesView({ event, onEventUpdate }) {
                     <h3 className="font-bold text-[#4682B4] text-xs mb-2">Reservation Summary</h3>
                     <p className="text-xs">Total Tables: {selectedInvoiceTables.length}</p>
                     <p className="text-xs">Days: {getInvoiceDays().join(', ')}</p>
-                    <p className="text-xs">Tables: {selectedInvoiceTables.map(t => t.table_number).join(', ')}</p>
+                    <p className="text-xs">Tables: {selectedInvoiceTables.map(t => t.display_number || t.table_number).join(', ')}</p>
                   </div>
                 </div>
                 
