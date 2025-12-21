@@ -4816,7 +4816,7 @@ function InvoicesView({ event, onEventUpdate }) {
         // Table rows
         dayTables.forEach(t => {
           const tTotal = calculateTableTotal(t)
-          doc.text(`Table ${t.table_number} Reservation`, 28, yPos)
+          doc.text(`Table ${getTableDisplay(t)} Reservation`, 28, yPos)
           doc.text('1', 100, yPos)
           doc.text(`${formatSwiss(tTotal)} ${currency}`, 120, yPos)
           doc.text(`${formatSwiss(tTotal)} ${currency}`, 165, yPos)
