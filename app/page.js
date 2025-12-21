@@ -5493,7 +5493,7 @@ function InvoicesView({ event, onEventUpdate }) {
                           <tbody>
                             {getTablesForDay(day).map(t => (
                               <tr key={t.id}>
-                                <td className="p-1">Table {t.table_number} Reservation</td>
+                                <td className="p-1">Table {t.display_number || t.table_number} Reservation</td>
                                 <td className="text-center p-1">1</td>
                                 <td className="text-right p-1">{formatSwiss(calculateTableTotal(t))} {event.currency}</td>
                                 <td className="text-right p-1">{formatSwiss(calculateTableTotal(t))} {event.currency}</td>
