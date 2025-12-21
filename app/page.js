@@ -2220,6 +2220,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                           </div>
                         </div>
                       </CardContent>
+                      )}
                     </Card>
                   ))}
                 </div>
