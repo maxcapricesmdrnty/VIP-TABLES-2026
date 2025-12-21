@@ -4724,7 +4724,9 @@ function InvoicesView({ event, onEventUpdate }) {
       const grandTotal = getGrandTotal()
       const tables = selectedInvoiceTables
       const days = getInvoiceDays()
-      const tableNumbers = tables.map(t => t.table_number).join(', ')
+      // Use display_number if available, otherwise table_number
+      const getTableDisplay = (t) => t.display_number || t.table_number
+      const tableNumbers = tables.map(t => getTableDisplay(t)).join(', ')
       const companyName = billingSettings.billing_company_name || event.billing_company_name || 'VIP'
       
       // Colors
