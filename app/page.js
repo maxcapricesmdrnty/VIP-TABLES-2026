@@ -1844,8 +1844,38 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                             date: selectedDay
                           }))
                           await supabase.from('table_layouts').insert(newLayouts)
-                          toast.success('Configuration par défaut copiée!')
+                          
+                          // Also copy display_numbers from a reference day (first day with tables)
+                          const { data: refTables } = await supabase
+                            .from('tables')
+                            .select('table_number, display_number')
+                            .eq('event_id', event.id)
+                            .not('display_number', 'is', null)
+                            .limit(100)
+                          
+                          if (refTables && refTables.length > 0) {
+                            // Get unique display_numbers by table_number
+                            const displayNumberMap = {}
+                            refTables.forEach(t => {
+                              if (t.display_number && !displayNumberMap[t.table_number]) {
+                                displayNumberMap[t.table_number] = t.display_number
+                              }
+                            })
+                            
+                            // Update tables for this day
+                            for (const [tableNum, displayNum] of Object.entries(displayNumberMap)) {
+                              await supabase
+                                .from('tables')
+                                .update({ display_number: displayNum })
+                                .eq('event_id', event.id)
+                                .eq('day', selectedDay)
+                                .eq('table_number', tableNum)
+                            }
+                          }
+                          
+                          toast.success('Configuration par défaut copiée (layout + numéros)!')
                           fetchLayouts()
+                          fetchTables()
                         } else {
                           toast.error('Aucune configuration par défaut trouvée')
                         }
@@ -1885,9 +1915,68 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                             date: null
                           }))
                           await supabase.from('table_layouts').insert(newDefaults)
-                          toast.success('Cette configuration est maintenant la configuration par défaut!')
+                          
+                          // Also save display_numbers from this day's tables as reference
+                          // (They will be copied when using "Copier config par défaut")
+                          toast.success('Configuration définie comme défaut! Les numéros de tables seront copiés avec.')
                         } else {
                           toast.error('Aucune configuration pour ce jour')
+                        }
+                      }}
+                    >
+                      ⭐ Définir comme défaut
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={async () => {
+                        // Copy display_numbers from this day to ALL other days
+                        const { data: sourceTables } = await supabase
+                          .from('tables')
+                          .select('table_number, display_number')
+                          .eq('event_id', event.id)
+                          .eq('day', selectedDay)
+                        
+                        if (!sourceTables || sourceTables.length === 0) {
+                          toast.error('Aucune table pour ce jour')
+                          return
+                        }
+                        
+                        const displayNumberMap = {}
+                        sourceTables.forEach(t => {
+                          if (t.display_number) {
+                            displayNumberMap[t.table_number] = t.display_number
+                          }
+                        })
+                        
+                        if (Object.keys(displayNumberMap).length === 0) {
+                          toast.error('Aucun numéro de table défini pour ce jour')
+                          return
+                        }
+                        
+                        // Get all other days
+                        const otherDays = activeDays.filter(d => d.date !== selectedDay).map(d => d.date)
+                        
+                        let updated = 0
+                        for (const day of otherDays) {
+                          for (const [tableNum, displayNum] of Object.entries(displayNumberMap)) {
+                            const { error } = await supabase
+                              .from('tables')
+                              .update({ display_number: displayNum })
+                              .eq('event_id', event.id)
+                              .eq('day', day)
+                              .eq('table_number', tableNum)
+                            if (!error) updated++
+                          }
+                        }
+                        
+                        toast.success(`Numéros copiés vers ${otherDays.length} autres jours!`)
+                        fetchTables()
+                      }}
+                    >
+                      📋 Copier numéros → autres jours
+                    </Button>
+                  </div>
                         }
                       }}
                     >
