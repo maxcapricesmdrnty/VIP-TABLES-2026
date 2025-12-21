@@ -5275,7 +5275,8 @@ function InvoicesView({ event, onEventUpdate }) {
                         <div key={table.id} className="p-3 bg-muted/50 rounded-lg">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <span className="font-medium">{table.table_number}</span>
+                              <span className="font-medium">{table.display_number || table.table_number}</span>
+                              {table.display_number && <span className="text-xs text-muted-foreground">({table.table_number})</span>}
                               <span className="text-muted-foreground text-sm">
                                 {formatDate(table.day, 'dd MMM yyyy')}
                               </span>
