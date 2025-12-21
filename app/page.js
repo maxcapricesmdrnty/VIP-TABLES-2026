@@ -646,7 +646,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       ...layoutForm,
       backCategories: [
         ...layoutForm.backCategories,
-        { id: newId, name: `Catégorie ${layoutForm.backCategories.length + 1}`, prefix: `C${layoutForm.backCategories.length + 1}`, rows: 1, tablesPerRow: 4, capacity: 10, price: 3000 }
+        { id: newId, name: `Catégorie ${layoutForm.backCategories.length + 1}`, prefix: `C${layoutForm.backCategories.length + 1}`, rows: 1, tablesPerRow: 4, capacity: 10, price: 3000, enabled: true }
       ]
     })
   }
