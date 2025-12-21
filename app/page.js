@@ -560,15 +560,22 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     setLayouts(data || [])
     
     if (data?.length > 0) {
+      // Check if zones exist in saved layouts
+      const hasLeft = data.some(l => l.zone === 'left')
+      const hasRight = data.some(l => l.zone === 'right')
+      const centerLayout = data.find(l => l.zone === 'center')
+      
       const newForm = { 
-        left: { prefix: 'L', count: 4, rows: 2, capacity: 10, price: 5000 },
-        right: { prefix: 'R', count: 4, rows: 2, capacity: 10, price: 5000 },
+        left: { enabled: hasLeft, prefix: 'L', count: 4, rows: 2, capacity: 10, price: 5000 },
+        right: { enabled: hasRight, prefix: 'R', count: 4, rows: 2, capacity: 10, price: 5000 },
+        center: { enabled: centerLayout ? centerLayout.enabled !== false : true },
         backCategories: []
       }
       
       data.forEach(l => {
         if (l.zone === 'left') {
           newForm.left = {
+            enabled: true,
             prefix: l.table_prefix,
             count: l.table_count,
             rows: l.rows,
@@ -577,6 +584,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
           }
         } else if (l.zone === 'right') {
           newForm.right = {
+            enabled: true,
             prefix: l.table_prefix,
             count: l.table_count,
             rows: l.rows,
@@ -596,13 +604,14 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
             rows: numRows,
             tablesPerRow: tablesPerRow,
             capacity: l.capacity_per_table,
-            price: l.standard_price
+            price: l.standard_price,
+            enabled: l.enabled !== false
           })
         }
       })
       
       if (newForm.backCategories.length === 0) {
-        newForm.backCategories = [{ id: '1', name: 'Tables Arrière', prefix: 'B', rows: 1, tablesPerRow: 4, capacity: 10, price: 3000 }]
+        newForm.backCategories = [{ id: '1', name: 'Tables Arrière', prefix: 'B', rows: 1, tablesPerRow: 4, capacity: 10, price: 3000, enabled: true }]
       }
       
       setLayoutForm(newForm)
