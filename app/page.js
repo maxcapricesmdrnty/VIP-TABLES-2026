@@ -692,8 +692,12 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       
       await deleteQuery
 
-      const layoutsToInsert = [
-        {
+      const layoutsToInsert = []
+      let sortOrder = 0
+      
+      // Only add left zone if enabled
+      if (layoutForm.left.enabled) {
+        layoutsToInsert.push({
           venue_id: selectedVenue.id,
           zone: 'left',
           table_prefix: layoutForm.left.prefix,
@@ -701,10 +705,15 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
           rows: layoutForm.left.rows,
           capacity_per_table: layoutForm.left.capacity,
           standard_price: layoutForm.left.price,
-          sort_order: 0,
-          date: selectedDay || null
-        },
-        {
+          sort_order: sortOrder++,
+          date: selectedDay || null,
+          enabled: true
+        })
+      }
+      
+      // Only add right zone if enabled
+      if (layoutForm.right.enabled) {
+        layoutsToInsert.push({
           venue_id: selectedVenue.id,
           zone: 'right',
           table_prefix: layoutForm.right.prefix,
@@ -712,10 +721,15 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
           rows: layoutForm.right.rows,
           capacity_per_table: layoutForm.right.capacity,
           standard_price: layoutForm.right.price,
-          sort_order: 1,
-          date: selectedDay || null
-        },
-        ...layoutForm.backCategories.map((cat, idx) => ({
+          sort_order: sortOrder++,
+          date: selectedDay || null,
+          enabled: true
+        })
+      }
+      
+      // Only add enabled back categories
+      layoutForm.backCategories.filter(cat => cat.enabled !== false).forEach(cat => {
+        layoutsToInsert.push({
           venue_id: selectedVenue.id,
           zone: `back_${cat.name.replace(/\s+/g, '_').toLowerCase()}`,
           table_prefix: cat.prefix,
@@ -723,12 +737,29 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
           rows: cat.rows,
           capacity_per_table: cat.capacity,
           standard_price: cat.price,
-          sort_order: idx + 2,
-          date: selectedDay || null
-        }))
-      ]
+          sort_order: sortOrder++,
+          date: selectedDay || null,
+          enabled: true
+        })
+      })
+      
+      // Also save the center (DJ booth) enabled state
+      layoutsToInsert.push({
+        venue_id: selectedVenue.id,
+        zone: 'center',
+        table_prefix: 'DJ',
+        table_count: 0,
+        rows: 0,
+        capacity_per_table: 0,
+        standard_price: 0,
+        sort_order: sortOrder++,
+        date: selectedDay || null,
+        enabled: layoutForm.center.enabled
+      })
 
-      await supabase.from('table_layouts').insert(layoutsToInsert)
+      if (layoutsToInsert.length > 0) {
+        await supabase.from('table_layouts').insert(layoutsToInsert)
+      }
       toast.success(selectedDay ? `Configuration sauvegardée pour le ${format(parseISO(selectedDay), 'dd MMM', { locale: fr })}!` : 'Configuration par défaut sauvegardée!')
       fetchLayouts()
     } catch (error) {
