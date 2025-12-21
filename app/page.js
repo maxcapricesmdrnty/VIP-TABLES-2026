@@ -5480,7 +5480,7 @@ function InvoicesView({ event, onEventUpdate }) {
                   <div className="border border-t-0 rounded-b p-2">
                     {getInvoiceDays().map(day => (
                       <div key={day} className="mb-2">
-                        <p className="font-semibold text-xs">Day {day} - Tables: {getTablesForDay(day).map(t => t.table_number).join(', ')}</p>
+                        <p className="font-semibold text-xs">Day {day} - Tables: {getTablesForDay(day).map(t => t.display_number || t.table_number).join(', ')}</p>
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="bg-gray-100">
