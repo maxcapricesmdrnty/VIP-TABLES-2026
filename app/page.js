@@ -1977,12 +1977,6 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                       📋 Copier numéros → autres jours
                     </Button>
                   </div>
-                        }
-                      }}
-                    >
-                      ⭐ Définir comme défaut
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
             )}
