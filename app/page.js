@@ -782,36 +782,40 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
 
       const tablesToInsert = []
       
-      // Left zone
-      for (let i = 1; i <= layoutForm.left.count; i++) {
-        tablesToInsert.push({
-          event_id: event.id,
-          venue_id: selectedVenue.id,
-          table_number: `${layoutForm.left.prefix}${i}`,
-          day: selectedDay,
-          zone: 'left',
-          status: 'libre',
-          standard_price: layoutForm.left.price,
-          sold_price: 0
-        })
+      // Left zone - only if enabled
+      if (layoutForm.left.enabled) {
+        for (let i = 1; i <= layoutForm.left.count; i++) {
+          tablesToInsert.push({
+            event_id: event.id,
+            venue_id: selectedVenue.id,
+            table_number: `${layoutForm.left.prefix}${i}`,
+            day: selectedDay,
+            zone: 'left',
+            status: 'libre',
+            standard_price: layoutForm.left.price,
+            sold_price: 0
+          })
+        }
       }
       
-      // Right zone
-      for (let i = 1; i <= layoutForm.right.count; i++) {
-        tablesToInsert.push({
-          event_id: event.id,
-          venue_id: selectedVenue.id,
-          table_number: `${layoutForm.right.prefix}${i}`,
-          day: selectedDay,
-          zone: 'right',
-          status: 'libre',
-          standard_price: layoutForm.right.price,
-          sold_price: 0
-        })
+      // Right zone - only if enabled
+      if (layoutForm.right.enabled) {
+        for (let i = 1; i <= layoutForm.right.count; i++) {
+          tablesToInsert.push({
+            event_id: event.id,
+            venue_id: selectedVenue.id,
+            table_number: `${layoutForm.right.prefix}${i}`,
+            day: selectedDay,
+            zone: 'right',
+            status: 'libre',
+            standard_price: layoutForm.right.price,
+            sold_price: 0
+          })
+        }
       }
       
-      // Back categories
-      layoutForm.backCategories.forEach(cat => {
+      // Back categories - only enabled ones
+      layoutForm.backCategories.filter(cat => cat.enabled !== false).forEach(cat => {
         const zoneName = `back_${cat.name.replace(/\s+/g, '_').toLowerCase()}`
         const totalTables = cat.rows * cat.tablesPerRow // Calculate total from rows × tablesPerRow
         for (let i = 1; i <= totalTables; i++) {
