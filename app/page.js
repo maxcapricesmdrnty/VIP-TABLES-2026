@@ -445,10 +445,11 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
   const [importLoading, setImportLoading] = useState(false)
   const [importError, setImportError] = useState('')
   
-  // Layout with multiple back categories
+  // Layout with multiple back categories and section toggles
   const [layoutForm, setLayoutForm] = useState({
-    left: { prefix: 'L', count: 4, rows: 2, capacity: 10, price: 5000 },
-    right: { prefix: 'R', count: 4, rows: 2, capacity: 10, price: 5000 },
+    left: { enabled: true, prefix: 'L', count: 4, rows: 2, capacity: 10, price: 5000 },
+    right: { enabled: true, prefix: 'R', count: 4, rows: 2, capacity: 10, price: 5000 },
+    center: { enabled: true }, // DJ booth
     backCategories: [
       { id: '1', name: 'Tables Arrière', prefix: 'B', rows: 1, tablesPerRow: 4, capacity: 10, price: 3000 }
     ]
