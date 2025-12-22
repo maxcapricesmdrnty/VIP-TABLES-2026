@@ -5652,7 +5652,7 @@ function InvoicesView({ event, onEventUpdate }) {
                               <tr key={t.id}>
                                 <td className="p-1">
                                   Table {t.display_number || t.table_number} - {format(parseISO(day), 'dd/MM/yyyy')}
-                                  <br/><span className="text-[10px] italic text-gray-500">(Budget boissons: {formatSwiss(t.sold_price || 0)} {event.currency})</span>
+                                  <br/><span className="text-[10px] italic text-gray-500">(Beverage budget: {formatSwiss(t.sold_price || 0)} {event.currency})</span>
                                 </td>
                                 <td className="text-center p-1">1</td>
                                 <td className="text-right p-1">{formatSwiss(calculateTableTotal(t))} {event.currency}</td>
