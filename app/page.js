@@ -6338,8 +6338,8 @@ function InvoicesView({ event, onEventUpdate }) {
       {/* Invoices Tab */}
       {activeTab === 'invoices' && (
         <>
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Client Invoices</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <h2 className="text-lg sm:text-xl font-semibold">Client Invoices</h2>
             <Badge variant="outline">{reservedTables.length} reservations</Badge>
           </div>
           
@@ -6356,34 +6356,35 @@ function InvoicesView({ event, onEventUpdate }) {
             
             return (
               <Card key={idx} className={clientRemaining <= 0 ? 'border-green-500/50' : ''}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        {client.client_name || 'Client sans nom'}
-                        {clientRemaining <= 0 && <Badge className="bg-green-500">Soldé</Badge>}
+                <CardHeader className="p-3 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                        <span className="truncate">{client.client_name || 'Client sans nom'}</span>
+                        {clientRemaining <= 0 && <Badge className="bg-green-500 shrink-0">Soldé</Badge>}
                       </CardTitle>
-                      <CardDescription>
+                      <CardDescription className="text-xs sm:text-sm truncate">
                         {client.client_email} {client.client_phone && `• ${client.client_phone}`}
                       </CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge>{client.tables.length} table{client.tables.length > 1 ? 's' : ''}</Badge>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge className="text-xs">{client.tables.length} table{client.tables.length > 1 ? 's' : ''}</Badge>
                       {client.tables.length > 1 && (
                         <Button 
                           size="sm" 
                           variant="outline" 
                           onClick={() => openConsolidatedInvoicePreview(client.tables)}
-                          className="text-amber-400 border-amber-400 hover:bg-amber-400/10"
+                          className="text-amber-400 border-amber-400 hover:bg-amber-400/10 text-xs"
                           title="Send consolidated invoice by email"
                         >
-                          <FileText className="w-4 h-4 mr-1" /> Facture
+                          <FileText className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" /> 
+                          <span className="hidden sm:inline">Facture</span>
                         </Button>
                       )}
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
                   <div className="space-y-2">
                     {client.tables.map(table => {
                       const tableTotal = calculateTableTotal(table)
@@ -6391,59 +6392,59 @@ function InvoicesView({ event, onEventUpdate }) {
                       const tableRemaining = tableTotal - tablePaid
                       
                       return (
-                        <div key={table.id} className="p-3 bg-muted/50 rounded-lg">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <span className="font-medium">{table.display_number || table.table_number}</span>
-                              {table.display_number && <span className="text-xs text-muted-foreground">({table.table_number})</span>}
-                              <span className="text-muted-foreground text-sm">
-                                {formatDate(table.day, 'dd MMM yyyy')}
+                        <div key={table.id} className="p-2 sm:p-3 bg-muted/50 rounded-lg">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-1 sm:gap-3">
+                              <span className="font-medium text-sm">{table.display_number || table.table_number}</span>
+                              <span className="text-muted-foreground text-xs">
+                                {formatDate(table.day, 'dd MMM')}
                               </span>
-                              <Badge variant={table.status === 'paye' ? 'default' : 'secondary'} className="text-xs">
+                              <Badge variant={table.status === 'paye' ? 'default' : 'secondary'} className="text-[10px] sm:text-xs">
                                 {table.status}
                               </Badge>
-                              <span className="text-xs italic text-muted-foreground">
-                                (Budget: {formatSwiss(table.sold_price || 0)})
-                              </span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <div className="text-right mr-4">
-                                <div className="font-bold">{formatSwiss(tableTotal)} {event.currency}</div>
+                            <div className="flex items-center justify-between sm:justify-end gap-2">
+                              <div className="text-right">
+                                <div className="font-bold text-sm">{formatSwiss(tableTotal)} {event.currency}</div>
                                 {tablePaid > 0 && (
-                                  <div className="text-xs text-green-500">Payé: {formatSwiss(tablePaid)}</div>
+                                  <div className="text-[10px] sm:text-xs text-green-500">Payé: {formatSwiss(tablePaid)}</div>
                                 )}
                                 {tableRemaining > 0 && (
-                                  <div className="text-xs text-orange-500">Reste: {formatSwiss(tableRemaining)}</div>
+                                  <div className="text-[10px] sm:text-xs text-orange-500">Reste: {formatSwiss(tableRemaining)}</div>
                                 )}
                               </div>
-                              <Button 
-                                size="sm" 
-                                variant="ghost"
-                                onClick={() => {
-                                  setSelectedTableForPayment(table)
-                                  setShowPaymentDialog(true)
-                                }}
-                              >
-                                <Plus className="w-4 h-4" />
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => openInvoicePreview(table)}
-                                title="Envoyer par email"
-                              >
-                                <FileText className="w-4 h-4" />
-                              </Button>
+                              <div className="flex gap-1">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => {
+                                    setSelectedTableForPayment(table)
+                                    setShowPaymentDialog(true)
+                                  }}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => openInvoicePreview(table)}
+                                  title="Envoyer par email"
+                                >
+                                  <FileText className="w-4 h-4" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                           
                           {/* Show payments */}
                           {payments[table.id]?.length > 0 && (
                             <div className="mt-2 pt-2 border-t border-border/50">
-                              <div className="text-xs text-muted-foreground mb-1">Paiements:</div>
+                              <div className="text-[10px] sm:text-xs text-muted-foreground mb-1">Paiements:</div>
                               {payments[table.id].map(p => (
-                                <div key={p.id} className="flex justify-between text-xs">
-                                  <span>{formatDate(p.payment_date, 'dd/MM/yy')} - {p.payment_method}</span>
+                                <div key={p.id} className="flex justify-between text-[10px] sm:text-xs">
+                                  <span>{formatDate(p.payment_date, 'dd/MM/yy')}</span>
                                   <span className="text-green-500">{formatSwiss(p.amount)} {event.currency}</span>
                                 </div>
                               ))}
@@ -6455,20 +6456,20 @@ function InvoicesView({ event, onEventUpdate }) {
                   </div>
                   
                   {/* Client total */}
-                  <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                    <div>
-                      <span className="font-semibold">Total client:</span>
+                  <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t flex flex-col sm:flex-row justify-between sm:items-center gap-1">
+                    <div className="text-sm">
+                      <span className="font-semibold">Total:</span>
                       {clientPaid > 0 && (
-                        <span className="ml-4 text-sm text-green-500">Payé: {formatSwiss(clientPaid)} {event.currency}</span>
+                        <span className="ml-2 text-xs text-green-500">Payé: {formatSwiss(clientPaid)}</span>
                       )}
                     </div>
                     <div className="text-right">
-                      <div className="text-xl font-bold text-amber-400">
+                      <span className="text-lg sm:text-xl font-bold text-amber-400">
                         {formatSwiss(clientTotal)} {event.currency}
-                      </div>
+                      </span>
                       {clientRemaining > 0 && (
-                        <div className="text-sm text-orange-500">
-                          Reste à payer: {formatSwiss(clientRemaining)} {event.currency}
+                        <div className="text-xs text-orange-500">
+                          Reste: {formatSwiss(clientRemaining)}
                         </div>
                       )}
                     </div>
