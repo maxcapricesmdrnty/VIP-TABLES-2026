@@ -2192,7 +2192,15 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                     <Card key={zone}>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                          <CardTitle>Zone {zone === 'left' ? 'Gauche' : 'Droite'}</CardTitle>
+                          <Input
+                            value={layoutForm[zone].name || (zone === 'left' ? 'Zone Gauche' : 'Zone Droite')}
+                            onChange={(e) => setLayoutForm({
+                              ...layoutForm,
+                              [zone]: { ...layoutForm[zone], name: e.target.value }
+                            })}
+                            className="font-semibold text-lg bg-transparent border-none p-0 h-auto"
+                            placeholder={zone === 'left' ? 'Ex: PRIVILEGE' : 'Ex: VIP ONE'}
+                          />
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-muted-foreground">Activer</span>
                             <button
