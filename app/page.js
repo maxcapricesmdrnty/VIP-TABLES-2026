@@ -1938,6 +1938,11 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
           <InvoicesView event={event} tables={tables} onEventUpdate={onEventUpdate} />
         )}
 
+        {/* Comptabilité View */}
+        {view === 'comptabilite' && (
+          <ComptabiliteView event={event} tables={tables} eventDays={eventDays} />
+        )}
+
         {/* Venues View */}
         {view === 'venues' && (
           <div className="space-y-6">
