@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Calendar, MapPin, Plus, LogOut, Settings, Users, Table2, Loader2, Wine, FileText, Download, Trash2, Edit, ChevronLeft, ChevronRight, X, PanelLeftClose, PanelLeft, LayoutDashboard, Receipt, Cog, ChevronDown, Upload, FileSpreadsheet, Check, Link, Copy, ExternalLink, ShoppingCart, Ticket, Search, Filter, UserCheck, Clock, CreditCard, StickyNote } from 'lucide-react'
+import { Calendar, MapPin, Plus, LogOut, Settings, Users, Table2, Loader2, Wine, FileText, Download, Trash2, Edit, ChevronLeft, ChevronRight, X, PanelLeftClose, PanelLeft, LayoutDashboard, Receipt, Cog, ChevronDown, Upload, FileSpreadsheet, Check, Link, Copy, ExternalLink, ShoppingCart, Ticket, Search, Filter, UserCheck, Clock, CreditCard, StickyNote, Banknote, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
 import { toast } from 'sonner'
 import { format, parseISO, eachDayOfInterval } from 'date-fns'
 import { fr } from 'date-fns/locale'
