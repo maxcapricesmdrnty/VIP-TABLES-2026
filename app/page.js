@@ -3334,17 +3334,47 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
           )}
         </div>
 
-        <DialogFooter className="flex-wrap gap-2">
-          {form.status !== 'libre' && (
-            <Button variant="destructive" onClick={resetTable} disabled={saving}>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          {form.status !== 'libre' && !showConfirmRelease && (
+            <Button 
+              variant="destructive" 
+              onClick={() => setShowConfirmRelease(true)} 
+              disabled={saving}
+              className="w-full sm:w-auto"
+            >
               Libérer la table
             </Button>
           )}
-          <Button variant="outline" onClick={onClose}>Annuler</Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-gradient-to-r from-amber-500 to-amber-600 text-black">
-            {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Sauvegarder
-          </Button>
+          {showConfirmRelease && (
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto bg-destructive/10 p-2 rounded-lg border border-destructive/30">
+              <span className="text-sm text-destructive font-medium self-center">Confirmer la libération?</span>
+              <div className="flex gap-2">
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={resetTable} 
+                  disabled={saving}
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Oui, libérer'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowConfirmRelease(false)}
+                  disabled={saving}
+                >
+                  Annuler
+                </Button>
+              </div>
+            </div>
+          )}
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={onClose} className="flex-1 sm:flex-initial">Fermer</Button>
+            <Button onClick={handleSave} disabled={saving} className="bg-gradient-to-r from-amber-500 to-amber-600 text-black flex-1 sm:flex-initial">
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Sauvegarder
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
