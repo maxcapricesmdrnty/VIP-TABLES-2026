@@ -2501,6 +2501,23 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
   const [vipLink, setVipLink] = useState('')
   const [generatingVipLink, setGeneratingVipLink] = useState(false)
 
+  // Load existing VIP link if any
+  useEffect(() => {
+    const loadVipLink = async () => {
+      const { data } = await supabase
+        .from('orders')
+        .select('access_token')
+        .eq('table_id', table.id)
+        .maybeSingle()
+      
+      if (data?.access_token) {
+        const baseUrl = window.location.origin
+        setVipLink(`${baseUrl}/vip/${data.access_token}`)
+      }
+    }
+    loadVipLink()
+  }, [table.id])
+
   const beverageBudget = form.sold_price
   const commissionAmount = form.sold_price * (form.concierge_commission / 100)
   const totalPrice = form.sold_price + (form.additional_persons * form.additional_person_price) + form.on_site_additional_revenue
