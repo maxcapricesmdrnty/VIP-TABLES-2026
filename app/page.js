@@ -2844,14 +2844,14 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                 />
               </div>
               <div>
-                <Label>Budget boissons (10%)</Label>
+                <Label>Budget boissons (100%)</Label>
                 <Input value={beverageBudget.toFixed(2)} disabled className="bg-muted" />
               </div>
             </div>
           </div>
 
           <div>
-            <h3 className="font-semibold mb-3 text-amber-400">Concierge</h3>
+            <h3 className="font-semibold mb-3 text-amber-400">Concierge (pour rapport interne)</h3>
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label>Nom du concierge</Label>
@@ -2871,8 +2871,9 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                 />
               </div>
               <div>
-                <Label>Montant commission</Label>
-                <Input value={commissionAmount.toFixed(2)} disabled className="bg-muted" />
+                <Label>Montant commission (info)</Label>
+                <Input value={commissionAmount.toFixed(2)} disabled className="bg-muted text-muted-foreground" />
+                <p className="text-xs text-muted-foreground mt-1">Non déduit du total</p>
               </div>
             </div>
           </div>
