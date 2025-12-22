@@ -819,7 +819,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
             zone: 'left',
             status: 'libre',
             standard_price: layoutForm.left.price,
-            sold_price: 0
+            sold_price: 0,
+            capacity: layoutForm.left.capacity || 10
           })
         }
       }
@@ -837,7 +838,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
             zone: 'right',
             status: 'libre',
             standard_price: layoutForm.right.price,
-            sold_price: 0
+            sold_price: 0,
+            capacity: layoutForm.right.capacity || 10
           })
         }
       }
@@ -858,7 +860,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
             zone: zoneName,
             status: 'libre',
             standard_price: cat.price,
-            sold_price: 0
+            sold_price: 0,
+            capacity: cat.capacity || 10
           })
         }
       })
