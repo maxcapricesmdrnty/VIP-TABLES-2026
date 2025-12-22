@@ -5647,7 +5647,10 @@ function InvoicesView({ event, onEventUpdate }) {
                           <tbody>
                             {getTablesForDay(day).map(t => (
                               <tr key={t.id}>
-                                <td className="p-1">Table {t.display_number || t.table_number} - {format(parseISO(day), 'dd/MM/yyyy')}</td>
+                                <td className="p-1">
+                                  Table {t.display_number || t.table_number} - {format(parseISO(day), 'dd/MM/yyyy')}
+                                  <br/><span className="text-[10px] italic text-gray-500">(Budget boissons: {formatSwiss(t.sold_price || 0)} {event.currency})</span>
+                                </td>
                                 <td className="text-center p-1">1</td>
                                 <td className="text-right p-1">{formatSwiss(calculateTableTotal(t))} {event.currency}</td>
                                 <td className="text-right p-1">{formatSwiss(calculateTableTotal(t))} {event.currency}</td>
@@ -5656,7 +5659,7 @@ function InvoicesView({ event, onEventUpdate }) {
                           </tbody>
                         </table>
                         <p className="text-right text-xs font-semibold mt-1">
-                          Day {day} Subtotal: {formatSwiss(getTablesForDay(day).reduce((s, t) => s + calculateTableTotal(t), 0))} {event.currency}
+                          Subtotal: {formatSwiss(getTablesForDay(day).reduce((s, t) => s + calculateTableTotal(t), 0))} {event.currency}
                         </p>
                       </div>
                     ))}
