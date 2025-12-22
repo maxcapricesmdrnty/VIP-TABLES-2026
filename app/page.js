@@ -1355,7 +1355,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
         {/* Dashboard View */}
         {view === 'dashboard' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {/* Ligne 1: Compteurs tables */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardDescription>Total Tables</CardDescription>
@@ -1386,35 +1387,80 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                   <CardTitle className="text-2xl text-purple-500">{stats.paye}</CardTitle>
                 </CardHeader>
               </Card>
-              <Card className="bg-gradient-to-br from-amber-500/20 to-amber-600/20 border-amber-500/50">
-                <CardHeader className="pb-2">
-                  <CardDescription>CA Total</CardDescription>
-                  <CardTitle className="text-2xl text-amber-400">{stats.ca.toLocaleString()} {event.currency}</CardTitle>
-                </CardHeader>
-              </Card>
             </div>
 
+            {/* Ligne 2: Montants par statut */}
             <Card>
               <CardHeader>
-                <CardTitle>Résumé Financier</CardTitle>
+                <CardTitle>Chiffre d'affaires</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">CA Brut</p>
-                    <p className="text-2xl font-bold">{stats.ca.toLocaleString()} {event.currency}</p>
+                    <p className="text-sm text-muted-foreground">Potentiel total</p>
+                    <p className="text-xl font-bold">{stats.potentiel.toLocaleString()} {event.currency}</p>
+                    <p className="text-xs text-muted-foreground">{stats.total} tables programmées</p>
                   </div>
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">Restant à payer</p>
-                    <p className="text-2xl font-bold text-amber-500">{(stats.ca - stats.paid).toLocaleString()} {event.currency}</p>
+                  <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                    <p className="text-sm text-yellow-400">Réservé</p>
+                    <p className="text-xl font-bold text-yellow-400">{stats.caReserve.toLocaleString()} {event.currency}</p>
+                    <p className="text-xs text-muted-foreground">{stats.reserve} tables</p>
                   </div>
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">Déjà payé</p>
-                    <p className="text-2xl font-bold text-green-500">{stats.paid.toLocaleString()} {event.currency}</p>
+                  <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                    <p className="text-sm text-blue-400">Confirmé</p>
+                    <p className="text-xl font-bold text-blue-400">{stats.caConfirme.toLocaleString()} {event.currency}</p>
+                    <p className="text-xs text-muted-foreground">{stats.confirme} tables</p>
+                  </div>
+                  <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                    <p className="text-sm text-purple-400">Payé</p>
+                    <p className="text-xl font-bold text-purple-400">{stats.caPaye.toLocaleString()} {event.currency}</p>
+                    <p className="text-xs text-muted-foreground">{stats.paye} tables</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Ligne 3: Résumé financier + Personnes */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Résumé Financier</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                      <span className="text-muted-foreground">CA Total (Confirmé + Payé)</span>
+                      <span className="font-bold text-lg">{stats.ca.toLocaleString()} {event.currency}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                      <span className="text-green-400">Déjà encaissé</span>
+                      <span className="font-bold text-lg text-green-400">{stats.paid.toLocaleString()} {event.currency}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                      <span className="text-amber-400">Reste à encaisser</span>
+                      <span className="font-bold text-lg text-amber-400">{(stats.ca - stats.paid).toLocaleString()} {event.currency}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Personnes attendues</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-3">
+                        <Users className="w-12 h-12 text-amber-500" />
+                        <span className="text-5xl font-bold text-amber-400">{stats.totalPersons}</span>
+                      </div>
+                      <p className="text-muted-foreground mt-2">personnes sur {stats.total - stats.libre} tables réservées</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
 
