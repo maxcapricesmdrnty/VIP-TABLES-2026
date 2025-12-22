@@ -3105,18 +3105,19 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-3 text-amber-400">Tarification</h3>
-            <div className="grid grid-cols-3 gap-4">
+            <h3 className="font-semibold mb-2 sm:mb-3 text-amber-400 text-sm sm:text-base">Tarification</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
               <div>
-                <Label>Prix standard</Label>
-                <Input value={table.standard_price} disabled className="bg-muted" />
+                <Label className="text-xs sm:text-sm">Prix standard</Label>
+                <Input value={table.standard_price} disabled className="bg-muted text-sm" />
               </div>
               <div>
-                <Label>Prix négocié ({currency})</Label>
+                <Label className="text-xs sm:text-sm">Prix négocié ({currency})</Label>
                 <Input
                   type="number"
                   value={form.sold_price === 0 ? '' : form.sold_price}
                   onChange={(e) => setForm({...form, sold_price: e.target.value === '' ? 0 : parseFloat(e.target.value)})}
+                  className="text-sm"
                 />
               </div>
               <div>
