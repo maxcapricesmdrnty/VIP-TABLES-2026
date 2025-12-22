@@ -2273,20 +2273,22 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                     Sauvegarder la configuration
                   </Button>
                   
-                  {selectedDay && (
-                    <Button 
-                      onClick={async () => {
-                        if (!confirm(`Régénérer les tables pour le ${format(parseISO(selectedDay), 'dd MMM', { locale: fr })} ?\n\nAttention: Les tables existantes (et leurs réservations) seront supprimées et recréées selon la configuration actuelle.`)) {
-                          return
-                        }
-                        await generateTablesForDay()
-                      }}
-                      variant="outline"
-                      className="border-amber-500 text-amber-500 hover:bg-amber-500/10"
-                    >
-                      🔄 Générer/Régénérer les tables
-                    </Button>
-                  )}
+                  <Button 
+                    onClick={async () => {
+                      if (!selectedDay) {
+                        toast.error('Sélectionnez un jour spécifique (pas "Config par défaut")')
+                        return
+                      }
+                      if (!confirm(`Régénérer les tables pour le ${format(parseISO(selectedDay), 'dd MMM', { locale: fr })} ?\n\nAttention: Les tables existantes seront supprimées et recréées selon la configuration actuelle.`)) {
+                        return
+                      }
+                      await generateTablesForDay()
+                    }}
+                    variant="outline"
+                    className="border-amber-500 text-amber-500 hover:bg-amber-500/10"
+                  >
+                    🔄 Générer les tables
+                  </Button>
                 </div>
 
                 {/* Preview */}
