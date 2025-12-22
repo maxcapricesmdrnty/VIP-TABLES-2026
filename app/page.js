@@ -801,18 +801,48 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     }
   }
 
-  const generateTablesForDay = async () => {
+  const generateTablesForDay = async (forceRegenerate = false) => {
     if (!selectedVenue || !selectedDay) {
       toast.error('Sélectionnez une salle et un jour')
       return
     }
 
     try {
-      await supabase
+      // Get existing tables for this day
+      const { data: existingTables } = await supabase
         .from('tables')
-        .delete()
+        .select('*')
         .eq('venue_id', selectedVenue.id)
         .eq('day', selectedDay)
+      
+      // Check for reserved tables
+      const reservedTables = (existingTables || []).filter(t => t.status !== 'libre')
+      
+      if (reservedTables.length > 0 && !forceRegenerate) {
+        const confirmMsg = `⚠️ Il y a ${reservedTables.length} table(s) avec des réservations.\n\n` +
+          `Tables réservées: ${reservedTables.map(t => t.display_number || t.table_number).join(', ')}\n\n` +
+          `Que voulez-vous faire?\n` +
+          `• OK = Garder les réservations et ajouter les tables manquantes\n` +
+          `• Annuler = Ne rien faire`
+        
+        if (!confirm(confirmMsg)) {
+          return
+        }
+      }
+      
+      // Only delete FREE tables (keep reserved ones)
+      if (existingTables && existingTables.length > 0) {
+        const freeTableIds = existingTables.filter(t => t.status === 'libre').map(t => t.id)
+        if (freeTableIds.length > 0) {
+          await supabase
+            .from('tables')
+            .delete()
+            .in('id', freeTableIds)
+        }
+      }
+
+      // Get table numbers that are already reserved (to not recreate them)
+      const reservedTableNumbers = new Set(reservedTables.map(t => t.table_number))
 
       const tablesToInsert = []
       
@@ -820,18 +850,21 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       if (layoutForm.left.enabled) {
         const startNum = layoutForm.left.startNumber || 1
         for (let i = 1; i <= layoutForm.left.count; i++) {
-          tablesToInsert.push({
-            event_id: event.id,
-            venue_id: selectedVenue.id,
-            table_number: `${layoutForm.left.prefix}${i}`,
-            display_number: String(startNum + i - 1),
-            day: selectedDay,
-            zone: 'left',
-            status: 'libre',
-            standard_price: layoutForm.left.price,
-            sold_price: 0,
-            capacity: layoutForm.left.capacity || 10
-          })
+          const tableNumber = `${layoutForm.left.prefix}${i}`
+          if (!reservedTableNumbers.has(tableNumber)) {
+            tablesToInsert.push({
+              event_id: event.id,
+              venue_id: selectedVenue.id,
+              table_number: tableNumber,
+              display_number: String(startNum + i - 1),
+              day: selectedDay,
+              zone: 'left',
+              status: 'libre',
+              standard_price: layoutForm.left.price,
+              sold_price: 0,
+              capacity: layoutForm.left.capacity || 10
+            })
+          }
         }
       }
       
@@ -839,45 +872,55 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       if (layoutForm.right.enabled) {
         const startNum = layoutForm.right.startNumber || 1
         for (let i = 1; i <= layoutForm.right.count; i++) {
-          tablesToInsert.push({
-            event_id: event.id,
-            venue_id: selectedVenue.id,
-            table_number: `${layoutForm.right.prefix}${i}`,
-            display_number: String(startNum + i - 1),
-            day: selectedDay,
-            zone: 'right',
-            status: 'libre',
-            standard_price: layoutForm.right.price,
-            sold_price: 0,
-            capacity: layoutForm.right.capacity || 10
-          })
+          const tableNumber = `${layoutForm.right.prefix}${i}`
+          if (!reservedTableNumbers.has(tableNumber)) {
+            tablesToInsert.push({
+              event_id: event.id,
+              venue_id: selectedVenue.id,
+              table_number: tableNumber,
+              display_number: String(startNum + i - 1),
+              day: selectedDay,
+              zone: 'right',
+              status: 'libre',
+              standard_price: layoutForm.right.price,
+              sold_price: 0,
+              capacity: layoutForm.right.capacity || 10
+            })
+          }
         }
       }
       
       // Back categories - only enabled ones
       layoutForm.backCategories.filter(cat => cat.enabled !== false).forEach((cat, idx) => {
-        // Use 'back' for first category, 'back_2', 'back_3', etc. for others
         const zoneName = idx === 0 ? 'back' : `back_${idx + 1}`
-        const totalTables = cat.rows * cat.tablesPerRow // Calculate total from rows × tablesPerRow
+        const totalTables = cat.rows * cat.tablesPerRow
         const startNum = cat.startNumber || 1
         for (let i = 1; i <= totalTables; i++) {
-          tablesToInsert.push({
-            event_id: event.id,
-            venue_id: selectedVenue.id,
-            table_number: `${cat.prefix}${i}`,
-            display_number: String(startNum + i - 1),
-            day: selectedDay,
-            zone: zoneName,
-            status: 'libre',
-            standard_price: cat.price,
-            sold_price: 0,
-            capacity: cat.capacity || 10
-          })
+          const tableNumber = `${cat.prefix}${i}`
+          if (!reservedTableNumbers.has(tableNumber)) {
+            tablesToInsert.push({
+              event_id: event.id,
+              venue_id: selectedVenue.id,
+              table_number: tableNumber,
+              display_number: String(startNum + i - 1),
+              day: selectedDay,
+              zone: zoneName,
+              status: 'libre',
+              standard_price: cat.price,
+              sold_price: 0,
+              capacity: cat.capacity || 10
+            })
+          }
         }
       })
 
-      await supabase.from('tables').insert(tablesToInsert)
-      toast.success(`${tablesToInsert.length} tables générées!`)
+      if (tablesToInsert.length > 0) {
+        await supabase.from('tables').insert(tablesToInsert)
+      }
+      
+      const keptCount = reservedTables.length
+      const newCount = tablesToInsert.length
+      toast.success(`${newCount} tables créées${keptCount > 0 ? `, ${keptCount} réservations conservées` : ''}!`)
       fetchTables()
     } catch (error) {
       toast.error(error.message)
