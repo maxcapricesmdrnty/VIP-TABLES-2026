@@ -2194,15 +2194,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                     <Card key={zone}>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                          <Input
-                            value={layoutForm[zone].name || (zone === 'left' ? 'Zone Gauche' : 'Zone Droite')}
-                            onChange={(e) => setLayoutForm({
-                              ...layoutForm,
-                              [zone]: { ...layoutForm[zone], name: e.target.value }
-                            })}
-                            className="font-semibold text-lg bg-transparent border-none p-0 h-auto"
-                            placeholder={zone === 'left' ? 'Ex: PRIVILEGE' : 'Ex: VIP ONE'}
-                          />
+                          <CardTitle>Zone {zone === 'left' ? 'Gauche' : 'Droite'}</CardTitle>
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-muted-foreground">Activer</span>
                             <button
@@ -2221,13 +2213,14 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                         <CardContent className="space-y-4">
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <Label>Préfixe</Label>
+                              <Label>Préfixe / Nom</Label>
                               <Input
                                 value={layoutForm[zone].prefix}
                                 onChange={(e) => setLayoutForm({
                                   ...layoutForm,
                                   [zone]: { ...layoutForm[zone], prefix: e.target.value }
                                 })}
+                                placeholder="Ex: PRIVILEGE, VIP..."
                               />
                             </div>
                             <div>
