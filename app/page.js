@@ -714,6 +714,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
           rows: layoutForm.left.rows,
           capacity_per_table: layoutForm.left.capacity,
           standard_price: layoutForm.left.price,
+          start_number: layoutForm.left.startNumber || 1,
           sort_order: sortOrder++,
           date: selectedDay || null,
           enabled: true
@@ -730,6 +731,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
           rows: layoutForm.right.rows,
           capacity_per_table: layoutForm.right.capacity,
           standard_price: layoutForm.right.price,
+          start_number: layoutForm.right.startNumber || 1,
           sort_order: sortOrder++,
           date: selectedDay || null,
           enabled: true
@@ -746,6 +748,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
           rows: cat.rows,
           capacity_per_table: cat.capacity,
           standard_price: cat.price,
+          start_number: cat.startNumber || 1,
           sort_order: sortOrder++,
           date: selectedDay || null,
           enabled: true
@@ -761,6 +764,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
         rows: 0,
         capacity_per_table: 0,
         standard_price: 0,
+        start_number: 1,
         sort_order: sortOrder++,
         date: selectedDay || null,
         enabled: layoutForm.center.enabled
