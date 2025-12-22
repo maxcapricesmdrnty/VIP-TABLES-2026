@@ -2468,11 +2468,22 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                   
                   <Button 
                     onClick={async () => {
+                      console.log('Generate button clicked', { selectedDay, selectedVenue: selectedVenue?.id })
                       if (!selectedDay) {
-                        toast.error('Sélectionnez un jour spécifique (pas "Config par défaut")')
+                        toast.error('⚠️ Sélectionnez un jour spécifique (pas "Config par défaut")')
                         return
                       }
-                      await generateTablesForDay()
+                      if (!selectedVenue) {
+                        toast.error('⚠️ Sélectionnez une salle d\'abord')
+                        return
+                      }
+                      toast.info('Génération des tables en cours...')
+                      try {
+                        await generateTablesForDay()
+                      } catch (err) {
+                        console.error('Generate tables error:', err)
+                        toast.error('Erreur: ' + err.message)
+                      }
                     }}
                     variant="outline"
                     className="border-amber-500 text-amber-500 hover:bg-amber-500/10"
