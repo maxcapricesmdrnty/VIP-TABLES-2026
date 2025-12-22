@@ -2002,63 +2002,13 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                           
                           // Refresh layouts
                           fetchLayouts()
-                          toast.success('Configuration définie comme défaut! Les numéros de tables seront copiés avec.')
+                          toast.success('Configuration définie comme défaut!')
                         } else {
                           toast.error('Aucune configuration pour ce jour. Sauvegardez d\'abord la configuration.')
                         }
                       }}
                     >
                       ⭐ Définir comme défaut
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={async () => {
-                        // Copy display_numbers from this day to ALL other days
-                        const { data: sourceTables } = await supabase
-                          .from('tables')
-                          .select('table_number, display_number')
-                          .eq('event_id', event.id)
-                          .eq('day', selectedDay)
-                        
-                        if (!sourceTables || sourceTables.length === 0) {
-                          toast.error('Aucune table pour ce jour')
-                          return
-                        }
-                        
-                        const displayNumberMap = {}
-                        sourceTables.forEach(t => {
-                          if (t.display_number) {
-                            displayNumberMap[t.table_number] = t.display_number
-                          }
-                        })
-                        
-                        if (Object.keys(displayNumberMap).length === 0) {
-                          toast.error('Aucun numéro de table défini pour ce jour')
-                          return
-                        }
-                        
-                        // Get all other days
-                        const otherDays = activeDays.filter(d => d.date !== selectedDay).map(d => d.date)
-                        
-                        let updated = 0
-                        for (const day of otherDays) {
-                          for (const [tableNum, displayNum] of Object.entries(displayNumberMap)) {
-                            const { error } = await supabase
-                              .from('tables')
-                              .update({ display_number: displayNum })
-                              .eq('event_id', event.id)
-                              .eq('day', day)
-                              .eq('table_number', tableNum)
-                            if (!error) updated++
-                          }
-                        }
-                        
-                        toast.success(`Numéros copiés vers ${otherDays.length} autres jours!`)
-                        fetchTables()
-                      }}
-                    >
-                      📋 Copier numéros → autres jours
                     </Button>
                   </div>
                 </CardContent>
