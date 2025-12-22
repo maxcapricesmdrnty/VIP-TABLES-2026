@@ -2691,60 +2691,65 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
   }
 
   const copyVipLink = async () => {
-    if (!vipLink) return
+    if (!vipLink) {
+      toast.error('Aucun lien à copier')
+      return
+    }
     
-    // Method 1: Modern Clipboard API
-    if (navigator.clipboard && window.isSecureContext) {
-      try {
+    try {
+      // Method 1: Modern Clipboard API
+      if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(vipLink)
         toast.success('Lien copié!')
         return
-      } catch (err) {
-        console.log('Clipboard API failed, trying fallback')
       }
-    }
-    
-    // Method 2: execCommand fallback
-    const textArea = document.createElement('textarea')
-    textArea.value = vipLink
-    textArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px'
-    document.body.appendChild(textArea)
-    textArea.focus()
-    textArea.select()
-    
-    try {
+      
+      // Method 2: execCommand fallback
+      const textArea = document.createElement('textarea')
+      textArea.value = vipLink
+      textArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px'
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      
       const success = document.execCommand('copy')
+      document.body.removeChild(textArea)
+      
       if (success) {
         toast.success('Lien copié!')
       } else {
-        throw new Error('execCommand failed')
+        throw new Error('Copy failed')
       }
     } catch (e) {
-      // Method 3: Show manual copy dialog
-      toast.info('Sélectionnez et copiez le lien manuellement (Ctrl+C / Cmd+C)')
-      // Select the input field
-      const inputField = document.querySelector('input[readonly]')
-      if (inputField) {
-        inputField.select()
-      }
+      console.error('Copy error:', e)
+      // Show the link in a prompt for manual copy
+      prompt('Copiez ce lien:', vipLink)
     }
-    document.body.removeChild(textArea)
   }
 
   const shareVipLink = () => {
-    if (!vipLink) return
+    if (!vipLink) {
+      toast.error('Aucun lien à partager')
+      return
+    }
+    
+    const message = `Bonjour ${form.client_name || ''}, voici votre lien de pré-commande VIP: ${vipLink}`
     
     // Use Web Share API if available (mobile)
     if (navigator.share) {
       navigator.share({
-        title: `Pré-commande VIP - Table ${table.table_number}`,
-        text: `Bonjour ${table.client_name || ''}, voici votre lien de pré-commande VIP:`,
+        title: `Pré-commande VIP - Table ${table.display_number || table.table_number}`,
+        text: message,
         url: vipLink
-      }).catch(() => {})
+      }).catch((err) => {
+        console.log('Share cancelled or failed:', err)
+      })
     } else {
       // Fallback: open WhatsApp with link
-      const text = encodeURIComponent(`Bonjour ${table.client_name || ''}, voici votre lien de pré-commande VIP: ${vipLink}`)
-      window.open(`https://wa.me/?text=${text}`, '_blank')
+      const phone = form.client_phone ? form.client_phone.replace(/[^0-9]/g, '') : ''
+      const text = encodeURIComponent(message)
+      const whatsappUrl = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`
+      window.open(whatsappUrl, '_blank')
     }
   }
 
