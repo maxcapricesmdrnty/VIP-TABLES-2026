@@ -2426,26 +2426,129 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                   
                   <Button 
                     onClick={async () => {
-                      console.log('Button clicked, selectedDay:', selectedDay)
                       if (!selectedDay) {
                         toast.error('Sélectionnez un jour spécifique (pas "Config par défaut")')
                         return
                       }
-                      console.log('Calling generateTablesForDay...')
-                      try {
-                        await generateTablesForDay()
-                        console.log('generateTablesForDay completed')
-                      } catch (err) {
-                        console.error('Error in generateTablesForDay:', err)
-                        toast.error('Erreur: ' + err.message)
-                      }
+                      await generateTablesForDay()
                     }}
                     variant="outline"
                     className="border-amber-500 text-amber-500 hover:bg-amber-500/10"
                   >
                     🔄 Générer les tables
                   </Button>
+                  
+                  <Button 
+                    onClick={() => {
+                      if (!selectedDay) {
+                        toast.error('Sélectionnez un jour spécifique')
+                        return
+                      }
+                      const zones = getZoneOptions()
+                      if (zones.length === 0) {
+                        toast.error('Aucune zone activée')
+                        return
+                      }
+                      const firstZone = zones[0]
+                      setAddTableForm({
+                        zone: firstZone.value,
+                        table_number: getNextTableNumber(firstZone.value),
+                        display_number: '',
+                        capacity: firstZone.capacity || 10,
+                        standard_price: firstZone.price || 5000
+                      })
+                      setShowAddTableModal(true)
+                    }}
+                    variant="outline"
+                    className="border-green-500 text-green-500 hover:bg-green-500/10"
+                  >
+                    <Plus className="w-4 h-4 mr-2" /> Ajouter une table
+                  </Button>
                 </div>
+
+                {/* Add Table Modal */}
+                <Dialog open={showAddTableModal} onOpenChange={setShowAddTableModal}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Ajouter une table</DialogTitle>
+                      <DialogDescription>
+                        Ajouter une table à la configuration du {selectedDay ? format(parseISO(selectedDay), 'dd MMMM', { locale: fr }) : ''}
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 py-4">
+                      <div>
+                        <Label>Zone / Catégorie</Label>
+                        <select
+                          value={addTableForm.zone}
+                          onChange={(e) => {
+                            const zone = e.target.value
+                            const zoneConfig = getZoneOptions().find(z => z.value === zone)
+                            setAddTableForm({
+                              ...addTableForm,
+                              zone,
+                              table_number: getNextTableNumber(zone),
+                              capacity: zoneConfig?.capacity || 10,
+                              standard_price: zoneConfig?.price || 5000
+                            })
+                          }}
+                          className="w-full p-2 border rounded bg-background"
+                        >
+                          {getZoneOptions().map(z => (
+                            <option key={z.value} value={z.value}>{z.label} (préfixe: {z.prefix})</option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>N° Table (système)</Label>
+                          <Input
+                            value={addTableForm.table_number}
+                            onChange={(e) => setAddTableForm({...addTableForm, table_number: e.target.value})}
+                            placeholder="Ex: L5, B9..."
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">Identifiant unique</p>
+                        </div>
+                        <div>
+                          <Label>N° Physique (affiché)</Label>
+                          <Input
+                            value={addTableForm.display_number}
+                            onChange={(e) => setAddTableForm({...addTableForm, display_number: e.target.value})}
+                            placeholder="Ex: 15, 201..."
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">Numéro sur la table réelle</p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Capacité (personnes)</Label>
+                          <Input
+                            type="number"
+                            value={addTableForm.capacity}
+                            onChange={(e) => setAddTableForm({...addTableForm, capacity: parseInt(e.target.value) || 10})}
+                          />
+                        </div>
+                        <div>
+                          <Label>Prix standard ({event.currency})</Label>
+                          <Input
+                            type="number"
+                            value={addTableForm.standard_price}
+                            onChange={(e) => setAddTableForm({...addTableForm, standard_price: parseInt(e.target.value) || 0})}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowAddTableModal(false)}>Annuler</Button>
+                      <Button onClick={addSingleTable} className="bg-green-500 hover:bg-green-600">
+                        <Plus className="w-4 h-4 mr-2" /> Ajouter
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
 
                 {/* Preview */}
                 <Card>
