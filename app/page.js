@@ -589,14 +589,17 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       }
       
       // Load back categories
-      data.filter(l => l.zone.startsWith('back')).forEach(l => {
+      data.filter(l => l.zone === 'back' || l.zone.startsWith('back_')).forEach((l, idx) => {
         const totalTables = l.table_count
         const numRows = l.rows || 1
-        const tablesPerRow = Math.ceil(totalTables / numRows)
+        const tablesPerRow = Math.ceil(totalTables / numRows) || 4
+        
+        // Generate a friendly name based on index
+        const categoryName = idx === 0 ? 'Tables Arrière' : `Catégorie Arrière ${idx + 1}`
         
         newForm.backCategories.push({
           id: l.id,
-          name: l.zone.replace('back_', '').replace(/_/g, ' ') || 'Catégorie',
+          name: categoryName,
           prefix: l.table_prefix,
           rows: numRows,
           tablesPerRow: tablesPerRow,
