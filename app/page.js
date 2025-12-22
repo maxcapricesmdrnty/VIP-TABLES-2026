@@ -1476,8 +1476,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                   {/* Zone Gauche */}
                   {getTablesByZone('left').length > 0 && (
                     <div className="shrink-0">
-                      <h3 className="text-center mb-3 sm:mb-4 font-semibold text-muted-foreground text-sm sm:text-base">Zone Gauche</h3>
-                      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                      <h3 className="text-center mb-2 sm:mb-4 font-semibold text-muted-foreground text-xs sm:text-base">Gauche</h3>
+                      <div className="grid grid-cols-2 gap-1.5 sm:gap-3">
                         {getTablesByZone('left').map(table => (
                           <TableCell 
                             key={table.id} 
@@ -1495,10 +1495,10 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
 
                   {/* DJ Booth - Centré */}
                   <div className="shrink-0 flex flex-col items-center justify-center self-center">
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-b from-amber-500/30 to-amber-600/10 rounded-lg flex items-center justify-center border-2 border-amber-500/50">
+                    <div className="w-10 h-10 sm:w-16 sm:h-16 bg-gradient-to-b from-amber-500/30 to-amber-600/10 rounded-lg flex items-center justify-center border-2 border-amber-500/50">
                       <div className="text-center">
-                        <div className="text-base sm:text-lg">🎧</div>
-                        <div className="text-[8px] sm:text-[9px] font-bold text-amber-400">DJ</div>
+                        <div className="text-sm sm:text-lg">🎧</div>
+                        <div className="text-[7px] sm:text-[9px] font-bold text-amber-400">DJ</div>
                       </div>
                     </div>
                   </div>
@@ -1506,8 +1506,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                   {/* Zone Droite */}
                   {getTablesByZone('right').length > 0 && (
                     <div className="shrink-0">
-                      <h3 className="text-center mb-3 sm:mb-4 font-semibold text-muted-foreground text-sm sm:text-base">Zone Droite</h3>
-                      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                      <h3 className="text-center mb-2 sm:mb-4 font-semibold text-muted-foreground text-xs sm:text-base">Droite</h3>
+                      <div className="grid grid-cols-2 gap-1.5 sm:gap-3">
                         {getTablesByZone('right').map(table => (
                           <TableCell 
                             key={table.id} 
@@ -1525,7 +1525,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                 </div>
 
                 {/* Multiple Back Categories - Fixed grid with horizontal scroll */}
-                <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
+                <div className="mt-4 sm:mt-8 space-y-3 sm:space-y-6">
                   {getBackZones().map(zone => {
                     const zoneTables = getTablesByZone(zone)
                     if (zoneTables.length === 0) return null
