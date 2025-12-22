@@ -578,22 +578,24 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       const newForm = { 
         left: leftLayout ? {
           enabled: leftLayout.enabled !== false,
+          name: leftLayout.zone_name || 'Zone Gauche',
           prefix: leftLayout.table_prefix,
           count: leftLayout.table_count,
           rows: leftLayout.rows,
           capacity: leftLayout.capacity_per_table,
           price: leftLayout.standard_price,
           startNumber: leftLayout.start_number || 1
-        } : { enabled: true, prefix: 'L', count: 4, rows: 2, capacity: 10, price: 5000, startNumber: 1 },
+        } : { enabled: true, name: 'Zone Gauche', prefix: 'L', count: 4, rows: 2, capacity: 10, price: 5000, startNumber: 1 },
         right: rightLayout ? {
           enabled: rightLayout.enabled !== false,
+          name: rightLayout.zone_name || 'Zone Droite',
           prefix: rightLayout.table_prefix,
           count: rightLayout.table_count,
           rows: rightLayout.rows,
           capacity: rightLayout.capacity_per_table,
           price: rightLayout.standard_price,
           startNumber: rightLayout.start_number || 1
-        } : { enabled: true, prefix: 'R', count: 4, rows: 2, capacity: 10, price: 5000, startNumber: 1 },
+        } : { enabled: true, name: 'Zone Droite', prefix: 'R', count: 4, rows: 2, capacity: 10, price: 5000, startNumber: 1 },
         center: { enabled: centerLayout ? centerLayout.enabled !== false : true },
         backCategories: []
       }
