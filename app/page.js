@@ -1213,6 +1213,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'tables', label: 'Tables', icon: Table2 },
     { id: 'invoices', label: 'Factures', icon: Receipt },
+    { id: 'comptabilite', label: 'Comptabilité', icon: Banknote },
     { id: 'guichet', label: 'Guichet', icon: Ticket },
   ]
 
