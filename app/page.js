@@ -1429,48 +1429,50 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
 
         {/* Tables View */}
         {view === 'tables' && (
-          <div className="space-y-6">
-            <div className="flex flex-wrap gap-4 items-end">
-              <div>
-                <Label>Salle</Label>
-                <Select value={selectedVenue?.id} onValueChange={(v) => setSelectedVenue(venues.find(ve => ve.id === v))}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Sélectionner une salle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {venues.map(v => (
-                      <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Jour</Label>
-                <Select value={selectedDay} onValueChange={setSelectedDay}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Sélectionner un jour" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeDays.map(d => (
-                      <SelectItem key={d.id} value={d.date}>
-                        {d.label && <span className="text-amber-400 mr-1">[{d.label}]</span>}
-                        {format(parseISO(d.date), 'EEE dd MMM', { locale: fr })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          <div className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-end">
+              <div className="flex gap-2 flex-1">
+                <div className="flex-1">
+                  <Label className="text-xs sm:text-sm">Salle</Label>
+                  <Select value={selectedVenue?.id} onValueChange={(v) => setSelectedVenue(venues.find(ve => ve.id === v))}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Salle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {venues.map(v => (
+                        <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1">
+                  <Label className="text-xs sm:text-sm">Jour</Label>
+                  <Select value={selectedDay} onValueChange={setSelectedDay}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Jour" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeDays.map(d => (
+                        <SelectItem key={d.id} value={d.date}>
+                          {d.label && <span className="text-amber-400 mr-1">[{d.label}]</span>}
+                          {format(parseISO(d.date), 'EEE dd MMM', { locale: fr })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               {tables.length === 0 && selectedVenue && selectedDay && (
-                <Button onClick={generateTablesForDay}>
+                <Button onClick={generateTablesForDay} className="w-full sm:w-auto">
                   Générer les tables
                 </Button>
               )}
             </div>
 
             {tables.length > 0 && (
-              <div className="bg-card rounded-lg border p-4 sm:p-6 overflow-x-auto">
+              <div className="bg-card rounded-lg border p-3 sm:p-6 overflow-x-auto">
                 {/* Zone Gauche + DJ Booth + Zone Droite */}
-                <div className="inline-flex items-start justify-start gap-4 sm:gap-6 min-w-max">
+                <div className="inline-flex items-start justify-start gap-3 sm:gap-6 min-w-max">
                   {/* Zone Gauche */}
                   {getTablesByZone('left').length > 0 && (
                     <div className="shrink-0">
