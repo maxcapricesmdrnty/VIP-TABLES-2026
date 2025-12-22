@@ -1240,12 +1240,12 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                     <p className="text-2xl font-bold">{stats.ca.toLocaleString()} {event.currency}</p>
                   </div>
                   <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">Commissions</p>
-                    <p className="text-2xl font-bold text-red-500">-{stats.commissions.toLocaleString()} {event.currency}</p>
+                    <p className="text-sm text-muted-foreground">Restant à payer</p>
+                    <p className="text-2xl font-bold text-amber-500">{(stats.ca - stats.paid).toLocaleString()} {event.currency}</p>
                   </div>
                   <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">CA Net</p>
-                    <p className="text-2xl font-bold text-green-500">{(stats.ca - stats.commissions).toLocaleString()} {event.currency}</p>
+                    <p className="text-sm text-muted-foreground">Déjà payé</p>
+                    <p className="text-2xl font-bold text-green-500">{stats.paid.toLocaleString()} {event.currency}</p>
                   </div>
                 </div>
               </CardContent>
