@@ -2822,10 +2822,9 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
   }
 
   const resetTable = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir libérer cette table? Toutes les informations seront effacées.')) return
     setSaving(true)
     try {
-      await supabase
+      const { error } = await supabase
         .from('tables')
         .update({
           status: 'libre',
@@ -2844,10 +2843,14 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
           drink_preorder: null
         })
         .eq('id', table.id)
+      
+      if (error) throw error
       toast.success('Table libérée!')
+      setShowConfirmRelease(false)
       onSave()
     } catch (error) {
-      toast.error(error.message)
+      console.error('Reset table error:', error)
+      toast.error('Erreur: ' + error.message)
     } finally {
       setSaving(false)
     }
