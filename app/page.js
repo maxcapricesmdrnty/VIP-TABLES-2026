@@ -3370,7 +3370,7 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
           )}
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
+        <DialogFooter className="shrink-0 flex-col sm:flex-row gap-2 pt-2 border-t">
           {form.status !== 'libre' && !showConfirmRelease && (
             <Button 
               variant="destructive" 
@@ -3383,7 +3383,7 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
           )}
           {showConfirmRelease && (
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto bg-destructive/10 p-2 rounded-lg border border-destructive/30">
-              <span className="text-sm text-destructive font-medium self-center">Confirmer la libération?</span>
+              <span className="text-sm text-destructive font-medium self-center">Confirmer?</span>
               <div className="flex gap-2">
                 <Button 
                   variant="destructive" 
@@ -3391,7 +3391,7 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                   onClick={resetTable} 
                   disabled={saving}
                 >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Oui, libérer'}
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Oui'}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -3399,7 +3399,7 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                   onClick={() => setShowConfirmRelease(false)}
                   disabled={saving}
                 >
-                  Annuler
+                  Non
                 </Button>
               </div>
             </div>
