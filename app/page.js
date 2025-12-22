@@ -726,6 +726,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       layoutsToInsert.push({
         venue_id: selectedVenue.id,
         zone: 'left',
+        zone_name: layoutForm.left.name || 'Zone Gauche',
         table_prefix: layoutForm.left.prefix,
         table_count: layoutForm.left.count,
         rows: layoutForm.left.rows,
@@ -741,6 +742,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       layoutsToInsert.push({
         venue_id: selectedVenue.id,
         zone: 'right',
+        zone_name: layoutForm.right.name || 'Zone Droite',
         table_prefix: layoutForm.right.prefix,
         table_count: layoutForm.right.count,
         rows: layoutForm.right.rows,
@@ -759,6 +761,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
         layoutsToInsert.push({
           venue_id: selectedVenue.id,
           zone: zoneName,
+          zone_name: cat.name,
           table_prefix: cat.prefix,
           table_count: cat.rows * cat.tablesPerRow,
           rows: cat.rows,
