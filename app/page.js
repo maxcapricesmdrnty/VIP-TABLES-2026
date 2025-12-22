@@ -1296,24 +1296,26 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
             {tables.length > 0 && (
               <div className="bg-card rounded-lg border p-6 overflow-x-auto">
                 {/* Zone Gauche + DJ Booth + Zone Droite */}
-                <div className="flex items-center justify-center gap-6 min-w-fit">
+                <div className="flex items-start justify-center gap-6 min-w-fit">
                   {/* Zone Gauche */}
-                  <div className="shrink-0">
-                    <h3 className="text-center mb-4 font-semibold text-muted-foreground">Zone Gauche</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      {getTablesByZone('left').map(table => (
-                        <TableCell 
-                          key={table.id} 
-                          table={table} 
-                          currency={event.currency}
-                          onClick={() => {
-                            setSelectedTable(table)
-                            setShowTableModal(true)
-                          }}
-                        />
-                      ))}
+                  {getTablesByZone('left').length > 0 && (
+                    <div className="shrink-0">
+                      <h3 className="text-center mb-4 font-semibold text-muted-foreground">Zone Gauche</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {getTablesByZone('left').map(table => (
+                          <TableCell 
+                            key={table.id} 
+                            table={table} 
+                            currency={event.currency}
+                            onClick={() => {
+                              setSelectedTable(table)
+                              setShowTableModal(true)
+                            }}
+                          />
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* DJ Booth - Centré */}
                   <div className="shrink-0 flex flex-col items-center justify-center self-center">
@@ -1326,40 +1328,48 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                   </div>
 
                   {/* Zone Droite */}
-                  <div className="shrink-0">
-                    <h3 className="text-center mb-4 font-semibold text-muted-foreground">Zone Droite</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      {getTablesByZone('right').map(table => (
-                        <TableCell 
-                          key={table.id} 
-                          table={table}
-                          currency={event.currency}
-                          onClick={() => {
-                            setSelectedTable(table)
-                            setShowTableModal(true)
-                          }}
-                        />
-                      ))}
+                  {getTablesByZone('right').length > 0 && (
+                    <div className="shrink-0">
+                      <h3 className="text-center mb-4 font-semibold text-muted-foreground">Zone Droite</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {getTablesByZone('right').map(table => (
+                          <TableCell 
+                            key={table.id} 
+                            table={table}
+                            currency={event.currency}
+                            onClick={() => {
+                              setSelectedTable(table)
+                              setShowTableModal(true)
+                            }}
+                          />
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Multiple Back Categories */}
-                <div className="mt-8 space-y-6">
+                {/* Multiple Back Categories - Fixed grid with horizontal scroll */}
+                <div className="mt-8 space-y-6 overflow-x-auto">
                   {getBackZones().map(zone => {
                     const zoneTables = getTablesByZone(zone)
-                    // Handle both "back" and "back_xxx" formats
-                    const zoneName = zone === 'back' ? 'Arrière' : zone.replace('back_', '').replace(/_/g, ' ')
-                    const category = layoutForm.backCategories.find(c => 
-                      `back_${c.name.replace(/\s+/g, '_').toLowerCase()}` === zone || 
-                      (zone === 'back' && c.name.toLowerCase().includes('arrière'))
-                    )
+                    if (zoneTables.length === 0) return null
+                    
+                    // Get the category config to determine tables per row
+                    const categoryIndex = zone === 'back' ? 0 : parseInt(zone.replace('back_', '')) - 1
+                    const category = layoutForm.backCategories[categoryIndex]
                     const tablesPerRow = category?.tablesPerRow || Math.min(zoneTables.length, 6)
+                    const zoneName = category?.name || (zone === 'back' ? 'Tables Arrière' : `Catégorie ${categoryIndex + 1}`)
                     
                     return (
-                      <div key={zone}>
-                        <h3 className="text-center mb-4 font-semibold text-muted-foreground capitalize">{zoneName}</h3>
-                        <div className="flex flex-wrap justify-center gap-3">
+                      <div key={zone} className="min-w-fit">
+                        <h3 className="text-center mb-4 font-semibold text-muted-foreground">{zoneName}</h3>
+                        <div 
+                          className="grid gap-3 justify-center mx-auto"
+                          style={{ 
+                            gridTemplateColumns: `repeat(${tablesPerRow}, minmax(0, auto))`,
+                            width: 'fit-content'
+                          }}
+                        >
                           {zoneTables.map(table => (
                             <TableCell 
                               key={table.id} 
