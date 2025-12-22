@@ -1355,72 +1355,35 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
         {/* Dashboard View */}
         {view === 'dashboard' && (
           <div className="space-y-6">
-            {/* Ligne 1: Compteurs tables */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Total Tables</CardDescription>
-                  <CardTitle className="text-2xl">{stats.total}</CardTitle>
-                </CardHeader>
-              </Card>
-              <Card className="border-green-500/50">
-                <CardHeader className="pb-2">
-                  <CardDescription>Libres</CardDescription>
-                  <CardTitle className="text-2xl text-green-500">{stats.libre}</CardTitle>
-                </CardHeader>
-              </Card>
-              <Card className="border-yellow-500/50">
-                <CardHeader className="pb-2">
-                  <CardDescription>Réservées</CardDescription>
-                  <CardTitle className="text-2xl text-yellow-500">{stats.reserve}</CardTitle>
-                </CardHeader>
-              </Card>
-              <Card className="border-blue-500/50">
-                <CardHeader className="pb-2">
-                  <CardDescription>Confirmées</CardDescription>
-                  <CardTitle className="text-2xl text-blue-500">{stats.confirme}</CardTitle>
-                </CardHeader>
-              </Card>
-              <Card className="border-purple-500/50">
-                <CardHeader className="pb-2">
-                  <CardDescription>Payées</CardDescription>
-                  <CardTitle className="text-2xl text-purple-500">{stats.paye}</CardTitle>
-                </CardHeader>
-              </Card>
-            </div>
-
-            {/* Ligne 2: Montants par statut */}
+            {/* Chiffre d'affaires par statut */}
             <Card>
               <CardHeader>
                 <CardTitle>Chiffre d'affaires</CardTitle>
+                <CardDescription>Tous jours et salles confondus</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="p-4 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground">Potentiel total</p>
                     <p className="text-xl font-bold">{stats.potentiel.toLocaleString()} {event.currency}</p>
-                    <p className="text-xs text-muted-foreground">{stats.total} tables programmées</p>
                   </div>
                   <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                     <p className="text-sm text-yellow-400">Réservé</p>
                     <p className="text-xl font-bold text-yellow-400">{stats.caReserve.toLocaleString()} {event.currency}</p>
-                    <p className="text-xs text-muted-foreground">{stats.reserve} tables</p>
                   </div>
                   <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                     <p className="text-sm text-blue-400">Confirmé</p>
                     <p className="text-xl font-bold text-blue-400">{stats.caConfirme.toLocaleString()} {event.currency}</p>
-                    <p className="text-xs text-muted-foreground">{stats.confirme} tables</p>
                   </div>
                   <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
                     <p className="text-sm text-purple-400">Payé</p>
                     <p className="text-xl font-bold text-purple-400">{stats.caPaye.toLocaleString()} {event.currency}</p>
-                    <p className="text-xs text-muted-foreground">{stats.paye} tables</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Ligne 3: Résumé financier + Personnes */}
+            {/* Résumé financier + Personnes */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
@@ -1455,7 +1418,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                         <Users className="w-12 h-12 text-amber-500" />
                         <span className="text-5xl font-bold text-amber-400">{stats.totalPersons}</span>
                       </div>
-                      <p className="text-muted-foreground mt-2">personnes sur {stats.total - stats.libre} tables réservées</p>
+                      <p className="text-muted-foreground mt-2">personnes au total</p>
                     </div>
                   </div>
                 </CardContent>
