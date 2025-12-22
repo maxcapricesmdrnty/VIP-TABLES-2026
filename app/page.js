@@ -2315,7 +2315,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                           <div className="grid grid-cols-2 gap-1 max-w-24 mx-auto">
                             {Array.from({ length: layoutForm.left.count }).map((_, i) => (
                               <div key={i} className="w-10 h-8 bg-green-500/30 border border-green-500 rounded flex items-center justify-center text-xs">
-                                {layoutForm.left.prefix}{i + 1}
+                                {(layoutForm.left.startNumber || 1) + i}
                               </div>
                             ))}
                           </div>
@@ -2346,7 +2346,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                           <div className="grid grid-cols-2 gap-1 max-w-24 mx-auto">
                             {Array.from({ length: layoutForm.right.count }).map((_, i) => (
                               <div key={i} className="w-10 h-8 bg-green-500/30 border border-green-500 rounded flex items-center justify-center text-xs">
-                                {layoutForm.right.prefix}{i + 1}
+                                {(layoutForm.right.startNumber || 1) + i}
                               </div>
                             ))}
                           </div>
@@ -2362,9 +2362,10 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                     <div className="mt-6 space-y-4">
                       {layoutForm.backCategories.filter(cat => cat.enabled !== false).map(cat => {
                         const totalTables = cat.rows * cat.tablesPerRow
+                        const startNum = cat.startNumber || 1
                         return (
                           <div key={cat.id}>
-                            <p className="text-center text-sm mb-2 font-semibold">{cat.name} ({cat.rows} lignes × {cat.tablesPerRow} = {totalTables} tables)</p>
+                            <p className="text-center text-sm mb-2 font-semibold">{cat.name} (Tables {startNum} → {startNum + totalTables - 1})</p>
                             <div 
                               className="grid gap-1 mx-auto"
                               style={{ 
@@ -2374,7 +2375,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                             >
                               {Array.from({ length: totalTables }).map((_, i) => (
                                 <div key={i} className="w-10 h-8 bg-blue-500/30 border border-blue-500 rounded flex items-center justify-center text-xs">
-                                  {cat.prefix}{i + 1}
+                                  {startNum + i}
                                 </div>
                               ))}
                             </div>
