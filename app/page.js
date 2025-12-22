@@ -988,14 +988,14 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
   const getZoneOptions = () => {
     const zones = []
     if (layoutForm.left.enabled) {
-      zones.push({ value: 'left', label: layoutForm.left.name || 'Zone Gauche', prefix: layoutForm.left.prefix, capacity: layoutForm.left.capacity, price: layoutForm.left.price })
+      zones.push({ value: 'left', label: layoutForm.left.prefix, prefix: layoutForm.left.prefix, capacity: layoutForm.left.capacity, price: layoutForm.left.price })
     }
     if (layoutForm.right.enabled) {
-      zones.push({ value: 'right', label: layoutForm.right.name || 'Zone Droite', prefix: layoutForm.right.prefix, capacity: layoutForm.right.capacity, price: layoutForm.right.price })
+      zones.push({ value: 'right', label: layoutForm.right.prefix, prefix: layoutForm.right.prefix, capacity: layoutForm.right.capacity, price: layoutForm.right.price })
     }
     layoutForm.backCategories.filter(cat => cat.enabled !== false).forEach((cat, idx) => {
       const zoneName = idx === 0 ? 'back' : `back_${idx + 1}`
-      zones.push({ value: zoneName, label: cat.name, prefix: cat.prefix, capacity: cat.capacity, price: cat.price })
+      zones.push({ value: zoneName, label: cat.name || cat.prefix, prefix: cat.prefix, capacity: cat.capacity, price: cat.price })
     })
     return zones
   }
