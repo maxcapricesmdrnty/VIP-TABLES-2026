@@ -1934,38 +1934,59 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                       className="bg-amber-500 hover:bg-amber-600 text-black"
                       onClick={async () => {
                         // Set this day's config as the new default
-                        const { data: dayLayouts } = await supabase
+                        const { data: dayLayouts, error: fetchError } = await supabase
                           .from('table_layouts')
                           .select('*')
                           .eq('venue_id', selectedVenue.id)
                           .eq('date', selectedDay)
                         
+                        if (fetchError) {
+                          console.error('Error fetching layouts:', fetchError)
+                          toast.error('Erreur lors de la récupération de la configuration')
+                          return
+                        }
+                        
                         if (dayLayouts && dayLayouts.length > 0) {
                           // Delete existing default layouts
-                          await supabase
+                          const { error: deleteError } = await supabase
                             .from('table_layouts')
                             .delete()
                             .eq('venue_id', selectedVenue.id)
                             .is('date', null)
                           
+                          if (deleteError) {
+                            console.error('Error deleting defaults:', deleteError)
+                            toast.error('Erreur lors de la suppression des anciens défauts')
+                            return
+                          }
+                          
                           // Copy this day's layouts as default (without date)
                           const newDefaults = dayLayouts.map(l => ({
                             venue_id: l.venue_id,
                             zone: l.zone,
-                            prefix: l.prefix,
-                            count: l.count,
+                            table_prefix: l.table_prefix,
+                            table_count: l.table_count,
                             rows: l.rows,
-                            capacity: l.capacity,
-                            price: l.price,
+                            capacity_per_table: l.capacity_per_table,
+                            standard_price: l.standard_price,
+                            sort_order: l.sort_order,
+                            enabled: l.enabled,
                             date: null
                           }))
-                          await supabase.from('table_layouts').insert(newDefaults)
                           
-                          // Also save display_numbers from this day's tables as reference
-                          // (They will be copied when using "Copier config par défaut")
+                          const { error: insertError } = await supabase.from('table_layouts').insert(newDefaults)
+                          
+                          if (insertError) {
+                            console.error('Error inserting defaults:', insertError)
+                            toast.error('Erreur lors de la sauvegarde: ' + insertError.message)
+                            return
+                          }
+                          
+                          // Refresh layouts
+                          fetchLayouts()
                           toast.success('Configuration définie comme défaut! Les numéros de tables seront copiés avec.')
                         } else {
-                          toast.error('Aucune configuration pour ce jour')
+                          toast.error('Aucune configuration pour ce jour. Sauvegardez d\'abord la configuration.')
                         }
                       }}
                     >
