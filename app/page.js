@@ -2771,6 +2771,7 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
   const [saving, setSaving] = useState(false)
   const [vipLink, setVipLink] = useState('')
   const [generatingVipLink, setGeneratingVipLink] = useState(false)
+  const [showConfirmRelease, setShowConfirmRelease] = useState(false)
 
   // Load existing VIP link if any
   useEffect(() => {
