@@ -927,6 +927,87 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     }
   }
 
+  // Add a single table manually
+  const addSingleTable = async () => {
+    if (!selectedVenue || !selectedDay) {
+      toast.error('Sélectionnez une salle et un jour')
+      return
+    }
+    
+    if (!addTableForm.table_number || !addTableForm.display_number) {
+      toast.error('Numéro de table et numéro physique requis')
+      return
+    }
+    
+    try {
+      // Check if table_number already exists
+      const { data: existing } = await supabase
+        .from('tables')
+        .select('id')
+        .eq('venue_id', selectedVenue.id)
+        .eq('day', selectedDay)
+        .eq('table_number', addTableForm.table_number)
+        .maybeSingle()
+      
+      if (existing) {
+        toast.error(`La table ${addTableForm.table_number} existe déjà pour ce jour`)
+        return
+      }
+      
+      const { error } = await supabase.from('tables').insert({
+        event_id: event.id,
+        venue_id: selectedVenue.id,
+        table_number: addTableForm.table_number,
+        display_number: addTableForm.display_number,
+        day: selectedDay,
+        zone: addTableForm.zone,
+        status: 'libre',
+        standard_price: addTableForm.standard_price,
+        sold_price: 0,
+        capacity: addTableForm.capacity
+      })
+      
+      if (error) throw error
+      
+      toast.success(`Table ${addTableForm.display_number} ajoutée!`)
+      setShowAddTableModal(false)
+      fetchTables()
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  // Get zone options for add table modal
+  const getZoneOptions = () => {
+    const zones = []
+    if (layoutForm.left.enabled) {
+      zones.push({ value: 'left', label: 'Zone Gauche', prefix: layoutForm.left.prefix, capacity: layoutForm.left.capacity, price: layoutForm.left.price })
+    }
+    if (layoutForm.right.enabled) {
+      zones.push({ value: 'right', label: 'Zone Droite', prefix: layoutForm.right.prefix, capacity: layoutForm.right.capacity, price: layoutForm.right.price })
+    }
+    layoutForm.backCategories.filter(cat => cat.enabled !== false).forEach((cat, idx) => {
+      const zoneName = idx === 0 ? 'back' : `back_${idx + 1}`
+      zones.push({ value: zoneName, label: cat.name, prefix: cat.prefix, capacity: cat.capacity, price: cat.price })
+    })
+    return zones
+  }
+
+  // Get next table number for a zone
+  const getNextTableNumber = (zone) => {
+    const zoneTables = tables.filter(t => t.zone === zone && t.day === selectedDay)
+    const zoneConfig = getZoneOptions().find(z => z.value === zone)
+    if (!zoneConfig) return ''
+    
+    // Find the highest number used
+    const numbers = zoneTables.map(t => {
+      const match = t.table_number.match(/\d+$/)
+      return match ? parseInt(match[0]) : 0
+    })
+    const nextNum = numbers.length > 0 ? Math.max(...numbers) + 1 : 1
+    return `${zoneConfig.prefix}${nextNum}`
+  }
+
   const saveMenuItem = async () => {
     try {
       if (editingMenuItem) {
