@@ -2275,14 +2275,19 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                   
                   <Button 
                     onClick={async () => {
+                      console.log('Button clicked, selectedDay:', selectedDay)
                       if (!selectedDay) {
                         toast.error('Sélectionnez un jour spécifique (pas "Config par défaut")')
                         return
                       }
-                      if (!confirm(`Régénérer les tables pour le ${format(parseISO(selectedDay), 'dd MMM', { locale: fr })} ?\n\nAttention: Les tables existantes seront supprimées et recréées selon la configuration actuelle.`)) {
-                        return
+                      console.log('Calling generateTablesForDay...')
+                      try {
+                        await generateTablesForDay()
+                        console.log('generateTablesForDay completed')
+                      } catch (err) {
+                        console.error('Error in generateTablesForDay:', err)
+                        toast.error('Erreur: ' + err.message)
                       }
-                      await generateTablesForDay()
                     }}
                     variant="outline"
                     className="border-amber-500 text-amber-500 hover:bg-amber-500/10"
