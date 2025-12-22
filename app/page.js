@@ -856,7 +856,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
         const startNum = layoutForm.left.startNumber || 1
         for (let i = 1; i <= layoutForm.left.count; i++) {
           const tableNumber = `${layoutForm.left.prefix}${i}`
-          if (!reservedTableNumbers.has(tableNumber)) {
+          if (!existingTableNumbers.has(tableNumber)) {
             tablesToInsert.push({
               event_id: event.id,
               venue_id: selectedVenue.id,
