@@ -844,7 +844,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       
       // Back categories - only enabled ones
       layoutForm.backCategories.filter(cat => cat.enabled !== false).forEach((cat, idx) => {
-        const zoneName = `back_${idx + 1}`
+        // Use 'back' for first category, 'back_2', 'back_3', etc. for others
+        const zoneName = idx === 0 ? 'back' : `back_${idx + 1}`
         const totalTables = cat.rows * cat.tablesPerRow // Calculate total from rows × tablesPerRow
         const startNum = cat.startNumber || 1
         for (let i = 1; i <= totalTables; i++) {
