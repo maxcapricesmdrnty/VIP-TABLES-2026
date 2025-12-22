@@ -2954,17 +2954,9 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                   <span>Revenus sur place:</span>
                   <span>+ {form.on_site_additional_revenue.toLocaleString()} {currency}</span>
                 </div>
-                <div className="flex justify-between font-bold border-t pt-2">
+                <div className="flex justify-between font-bold text-green-500 border-t pt-2">
                   <span>Total:</span>
                   <span>{totalPrice.toLocaleString()} {currency}</span>
-                </div>
-                <div className="flex justify-between text-red-500">
-                  <span>Commission concierge:</span>
-                  <span>- {commissionAmount.toLocaleString()} {currency}</span>
-                </div>
-                <div className="flex justify-between font-bold text-green-500 border-t pt-2">
-                  <span>Net:</span>
-                  <span>{netAmount.toLocaleString()} {currency}</span>
                 </div>
                 <div className="flex justify-between text-amber-400 border-t pt-2 mt-2">
                   <span>Budget boissons:</span>
