@@ -3120,37 +3120,39 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                   className="text-sm"
                 />
               </div>
-              <div>
-                <Label>Budget boissons (100%)</Label>
-                <Input value={beverageBudget.toFixed(2)} disabled className="bg-muted" />
+              <div className="col-span-2 sm:col-span-1">
+                <Label className="text-xs sm:text-sm">Budget boissons (100%)</Label>
+                <Input value={beverageBudget.toFixed(2)} disabled className="bg-muted text-sm" />
               </div>
             </div>
           </div>
 
           <div>
-            <h3 className="font-semibold mb-3 text-amber-400">Concierge (pour rapport interne)</h3>
-            <div className="grid grid-cols-3 gap-4">
+            <h3 className="font-semibold mb-2 sm:mb-3 text-amber-400 text-sm sm:text-base">Concierge (pour rapport interne)</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <div>
-                <Label>Nom du concierge</Label>
+                <Label className="text-xs sm:text-sm">Nom du concierge</Label>
                 <Input
                   value={form.concierge_nom}
                   onChange={(e) => setForm({...form, concierge_nom: e.target.value})}
+                  className="text-sm"
                 />
               </div>
               <div>
-                <Label>Commission (%)</Label>
+                <Label className="text-xs sm:text-sm">Commission (%)</Label>
                 <Input
                   type="number"
                   min="0"
                   max="100"
                   value={form.concierge_commission === 0 ? '' : form.concierge_commission}
                   onChange={(e) => setForm({...form, concierge_commission: e.target.value === '' ? 0 : parseFloat(e.target.value)})}
+                  className="text-sm"
                 />
               </div>
               <div>
-                <Label>Montant commission (info)</Label>
-                <Input value={commissionAmount.toFixed(2)} disabled className="bg-muted text-muted-foreground" />
-                <p className="text-xs text-muted-foreground mt-1">Non déduit du total</p>
+                <Label className="text-xs sm:text-sm">Montant commission (info)</Label>
+                <Input value={commissionAmount.toFixed(2)} disabled className="bg-muted text-muted-foreground text-sm" />
+                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Non déduit du total</p>
               </div>
             </div>
           </div>
