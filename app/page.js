@@ -5643,7 +5643,7 @@ function InvoicesView({ event, onEventUpdate }) {
                   <div className="border border-t-0 rounded-b p-2">
                     {getInvoiceDays().map(day => (
                       <div key={day} className="mb-2">
-                        <p className="font-semibold text-xs">Day {day} - Tables: {getTablesForDay(day).map(t => t.display_number || t.table_number).join(', ')}</p>
+                        <p className="font-semibold text-xs">{format(parseISO(day), 'EEEE dd MMMM yyyy', { locale: fr })} - Table(s): {getTablesForDay(day).map(t => t.display_number || t.table_number).join(', ')}</p>
                         <table className="w-full text-xs">
                           <thead>
                             <tr className="bg-gray-100">
@@ -5656,7 +5656,7 @@ function InvoicesView({ event, onEventUpdate }) {
                           <tbody>
                             {getTablesForDay(day).map(t => (
                               <tr key={t.id}>
-                                <td className="p-1">Table {t.display_number || t.table_number} Reservation</td>
+                                <td className="p-1">Table {t.display_number || t.table_number} - {format(parseISO(day), 'dd/MM/yyyy')}</td>
                                 <td className="text-center p-1">1</td>
                                 <td className="text-right p-1">{formatSwiss(calculateTableTotal(t))} {event.currency}</td>
                                 <td className="text-right p-1">{formatSwiss(calculateTableTotal(t))} {event.currency}</td>
