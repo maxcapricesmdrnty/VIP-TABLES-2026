@@ -793,11 +793,13 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       
       // Left zone - only if enabled
       if (layoutForm.left.enabled) {
+        const startNum = layoutForm.left.startNumber || 1
         for (let i = 1; i <= layoutForm.left.count; i++) {
           tablesToInsert.push({
             event_id: event.id,
             venue_id: selectedVenue.id,
             table_number: `${layoutForm.left.prefix}${i}`,
+            display_number: String(startNum + i - 1),
             day: selectedDay,
             zone: 'left',
             status: 'libre',
@@ -809,11 +811,13 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       
       // Right zone - only if enabled
       if (layoutForm.right.enabled) {
+        const startNum = layoutForm.right.startNumber || 1
         for (let i = 1; i <= layoutForm.right.count; i++) {
           tablesToInsert.push({
             event_id: event.id,
             venue_id: selectedVenue.id,
             table_number: `${layoutForm.right.prefix}${i}`,
+            display_number: String(startNum + i - 1),
             day: selectedDay,
             zone: 'right',
             status: 'libre',
@@ -827,11 +831,13 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       layoutForm.backCategories.filter(cat => cat.enabled !== false).forEach(cat => {
         const zoneName = `back_${cat.name.replace(/\s+/g, '_').toLowerCase()}`
         const totalTables = cat.rows * cat.tablesPerRow // Calculate total from rows × tablesPerRow
+        const startNum = cat.startNumber || 1
         for (let i = 1; i <= totalTables; i++) {
           tablesToInsert.push({
             event_id: event.id,
             venue_id: selectedVenue.id,
             table_number: `${cat.prefix}${i}`,
+            display_number: String(startNum + i - 1),
             day: selectedDay,
             zone: zoneName,
             status: 'libre',
