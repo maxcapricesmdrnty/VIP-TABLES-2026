@@ -2506,12 +2506,6 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
   const netAmount = totalPrice - commissionAmount
 
   const handleSave = async () => {
-    // Validate required fields
-    if (!form.display_number || form.display_number.trim() === '') {
-      toast.error('Le numéro de table est obligatoire')
-      return
-    }
-    
     setSaving(true)
     try {
       let newStatus = form.status
