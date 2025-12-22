@@ -2129,6 +2129,25 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                               />
                             </div>
                           </div>
+                          <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                            <div>
+                              <Label>N° de départ</Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={layoutForm[zone].startNumber || 1}
+                                onChange={(e) => setLayoutForm({
+                                  ...layoutForm,
+                                  [zone]: { ...layoutForm[zone], startNumber: e.target.value === '' ? 1 : parseInt(e.target.value) }
+                                })}
+                              />
+                            </div>
+                            <div className="flex items-end">
+                              <div className="text-sm text-muted-foreground pb-2">
+                                → Tables <span className="font-semibold text-foreground">{layoutForm[zone].startNumber || 1}</span> à <span className="font-semibold text-foreground">{(layoutForm[zone].startNumber || 1) + (layoutForm[zone].count || 1) - 1}</span>
+                              </div>
+                            </div>
+                          </div>
                         </CardContent>
                       )}
                     </Card>
