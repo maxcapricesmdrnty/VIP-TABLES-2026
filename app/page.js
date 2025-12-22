@@ -1294,14 +1294,14 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
             </div>
 
             {tables.length > 0 && (
-              <div className="bg-card rounded-lg border p-6 overflow-x-auto">
+              <div className="bg-card rounded-lg border p-4 sm:p-6 overflow-x-auto">
                 {/* Zone Gauche + DJ Booth + Zone Droite */}
-                <div className="flex items-start justify-center gap-6 min-w-fit">
+                <div className="inline-flex items-start justify-start gap-4 sm:gap-6 min-w-max">
                   {/* Zone Gauche */}
                   {getTablesByZone('left').length > 0 && (
                     <div className="shrink-0">
-                      <h3 className="text-center mb-4 font-semibold text-muted-foreground">Zone Gauche</h3>
-                      <div className="grid grid-cols-2 gap-3">
+                      <h3 className="text-center mb-3 sm:mb-4 font-semibold text-muted-foreground text-sm sm:text-base">Zone Gauche</h3>
+                      <div className="grid grid-cols-2 gap-2 sm:gap-3">
                         {getTablesByZone('left').map(table => (
                           <TableCell 
                             key={table.id} 
@@ -1319,10 +1319,10 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
 
                   {/* DJ Booth - Centré */}
                   <div className="shrink-0 flex flex-col items-center justify-center self-center">
-                    <div className="w-16 h-16 bg-gradient-to-b from-amber-500/30 to-amber-600/10 rounded-lg flex items-center justify-center border-2 border-amber-500/50">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-b from-amber-500/30 to-amber-600/10 rounded-lg flex items-center justify-center border-2 border-amber-500/50">
                       <div className="text-center">
-                        <div className="text-lg">🎧</div>
-                        <div className="text-[9px] font-bold text-amber-400">DJ</div>
+                        <div className="text-base sm:text-lg">🎧</div>
+                        <div className="text-[8px] sm:text-[9px] font-bold text-amber-400">DJ</div>
                       </div>
                     </div>
                   </div>
@@ -1330,8 +1330,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                   {/* Zone Droite */}
                   {getTablesByZone('right').length > 0 && (
                     <div className="shrink-0">
-                      <h3 className="text-center mb-4 font-semibold text-muted-foreground">Zone Droite</h3>
-                      <div className="grid grid-cols-2 gap-3">
+                      <h3 className="text-center mb-3 sm:mb-4 font-semibold text-muted-foreground text-sm sm:text-base">Zone Droite</h3>
+                      <div className="grid grid-cols-2 gap-2 sm:gap-3">
                         {getTablesByZone('right').map(table => (
                           <TableCell 
                             key={table.id} 
@@ -1349,7 +1349,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                 </div>
 
                 {/* Multiple Back Categories - Fixed grid with horizontal scroll */}
-                <div className="mt-8 space-y-6 overflow-x-auto">
+                <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
                   {getBackZones().map(zone => {
                     const zoneTables = getTablesByZone(zone)
                     if (zoneTables.length === 0) return null
@@ -1361,13 +1361,14 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                     const zoneName = category?.name || (zone === 'back' ? 'Tables Arrière' : `Catégorie ${categoryIndex + 1}`)
                     
                     return (
-                      <div key={zone} className="min-w-fit">
-                        <h3 className="text-center mb-4 font-semibold text-muted-foreground">{zoneName}</h3>
+                      <div key={zone} className="overflow-x-auto">
+                        <h3 className="text-center mb-3 sm:mb-4 font-semibold text-muted-foreground text-sm sm:text-base">{zoneName}</h3>
                         <div 
-                          className="grid gap-3 justify-center mx-auto"
+                          className="inline-grid gap-2 sm:gap-3 min-w-max mx-auto"
                           style={{ 
-                            gridTemplateColumns: `repeat(${tablesPerRow}, minmax(0, auto))`,
-                            width: 'fit-content'
+                            gridTemplateColumns: `repeat(${tablesPerRow}, auto)`,
+                            display: 'inline-grid',
+                            justifyContent: 'center'
                           }}
                         >
                           {zoneTables.map(table => (
