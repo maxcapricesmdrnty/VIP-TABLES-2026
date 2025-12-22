@@ -2532,40 +2532,8 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
     }
   }
 
-  const markAsPaid = async () => {
-    setSaving(true)
-    try {
-      await supabase
-        .from('tables')
-        .update({ status: 'paye' })
-        .eq('id', table.id)
-      toast.success('Table marquée comme payée!')
-      onSave()
-    } catch (error) {
-      toast.error(error.message)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const confirmTable = async () => {
-    setSaving(true)
-    try {
-      await supabase
-        .from('tables')
-        .update({ status: 'confirme' })
-        .eq('id', table.id)
-      toast.success('Réservation confirmée!')
-      onSave()
-    } catch (error) {
-      toast.error(error.message)
-    } finally {
-      setSaving(false)
-    }
-  }
-
   const resetTable = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir libérer cette table?')) return
+    if (!confirm('Êtes-vous sûr de vouloir libérer cette table? Toutes les informations seront effacées.')) return
     setSaving(true)
     try {
       await supabase
