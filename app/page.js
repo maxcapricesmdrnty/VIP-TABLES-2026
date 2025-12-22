@@ -439,6 +439,16 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
   const [editingMenuItem, setEditingMenuItem] = useState(null)
   const [venueForm, setVenueForm] = useState({ name: '', capacity: 500 })
   
+  // Add single table modal
+  const [showAddTableModal, setShowAddTableModal] = useState(false)
+  const [addTableForm, setAddTableForm] = useState({
+    zone: 'left',
+    table_number: '',
+    display_number: '',
+    capacity: 10,
+    standard_price: 5000
+  })
+  
   // Menu import states
   const [showImportDialog, setShowImportDialog] = useState(false)
   const [importedItems, setImportedItems] = useState([])
