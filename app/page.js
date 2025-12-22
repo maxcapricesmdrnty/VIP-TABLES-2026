@@ -606,12 +606,9 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
         const numRows = l.rows || 1
         const tablesPerRow = Math.ceil(totalTables / numRows) || 4
         
-        // Generate a friendly name based on index
-        const categoryName = idx === 0 ? 'Tables Arrière' : `Catégorie Arrière ${idx + 1}`
-        
         newForm.backCategories.push({
           id: l.id,
-          name: categoryName,
+          name: l.zone_name || (idx === 0 ? 'Tables Arrière' : `Catégorie ${idx + 1}`),
           prefix: l.table_prefix,
           rows: numRows,
           tablesPerRow: tablesPerRow,
