@@ -2275,6 +2275,22 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                             />
                           </div>
                         </div>
+                        <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
+                          <div>
+                            <Label>N° de départ</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={cat.startNumber || 1}
+                              onChange={(e) => updateBackCategory(cat.id, 'startNumber', e.target.value === '' ? 1 : parseInt(e.target.value))}
+                            />
+                          </div>
+                          <div className="flex items-end">
+                            <div className="text-sm text-muted-foreground pb-2">
+                              → Tables <span className="font-semibold text-foreground">{cat.startNumber || 1}</span> à <span className="font-semibold text-foreground">{(cat.startNumber || 1) + (cat.rows * cat.tablesPerRow) - 1}</span>
+                            </div>
+                          </div>
+                        </div>
                       </CardContent>
                       )}
                     </Card>
