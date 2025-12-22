@@ -2749,13 +2749,27 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Numéro de table physique - Read only */}
-          <div className="bg-muted/30 p-3 rounded-lg">
-            <Label className="text-amber-400">N° Table physique</Label>
-            <div className="mt-1 p-2 bg-muted rounded border font-semibold text-lg">
-              {form.display_number || table.table_number}
+          {/* Numéro de table + Statut */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-muted/30 p-3 rounded-lg">
+              <Label className="text-amber-400">N° Table</Label>
+              <div className="mt-1 p-2 bg-muted rounded border font-semibold text-lg">
+                {form.display_number || table.table_number}
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Défini dans la configuration du Plan</p>
+            <div className="bg-muted/30 p-3 rounded-lg">
+              <Label className="text-amber-400">Statut</Label>
+              <select
+                value={form.status}
+                onChange={(e) => setForm({...form, status: e.target.value})}
+                className="mt-1 w-full p-2 rounded border bg-background text-foreground font-semibold"
+              >
+                <option value="libre">🟢 Libre</option>
+                <option value="reserve">🟡 Réservé</option>
+                <option value="confirme">🔵 Confirmé</option>
+                <option value="paye">🟣 Payé</option>
+              </select>
+            </div>
           </div>
 
           <div>
