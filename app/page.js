@@ -5436,6 +5436,9 @@ function InvoicesView({ event, onEventUpdate }) {
                               <Badge variant={table.status === 'paye' ? 'default' : 'secondary'} className="text-xs">
                                 {table.status}
                               </Badge>
+                              <span className="text-xs italic text-muted-foreground">
+                                (Budget: {formatSwiss(table.sold_price || 0)})
+                              </span>
                             </div>
                             <div className="flex items-center gap-2">
                               <div className="text-right mr-4">
