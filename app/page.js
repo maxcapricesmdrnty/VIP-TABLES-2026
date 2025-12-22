@@ -3026,9 +3026,9 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 flex-wrap">
             Table {table.table_number}
             <Badge className={{
               libre: 'bg-green-500',
@@ -3041,21 +3041,21 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-4 sm:space-y-6 py-2 sm:py-4">
           {/* Numéro de table + Statut */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-muted/30 p-3 rounded-lg">
-              <Label className="text-amber-400">N° Table</Label>
-              <div className="mt-1 p-2 bg-muted rounded border font-semibold text-lg">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="bg-muted/30 p-2 sm:p-3 rounded-lg">
+              <Label className="text-amber-400 text-sm">N° Table</Label>
+              <div className="mt-1 p-2 bg-muted rounded border font-semibold text-base sm:text-lg">
                 {form.display_number || table.table_number}
               </div>
             </div>
-            <div className="bg-muted/30 p-3 rounded-lg">
-              <Label className="text-amber-400">Statut</Label>
+            <div className="bg-muted/30 p-2 sm:p-3 rounded-lg">
+              <Label className="text-amber-400 text-sm">Statut</Label>
               <select
                 value={form.status}
                 onChange={(e) => setForm({...form, status: e.target.value})}
-                className="mt-1 w-full p-2 rounded border bg-background text-foreground font-semibold"
+                className="mt-1 w-full p-2 rounded border bg-background text-foreground font-semibold text-sm sm:text-base"
               >
                 <option value="libre">🟢 Libre</option>
                 <option value="reserve">🟡 Réservé</option>
@@ -3066,8 +3066,8 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-3 text-amber-400">Informations Client</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <h3 className="font-semibold mb-2 sm:mb-3 text-amber-400 text-sm sm:text-base">Informations Client</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <Label>Nom complet</Label>
                 <Input
