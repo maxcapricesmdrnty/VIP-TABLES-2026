@@ -560,63 +560,58 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     setLayouts(data || [])
     
     if (data?.length > 0) {
-      // Check if zones exist in saved layouts
-      const hasLeft = data.some(l => l.zone === 'left')
-      const hasRight = data.some(l => l.zone === 'right')
+      // Find specific layouts
+      const leftLayout = data.find(l => l.zone === 'left')
+      const rightLayout = data.find(l => l.zone === 'right')
       const centerLayout = data.find(l => l.zone === 'center')
       
       const newForm = { 
-        left: { enabled: hasLeft, prefix: 'L', count: 4, rows: 2, capacity: 10, price: 5000, startNumber: 1 },
-        right: { enabled: hasRight, prefix: 'R', count: 4, rows: 2, capacity: 10, price: 5000, startNumber: 1 },
+        left: leftLayout ? {
+          enabled: leftLayout.enabled !== false,
+          prefix: leftLayout.table_prefix,
+          count: leftLayout.table_count,
+          rows: leftLayout.rows,
+          capacity: leftLayout.capacity_per_table,
+          price: leftLayout.standard_price,
+          startNumber: leftLayout.start_number || 1
+        } : { enabled: true, prefix: 'L', count: 4, rows: 2, capacity: 10, price: 5000, startNumber: 1 },
+        right: rightLayout ? {
+          enabled: rightLayout.enabled !== false,
+          prefix: rightLayout.table_prefix,
+          count: rightLayout.table_count,
+          rows: rightLayout.rows,
+          capacity: rightLayout.capacity_per_table,
+          price: rightLayout.standard_price,
+          startNumber: rightLayout.start_number || 1
+        } : { enabled: true, prefix: 'R', count: 4, rows: 2, capacity: 10, price: 5000, startNumber: 1 },
         center: { enabled: centerLayout ? centerLayout.enabled !== false : true },
         backCategories: []
       }
       
-      data.forEach(l => {
-        if (l.zone === 'left') {
-          newForm.left = {
-            enabled: true,
-            prefix: l.table_prefix,
-            count: l.table_count,
-            rows: l.rows,
-            capacity: l.capacity_per_table,
-            price: l.standard_price,
-            startNumber: l.start_number || 1
-          }
-        } else if (l.zone === 'right') {
-          newForm.right = {
-            enabled: true,
-            prefix: l.table_prefix,
-            count: l.table_count,
-            rows: l.rows,
-            capacity: l.capacity_per_table,
-            price: l.standard_price,
-            startNumber: l.start_number || 1
-          }
-        } else if (l.zone.startsWith('back')) {
-          // Calculate tablesPerRow from total count and rows
-          const totalTables = l.table_count
-          const numRows = l.rows || 1
-          const tablesPerRow = Math.ceil(totalTables / numRows)
-          
-          newForm.backCategories.push({
-            id: l.id,
-            name: l.zone.replace('back_', '').replace(/_/g, ' ') || 'Catégorie',
-            prefix: l.table_prefix,
-            rows: numRows,
-            tablesPerRow: tablesPerRow,
-            capacity: l.capacity_per_table,
-            price: l.standard_price,
-            enabled: l.enabled !== false,
-            startNumber: l.start_number || 1
-          })
-        }
+      // Load back categories
+      data.filter(l => l.zone.startsWith('back')).forEach(l => {
+        const totalTables = l.table_count
+        const numRows = l.rows || 1
+        const tablesPerRow = Math.ceil(totalTables / numRows)
+        
+        newForm.backCategories.push({
+          id: l.id,
+          name: l.zone.replace('back_', '').replace(/_/g, ' ') || 'Catégorie',
+          prefix: l.table_prefix,
+          rows: numRows,
+          tablesPerRow: tablesPerRow,
+          capacity: l.capacity_per_table,
+          price: l.standard_price,
+          enabled: l.enabled !== false,
+          startNumber: l.start_number || 1
+        })
       })
       
       if (newForm.backCategories.length === 0) {
         newForm.backCategories = [{ id: '1', name: 'Tables Arrière', prefix: 'B', rows: 1, tablesPerRow: 4, capacity: 10, price: 3000, enabled: true, startNumber: 1 }]
       }
       
+      console.log('Loaded layout form:', newForm)
       setLayoutForm(newForm)
     }
   }
