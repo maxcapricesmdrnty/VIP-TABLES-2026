@@ -738,10 +738,10 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       })
       
       // Save ALL back categories (with their enabled flag)
-      layoutForm.backCategories.forEach(cat => {
+      layoutForm.backCategories.forEach((cat, idx) => {
         layoutsToInsert.push({
           venue_id: selectedVenue.id,
-          zone: `back_${cat.name.replace(/\s+/g, '_').toLowerCase()}`,
+          zone: `back_${idx + 1}`,
           table_prefix: cat.prefix,
           table_count: cat.rows * cat.tablesPerRow,
           rows: cat.rows,
