@@ -1058,6 +1058,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     confirme: tables.filter(t => t.status === 'confirme').length,
     paye: tables.filter(t => t.status === 'paye').length,
     ca: tables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => sum + (t.total_price || 0), 0),
+    paid: tables.reduce((sum, t) => sum + (t.total_paid || 0), 0),
     commissions: tables.reduce((sum, t) => sum + (t.commission_amount || 0), 0)
   }
 
