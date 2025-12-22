@@ -566,8 +566,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       const centerLayout = data.find(l => l.zone === 'center')
       
       const newForm = { 
-        left: { enabled: hasLeft, prefix: 'L', count: 4, rows: 2, capacity: 10, price: 5000 },
-        right: { enabled: hasRight, prefix: 'R', count: 4, rows: 2, capacity: 10, price: 5000 },
+        left: { enabled: hasLeft, prefix: 'L', count: 4, rows: 2, capacity: 10, price: 5000, startNumber: 1 },
+        right: { enabled: hasRight, prefix: 'R', count: 4, rows: 2, capacity: 10, price: 5000, startNumber: 1 },
         center: { enabled: centerLayout ? centerLayout.enabled !== false : true },
         backCategories: []
       }
@@ -580,7 +580,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
             count: l.table_count,
             rows: l.rows,
             capacity: l.capacity_per_table,
-            price: l.standard_price
+            price: l.standard_price,
+            startNumber: l.start_number || 1
           }
         } else if (l.zone === 'right') {
           newForm.right = {
@@ -589,7 +590,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
             count: l.table_count,
             rows: l.rows,
             capacity: l.capacity_per_table,
-            price: l.standard_price
+            price: l.standard_price,
+            startNumber: l.start_number || 1
           }
         } else if (l.zone.startsWith('back')) {
           // Calculate tablesPerRow from total count and rows
@@ -605,13 +607,14 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
             tablesPerRow: tablesPerRow,
             capacity: l.capacity_per_table,
             price: l.standard_price,
-            enabled: l.enabled !== false
+            enabled: l.enabled !== false,
+            startNumber: l.start_number || 1
           })
         }
       })
       
       if (newForm.backCategories.length === 0) {
-        newForm.backCategories = [{ id: '1', name: 'Tables Arrière', prefix: 'B', rows: 1, tablesPerRow: 4, capacity: 10, price: 3000, enabled: true }]
+        newForm.backCategories = [{ id: '1', name: 'Tables Arrière', prefix: 'B', rows: 1, tablesPerRow: 4, capacity: 10, price: 3000, enabled: true, startNumber: 1 }]
       }
       
       setLayoutForm(newForm)
