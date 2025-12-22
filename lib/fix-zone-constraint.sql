@@ -17,5 +17,8 @@ ALTER TABLE table_layouts ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT true;
 -- Add start_number column if not exists  
 ALTER TABLE table_layouts ADD COLUMN IF NOT EXISTS start_number INTEGER DEFAULT 1;
 
+-- Create index for faster lookups by venue and date
+CREATE INDEX IF NOT EXISTS idx_table_layouts_venue_date ON table_layouts(venue_id, date);
+
 -- Notify PostgREST to reload schema
 SELECT pg_notify('pgrst', 'reload schema');
