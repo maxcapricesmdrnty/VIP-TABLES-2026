@@ -2714,27 +2714,31 @@ function TableCell({ table, currency, onClick }) {
   return (
     <div
       onClick={onClick}
-      className={`p-2 rounded-lg border-2 cursor-pointer transition-all w-[100px] sm:w-[130px] h-[85px] sm:h-[100px] flex flex-col justify-center ${getStatusClass(table.status)}`}
+      className={`p-1.5 sm:p-2 rounded-lg border-2 cursor-pointer transition-all w-[80px] sm:w-[130px] h-[70px] sm:h-[100px] flex flex-col justify-center ${getStatusClass(table.status)}`}
     >
-      <div className="font-bold text-center text-sm sm:text-base">
-        {table.display_number || table.table_number}
-        {table.display_number && <span className="text-[9px] sm:text-[10px] font-normal text-muted-foreground ml-1">({table.table_number})</span>}
+      <div className="font-bold text-center text-xs sm:text-base leading-tight">
+        {/* On mobile, show only display_number. On desktop, show both */}
+        <span className="sm:hidden">{table.display_number || table.table_number}</span>
+        <span className="hidden sm:inline">
+          {table.display_number || table.table_number}
+          {table.display_number && <span className="text-[10px] font-normal text-muted-foreground ml-1">({table.table_number})</span>}
+        </span>
       </div>
       
       {hasReservation ? (
         <>
-          {/* Client name */}
-          <div className="text-[10px] sm:text-xs text-center truncate mt-1 font-medium px-1">{table.client_name}</div>
+          {/* Client name - shorter on mobile */}
+          <div className="text-[9px] sm:text-xs text-center truncate mt-0.5 sm:mt-1 font-medium px-0.5">{table.client_name}</div>
           
           {/* Number of persons */}
-          <div className="text-[10px] sm:text-[11px] text-center text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
-            <Users className="w-3 h-3" />
+          <div className="text-[9px] sm:text-[11px] text-center text-muted-foreground flex items-center justify-center gap-0.5 sm:gap-1 mt-0.5">
+            <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
             <span>{totalPersons > 0 ? totalPersons : baseCapacity || '-'}</span>
           </div>
           
-          {/* Price */}
+          {/* Price - hidden on mobile to save space */}
           {table.sold_price > 0 && (
-            <div className="text-[10px] sm:text-xs text-center font-semibold text-amber-400 mt-0.5">
+            <div className="hidden sm:block text-[10px] sm:text-xs text-center font-semibold text-amber-400 mt-0.5">
               {table.sold_price.toLocaleString()} {currency}
             </div>
           )}
@@ -2743,14 +2747,14 @@ function TableCell({ table, currency, onClick }) {
         <>
           {/* Show capacity for free tables */}
           {baseCapacity > 0 && (
-            <div className="text-[10px] sm:text-[11px] text-center text-muted-foreground flex items-center justify-center gap-1 mt-1">
-              <Users className="w-3 h-3" />
-              <span>{baseCapacity} pers.</span>
+            <div className="text-[9px] sm:text-[11px] text-center text-muted-foreground flex items-center justify-center gap-0.5 sm:gap-1 mt-0.5 sm:mt-1">
+              <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+              <span>{baseCapacity}</span>
             </div>
           )}
-          {/* Show standard price for free tables */}
+          {/* Show standard price for free tables - hidden on mobile */}
           {table.standard_price > 0 && (
-            <div className="text-[10px] sm:text-xs text-center text-muted-foreground mt-0.5">
+            <div className="hidden sm:block text-[10px] sm:text-xs text-center text-muted-foreground mt-0.5">
               {table.standard_price.toLocaleString()} {currency}
             </div>
           )}
