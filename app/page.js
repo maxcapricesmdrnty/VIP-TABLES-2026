@@ -1364,11 +1364,13 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                       <div key={zone} className="overflow-x-auto">
                         <h3 className="text-center mb-3 sm:mb-4 font-semibold text-muted-foreground text-sm sm:text-base">{zoneName}</h3>
                         <div 
-                          className="inline-grid gap-2 sm:gap-3 min-w-max mx-auto"
+                          className="inline-grid gap-2 sm:gap-3 min-w-max"
                           style={{ 
                             gridTemplateColumns: `repeat(${tablesPerRow}, auto)`,
                             display: 'inline-grid',
-                            justifyContent: 'center'
+                            justifyItems: 'end',
+                            marginLeft: 'auto',
+                            marginRight: 'auto'
                           }}
                         >
                           {zoneTables.map(table => (
