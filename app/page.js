@@ -2714,23 +2714,28 @@ function TableCell({ table, currency, onClick }) {
   // Check if table has reservation info
   const hasReservation = table.status !== 'libre' && table.client_name
 
+  // Format price compactly (7000 -> 7k, 12500 -> 12.5k)
+  const formatPrice = (price) => {
+    if (price >= 1000) {
+      const k = price / 1000
+      return k % 1 === 0 ? `${k}k` : `${k.toFixed(1)}k`
+    }
+    return price.toString()
+  }
+
   return (
     <div
       onClick={onClick}
-      className={`p-1.5 sm:p-2 rounded-lg border-2 cursor-pointer transition-all w-[80px] sm:w-[130px] h-[70px] sm:h-[100px] flex flex-col justify-center ${getStatusClass(table.status)}`}
+      className={`p-1.5 sm:p-2 rounded-lg border-2 cursor-pointer transition-all w-[80px] sm:w-[120px] h-[70px] sm:h-[95px] flex flex-col justify-center ${getStatusClass(table.status)}`}
     >
-      <div className="font-bold text-center text-xs sm:text-base leading-tight">
-        {/* On mobile, show only display_number. On desktop, show both */}
-        <span className="sm:hidden">{table.display_number || table.table_number}</span>
-        <span className="hidden sm:inline">
-          {table.display_number || table.table_number}
-          {table.display_number && <span className="text-[10px] font-normal text-muted-foreground ml-1">({table.table_number})</span>}
-        </span>
+      {/* Show only display_number (physical number), no zone prefix */}
+      <div className="font-bold text-center text-sm sm:text-base leading-tight">
+        {table.display_number || table.table_number}
       </div>
       
       {hasReservation ? (
         <>
-          {/* Client name - shorter on mobile */}
+          {/* Client name */}
           <div className="text-[9px] sm:text-xs text-center truncate mt-0.5 sm:mt-1 font-medium px-0.5">{table.client_name}</div>
           
           {/* Number of persons */}
@@ -2739,10 +2744,10 @@ function TableCell({ table, currency, onClick }) {
             <span>{totalPersons > 0 ? totalPersons : baseCapacity || '-'}</span>
           </div>
           
-          {/* Price - hidden on mobile to save space */}
+          {/* Price - compact format */}
           {table.sold_price > 0 && (
-            <div className="hidden sm:block text-[10px] sm:text-xs text-center font-semibold text-amber-400 mt-0.5">
-              {table.sold_price.toLocaleString()} {currency}
+            <div className="text-[9px] sm:text-xs text-center font-semibold text-amber-400 mt-0.5">
+              {formatPrice(table.sold_price)} {currency}
             </div>
           )}
         </>
@@ -2755,10 +2760,10 @@ function TableCell({ table, currency, onClick }) {
               <span>{baseCapacity}</span>
             </div>
           )}
-          {/* Show standard price for free tables - hidden on mobile */}
+          {/* Show standard price for free tables - compact format */}
           {table.standard_price > 0 && (
-            <div className="hidden sm:block text-[10px] sm:text-xs text-center text-muted-foreground mt-0.5">
-              {table.standard_price.toLocaleString()} {currency}
+            <div className="text-[9px] sm:text-xs text-center text-muted-foreground mt-0.5">
+              {formatPrice(table.standard_price)} {currency}
             </div>
           )}
         </>
