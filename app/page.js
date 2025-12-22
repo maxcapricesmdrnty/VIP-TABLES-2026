@@ -3200,10 +3200,10 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-3 text-amber-400">Notes</h3>
-            <div className="space-y-4">
+            <h3 className="font-semibold mb-2 sm:mb-3 text-amber-400 text-sm sm:text-base">Notes</h3>
+            <div className="space-y-3 sm:space-y-4">
               <div>
-                <Label>Notes staff (internes)</Label>
+                <Label className="text-xs sm:text-sm">Notes staff (internes)</Label>
                 <Textarea
                   value={form.staff_notes}
                   onChange={(e) => setForm({...form, staff_notes: e.target.value})}
