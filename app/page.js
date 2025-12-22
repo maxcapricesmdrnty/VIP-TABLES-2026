@@ -1959,6 +1959,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                           return
                         }
                         
+                        console.log('Day layouts found:', dayLayouts)
+                        
                         if (dayLayouts && dayLayouts.length > 0) {
                           // Delete existing default layouts
                           const { error: deleteError } = await supabase
@@ -1969,7 +1971,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                           
                           if (deleteError) {
                             console.error('Error deleting defaults:', deleteError)
-                            toast.error('Erreur lors de la suppression des anciens défauts')
+                            toast.error('Erreur lors de la suppression des anciens défauts: ' + deleteError.message)
                             return
                           }
                           
@@ -1983,9 +1985,12 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                             capacity_per_table: l.capacity_per_table,
                             standard_price: l.standard_price,
                             sort_order: l.sort_order,
-                            enabled: l.enabled,
+                            enabled: l.enabled !== false,
+                            start_number: l.start_number || 1,
                             date: null
                           }))
+                          
+                          console.log('Inserting new defaults:', newDefaults)
                           
                           const { error: insertError } = await supabase.from('table_layouts').insert(newDefaults)
                           
