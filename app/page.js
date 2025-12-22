@@ -821,28 +821,33 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       if (reservedTables.length > 0 && !forceRegenerate) {
         const confirmMsg = `⚠️ Il y a ${reservedTables.length} table(s) avec des réservations.\n\n` +
           `Tables réservées: ${reservedTables.map(t => t.display_number || t.table_number).join(', ')}\n\n` +
-          `Que voulez-vous faire?\n` +
-          `• OK = Garder les réservations et ajouter les tables manquantes\n` +
-          `• Annuler = Ne rien faire`
+          `Les réservations seront conservées. Seules les nouvelles tables seront ajoutées.\n\n` +
+          `Continuer?`
         
         if (!confirm(confirmMsg)) {
           return
         }
       }
       
-      // Only delete FREE tables (keep reserved ones)
+      // Get ALL existing table numbers (not just reserved) to avoid duplicates
+      const existingTableNumbers = new Set((existingTables || []).map(t => t.table_number))
+      
+      // Only delete truly empty FREE tables (no client_name, no sold_price)
       if (existingTables && existingTables.length > 0) {
-        const freeTableIds = existingTables.filter(t => t.status === 'libre').map(t => t.id)
-        if (freeTableIds.length > 0) {
+        const emptyFreeTableIds = existingTables
+          .filter(t => t.status === 'libre' && !t.client_name && !t.sold_price)
+          .map(t => t.id)
+        if (emptyFreeTableIds.length > 0) {
           await supabase
             .from('tables')
             .delete()
-            .in('id', freeTableIds)
+            .in('id', emptyFreeTableIds)
+          // Remove deleted tables from existing set
+          existingTables
+            .filter(t => emptyFreeTableIds.includes(t.id))
+            .forEach(t => existingTableNumbers.delete(t.table_number))
         }
       }
-
-      // Get table numbers that are already reserved (to not recreate them)
-      const reservedTableNumbers = new Set(reservedTables.map(t => t.table_number))
 
       const tablesToInsert = []
       
