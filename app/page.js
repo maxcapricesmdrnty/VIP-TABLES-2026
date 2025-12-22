@@ -1538,9 +1538,9 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                     
                     return (
                       <div key={zone} className="overflow-x-auto">
-                        <h3 className="text-center mb-3 sm:mb-4 font-semibold text-muted-foreground text-sm sm:text-base">{zoneName}</h3>
+                        <h3 className="text-center mb-2 sm:mb-4 font-semibold text-muted-foreground text-xs sm:text-base">{zoneName}</h3>
                         <div 
-                          className="inline-grid gap-2 sm:gap-3 min-w-max"
+                          className="inline-grid gap-1.5 sm:gap-3 min-w-max"
                           style={{ 
                             gridTemplateColumns: `repeat(${tablesPerRow}, auto)`,
                             display: 'inline-grid',
@@ -1566,22 +1566,23 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                   })}
                 </div>
 
-                <div className="flex justify-center gap-6 mt-8 pt-4 border-t">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-green-500/30 border border-green-500"></div>
-                    <span className="text-sm">Libre</span>
+                {/* Legend - responsive */}
+                <div className="flex flex-wrap justify-center gap-3 sm:gap-6 mt-4 sm:mt-8 pt-3 sm:pt-4 border-t">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-green-500/30 border border-green-500"></div>
+                    <span className="text-xs sm:text-sm">Libre</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-yellow-500/30 border border-yellow-500"></div>
-                    <span className="text-sm">Réservé</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-yellow-500/30 border border-yellow-500"></div>
+                    <span className="text-xs sm:text-sm">Réservé</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-blue-500/30 border border-blue-500"></div>
-                    <span className="text-sm">Confirmé</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-blue-500/30 border border-blue-500"></div>
+                    <span className="text-xs sm:text-sm">Confirmé</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-purple-500/30 border border-purple-500"></div>
-                    <span className="text-sm">Payé</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 rounded bg-purple-500/30 border border-purple-500"></div>
+                    <span className="text-xs sm:text-sm">Payé</span>
                   </div>
                 </div>
               </div>
