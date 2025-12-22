@@ -2723,6 +2723,16 @@ function TableCell({ table, currency, onClick }) {
     return price.toString()
   }
 
+  // Format client name compactly (Pierre Winthrop -> P. Winthrop)
+  const formatClientName = (name) => {
+    if (!name) return ''
+    const parts = name.trim().split(' ')
+    if (parts.length >= 2) {
+      return `${parts[0][0]}. ${parts.slice(1).join(' ')}`
+    }
+    return name
+  }
+
   return (
     <div
       onClick={onClick}
@@ -2735,8 +2745,11 @@ function TableCell({ table, currency, onClick }) {
       
       {hasReservation ? (
         <>
-          {/* Client name */}
-          <div className="text-[9px] sm:text-xs text-center truncate mt-0.5 sm:mt-1 font-medium px-0.5">{table.client_name}</div>
+          {/* Client name - abbreviated on mobile */}
+          <div className="text-[9px] sm:text-xs text-center truncate mt-0.5 sm:mt-1 font-medium px-0.5">
+            <span className="sm:hidden">{formatClientName(table.client_name)}</span>
+            <span className="hidden sm:inline">{table.client_name}</span>
+          </div>
           
           {/* Number of persons */}
           <div className="text-[9px] sm:text-[11px] text-center text-muted-foreground flex items-center justify-center gap-0.5 sm:gap-1 mt-0.5">
