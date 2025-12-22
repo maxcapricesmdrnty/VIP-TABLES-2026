@@ -1195,14 +1195,33 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     return zones.length > 0 ? zones : []
   }
 
+  // Calculate table total helper
+  const calculateTableTotal = (t) => {
+    return (t.sold_price || 0) + ((t.additional_persons || 0) * (t.additional_person_price || 0)) + (t.on_site_additional_revenue || 0)
+  }
+
+  // Calculate total persons for a table
+  const calculateTablePersons = (t) => {
+    return (t.capacity || 0) + (t.additional_persons || 0) + (t.on_site_additional_persons || 0)
+  }
+
   const stats = {
     total: tables.length,
     libre: tables.filter(t => t.status === 'libre').length,
     reserve: tables.filter(t => t.status === 'reserve').length,
     confirme: tables.filter(t => t.status === 'confirme').length,
     paye: tables.filter(t => t.status === 'paye').length,
-    ca: tables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => sum + (t.total_price || 0), 0),
+    // Montant potentiel total (toutes les tables avec leur prix standard)
+    potentiel: tables.reduce((sum, t) => sum + (t.standard_price || 0), 0),
+    // CA par statut
+    caReserve: tables.filter(t => t.status === 'reserve').reduce((sum, t) => sum + calculateTableTotal(t), 0),
+    caConfirme: tables.filter(t => t.status === 'confirme').reduce((sum, t) => sum + calculateTableTotal(t), 0),
+    caPaye: tables.filter(t => t.status === 'paye').reduce((sum, t) => sum + calculateTableTotal(t), 0),
+    // CA total (confirmé + payé)
+    ca: tables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => sum + calculateTableTotal(t), 0),
     paid: tables.reduce((sum, t) => sum + (t.total_paid || 0), 0),
+    // Total personnes (toutes tables non-libres)
+    totalPersons: tables.filter(t => t.status !== 'libre').reduce((sum, t) => sum + calculateTablePersons(t), 0),
     commissions: tables.reduce((sum, t) => sum + (t.commission_amount || 0), 0)
   }
 
