@@ -2495,30 +2495,19 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                           className="w-full p-2 border rounded bg-background"
                         >
                           {getZoneOptions().map(z => (
-                            <option key={z.value} value={z.value}>{z.label} (préfixe: {z.prefix})</option>
+                            <option key={z.value} value={z.value}>{z.label}</option>
                           ))}
                         </select>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label>N° Table (système)</Label>
-                          <Input
-                            value={addTableForm.table_number}
-                            onChange={(e) => setAddTableForm({...addTableForm, table_number: e.target.value})}
-                            placeholder="Ex: L5, B9..."
-                          />
-                          <p className="text-xs text-muted-foreground mt-1">Identifiant unique</p>
-                        </div>
-                        <div>
-                          <Label>N° Physique (affiché)</Label>
-                          <Input
-                            value={addTableForm.display_number}
-                            onChange={(e) => setAddTableForm({...addTableForm, display_number: e.target.value})}
-                            placeholder="Ex: 15, 201..."
-                          />
-                          <p className="text-xs text-muted-foreground mt-1">Numéro sur la table réelle</p>
-                        </div>
+                      <div>
+                        <Label>N° de table (physique)</Label>
+                        <Input
+                          value={addTableForm.display_number}
+                          onChange={(e) => setAddTableForm({...addTableForm, display_number: e.target.value})}
+                          placeholder="Ex: 15, 201..."
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Numéro affiché sur la table réelle</p>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4">
