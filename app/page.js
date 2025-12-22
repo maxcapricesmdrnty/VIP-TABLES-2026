@@ -702,47 +702,48 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
         deleteQuery = deleteQuery.is('date', null)
       }
       
-      await deleteQuery
+      const { error: deleteError } = await deleteQuery
+      if (deleteError) {
+        console.error('Delete error:', deleteError)
+        toast.error('Erreur lors de la suppression: ' + deleteError.message)
+        return
+      }
 
       const layoutsToInsert = []
       let sortOrder = 0
       
-      // Only add left zone if enabled
-      if (layoutForm.left.enabled) {
-        layoutsToInsert.push({
-          venue_id: selectedVenue.id,
-          zone: 'left',
-          table_prefix: layoutForm.left.prefix,
-          table_count: layoutForm.left.count,
-          rows: layoutForm.left.rows,
-          capacity_per_table: layoutForm.left.capacity,
-          standard_price: layoutForm.left.price,
-          start_number: layoutForm.left.startNumber || 1,
-          sort_order: sortOrder++,
-          date: selectedDay || null,
-          enabled: true
-        })
-      }
+      // Always save left zone (with enabled flag)
+      layoutsToInsert.push({
+        venue_id: selectedVenue.id,
+        zone: 'left',
+        table_prefix: layoutForm.left.prefix,
+        table_count: layoutForm.left.count,
+        rows: layoutForm.left.rows,
+        capacity_per_table: layoutForm.left.capacity,
+        standard_price: layoutForm.left.price,
+        start_number: layoutForm.left.startNumber || 1,
+        sort_order: sortOrder++,
+        date: selectedDay || null,
+        enabled: layoutForm.left.enabled !== false
+      })
       
-      // Only add right zone if enabled
-      if (layoutForm.right.enabled) {
-        layoutsToInsert.push({
-          venue_id: selectedVenue.id,
-          zone: 'right',
-          table_prefix: layoutForm.right.prefix,
-          table_count: layoutForm.right.count,
-          rows: layoutForm.right.rows,
-          capacity_per_table: layoutForm.right.capacity,
-          standard_price: layoutForm.right.price,
-          start_number: layoutForm.right.startNumber || 1,
-          sort_order: sortOrder++,
-          date: selectedDay || null,
-          enabled: true
-        })
-      }
+      // Always save right zone (with enabled flag)
+      layoutsToInsert.push({
+        venue_id: selectedVenue.id,
+        zone: 'right',
+        table_prefix: layoutForm.right.prefix,
+        table_count: layoutForm.right.count,
+        rows: layoutForm.right.rows,
+        capacity_per_table: layoutForm.right.capacity,
+        standard_price: layoutForm.right.price,
+        start_number: layoutForm.right.startNumber || 1,
+        sort_order: sortOrder++,
+        date: selectedDay || null,
+        enabled: layoutForm.right.enabled !== false
+      })
       
-      // Only add enabled back categories
-      layoutForm.backCategories.filter(cat => cat.enabled !== false).forEach(cat => {
+      // Save ALL back categories (with their enabled flag)
+      layoutForm.backCategories.forEach(cat => {
         layoutsToInsert.push({
           venue_id: selectedVenue.id,
           zone: `back_${cat.name.replace(/\s+/g, '_').toLowerCase()}`,
@@ -754,7 +755,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
           start_number: cat.startNumber || 1,
           sort_order: sortOrder++,
           date: selectedDay || null,
-          enabled: true
+          enabled: cat.enabled !== false
         })
       })
       
@@ -773,9 +774,16 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
         enabled: layoutForm.center.enabled
       })
 
-      if (layoutsToInsert.length > 0) {
-        await supabase.from('table_layouts').insert(layoutsToInsert)
+      console.log('Saving layouts:', layoutsToInsert)
+      
+      const { error: insertError } = await supabase.from('table_layouts').insert(layoutsToInsert)
+      
+      if (insertError) {
+        console.error('Insert error:', insertError)
+        toast.error('Erreur lors de la sauvegarde: ' + insertError.message)
+        return
       }
+      
       toast.success(selectedDay ? `Configuration sauvegardée pour le ${format(parseISO(selectedDay), 'dd MMM', { locale: fr })}!` : 'Configuration par défaut sauvegardée!')
       fetchLayouts()
     } catch (error) {
