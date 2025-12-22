@@ -3001,22 +3001,7 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
         <DialogFooter className="flex-wrap gap-2">
           {form.status !== 'libre' && (
             <Button variant="destructive" onClick={resetTable} disabled={saving}>
-              Libérer
-            </Button>
-          )}
-          {form.client_name && (
-            <Button variant="outline" onClick={generateInvoice}>
-              <Download className="w-4 h-4 mr-2" /> PDF
-            </Button>
-          )}
-          {form.status === 'reserve' && (
-            <Button variant="secondary" onClick={confirmTable} disabled={saving}>
-              Confirmer
-            </Button>
-          )}
-          {form.status === 'confirme' && (
-            <Button className="bg-purple-500 hover:bg-purple-600" onClick={markAsPaid} disabled={saving}>
-              Payé
+              Libérer la table
             </Button>
           )}
           <Button variant="outline" onClick={onClose}>Annuler</Button>
