@@ -3158,38 +3158,42 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
           </div>
 
           <div>
-            <h3 className="font-semibold mb-3 text-amber-400">Personnes supplémentaires</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <h3 className="font-semibold mb-2 sm:mb-3 text-amber-400 text-sm sm:text-base">Personnes supplémentaires</h3>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <Label>Nombre de personnes supp.</Label>
+                <Label className="text-xs sm:text-sm">Nombre de pers. supp.</Label>
                 <Input
                   type="number"
                   value={form.additional_persons === 0 ? '' : form.additional_persons}
                   onChange={(e) => setForm({...form, additional_persons: e.target.value === '' ? 0 : parseInt(e.target.value)})}
+                  className="text-sm"
                 />
               </div>
               <div>
-                <Label>Prix par personne ({currency})</Label>
+                <Label className="text-xs sm:text-sm">Prix/pers. ({currency})</Label>
                 <Input
                   type="number"
                   value={form.additional_person_price === 0 ? '' : form.additional_person_price}
                   onChange={(e) => setForm({...form, additional_person_price: e.target.value === '' ? 0 : parseFloat(e.target.value)})}
+                  className="text-sm"
                 />
               </div>
               <div>
-                <Label>Personnes ajoutées sur place</Label>
+                <Label className="text-xs sm:text-sm">Pers. sur place</Label>
                 <Input
                   type="number"
                   value={form.on_site_additional_persons === 0 ? '' : form.on_site_additional_persons}
                   onChange={(e) => setForm({...form, on_site_additional_persons: e.target.value === '' ? 0 : parseInt(e.target.value)})}
+                  className="text-sm"
                 />
               </div>
               <div>
-                <Label>Revenus supp. sur place ({currency})</Label>
+                <Label className="text-xs sm:text-sm">Revenus supp. ({currency})</Label>
                 <Input
                   type="number"
                   value={form.on_site_additional_revenue === 0 ? '' : form.on_site_additional_revenue}
                   onChange={(e) => setForm({...form, on_site_additional_revenue: e.target.value === '' ? 0 : parseFloat(e.target.value)})}
+                  className="text-sm"
                 />
               </div>
             </div>
