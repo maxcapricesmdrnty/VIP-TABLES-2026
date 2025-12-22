@@ -878,7 +878,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
         const startNum = layoutForm.right.startNumber || 1
         for (let i = 1; i <= layoutForm.right.count; i++) {
           const tableNumber = `${layoutForm.right.prefix}${i}`
-          if (!reservedTableNumbers.has(tableNumber)) {
+          if (!existingTableNumbers.has(tableNumber)) {
             tablesToInsert.push({
               event_id: event.id,
               venue_id: selectedVenue.id,
@@ -902,7 +902,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
         const startNum = cat.startNumber || 1
         for (let i = 1; i <= totalTables; i++) {
           const tableNumber = `${cat.prefix}${i}`
-          if (!reservedTableNumbers.has(tableNumber)) {
+          if (!existingTableNumbers.has(tableNumber)) {
             tablesToInsert.push({
               event_id: event.id,
               venue_id: selectedVenue.id,
