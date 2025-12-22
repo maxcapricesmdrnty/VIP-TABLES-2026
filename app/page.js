@@ -4234,6 +4234,624 @@ function BarView({ event }) {
   )
 }
 
+// Comptabilité Component
+function ComptabiliteView({ event, tables, eventDays }) {
+  const [payments, setPayments] = useState([])
+  const [bankTransfers, setBankTransfers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showTransferModal, setShowTransferModal] = useState(false)
+  const [transferForm, setTransferForm] = useState({
+    amount: '',
+    reference: '',
+    date: new Date().toISOString().split('T')[0],
+    client_name: '',
+    table_ids: []
+  })
+  const [selectedTables, setSelectedTables] = useState([])
+  const [activeTab, setActiveTab] = useState('overview')
+
+  // Fetch all payments
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true)
+      
+      // Fetch payments
+      const { data: paymentsData } = await supabase
+        .from('payments')
+        .select('*, tables(table_number, display_number, client_name, day)')
+        .eq('tables.event_id', event.id)
+        .order('created_at', { ascending: false })
+      
+      setPayments(paymentsData || [])
+      setLoading(false)
+    }
+    
+    if (event?.id) fetchData()
+  }, [event?.id])
+
+  // Calculate stats
+  const stats = {
+    totalCA: tables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => {
+      const total = (t.sold_price || 0) + ((t.additional_persons || 0) * (t.additional_person_price || 0)) + (t.on_site_additional_revenue || 0)
+      return sum + total
+    }, 0),
+    totalPaid: tables.reduce((sum, t) => sum + (t.total_paid || 0), 0),
+    totalCommissions: tables.reduce((sum, t) => sum + (t.commission_amount || 0), 0),
+    tableCount: tables.filter(t => t.status !== 'libre').length,
+    paidCount: tables.filter(t => t.status === 'paye').length
+  }
+  stats.remaining = stats.totalCA - stats.totalPaid
+
+  // Group tables by client
+  const clientGroups = tables
+    .filter(t => t.client_name && t.status !== 'libre')
+    .reduce((groups, table) => {
+      const name = table.client_name
+      if (!groups[name]) {
+        groups[name] = { 
+          name, 
+          tables: [], 
+          totalAmount: 0, 
+          totalPaid: 0,
+          concierge: table.concierge_nom,
+          commission: 0
+        }
+      }
+      const tableTotal = (table.sold_price || 0) + ((table.additional_persons || 0) * (table.additional_person_price || 0)) + (table.on_site_additional_revenue || 0)
+      groups[name].tables.push(table)
+      groups[name].totalAmount += tableTotal
+      groups[name].totalPaid += (table.total_paid || 0)
+      groups[name].commission += (table.commission_amount || 0)
+      return groups
+    }, {})
+
+  // Export functions
+  const exportToCSV = (data, filename) => {
+    const BOM = '\uFEFF'
+    const csv = BOM + data
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = filename
+    link.click()
+  }
+
+  const exportTables = () => {
+    const headers = ['Date', 'Table', 'Client', 'Email', 'Téléphone', 'Statut', 'Prix Table', 'Pers. Supp.', 'Prix Total', 'Payé', 'Reste', 'Concierge', 'Commission']
+    const rows = tables
+      .filter(t => t.status !== 'libre')
+      .map(t => {
+        const total = (t.sold_price || 0) + ((t.additional_persons || 0) * (t.additional_person_price || 0)) + (t.on_site_additional_revenue || 0)
+        const paid = t.total_paid || 0
+        return [
+          t.day,
+          t.display_number || t.table_number,
+          t.client_name || '',
+          t.client_email || '',
+          t.client_phone || '',
+          t.status,
+          t.sold_price || 0,
+          t.additional_persons || 0,
+          total,
+          paid,
+          total - paid,
+          t.concierge_nom || '',
+          t.commission_amount || 0
+        ]
+      })
+    
+    const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n')
+    exportToCSV(csv, `tables_${event.name}_${new Date().toISOString().split('T')[0]}.csv`)
+    toast.success('Export des tables téléchargé!')
+  }
+
+  const exportCommissions = () => {
+    const headers = ['Concierge', 'Client', 'Table', 'Date', 'Prix Table', 'Taux Commission', 'Montant Commission']
+    const rows = tables
+      .filter(t => t.concierge_nom && t.commission_amount > 0)
+      .map(t => [
+        t.concierge_nom,
+        t.client_name || '',
+        t.display_number || t.table_number,
+        t.day,
+        t.sold_price || 0,
+        t.concierge_commission || 0,
+        t.commission_amount || 0
+      ])
+    
+    const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n')
+    exportToCSV(csv, `commissions_${event.name}_${new Date().toISOString().split('T')[0]}.csv`)
+    toast.success('Export des commissions téléchargé!')
+  }
+
+  const exportPayments = () => {
+    const headers = ['Date', 'Table', 'Client', 'Montant', 'Méthode', 'Notes']
+    const rows = payments.map(p => [
+      p.created_at ? new Date(p.created_at).toLocaleDateString('fr-CH') : '',
+      p.tables?.display_number || p.tables?.table_number || '',
+      p.tables?.client_name || '',
+      p.amount || 0,
+      p.method || '',
+      p.notes || ''
+    ])
+    
+    const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n')
+    exportToCSV(csv, `paiements_${event.name}_${new Date().toISOString().split('T')[0]}.csv`)
+    toast.success('Export des paiements téléchargé!')
+  }
+
+  const exportSummary = () => {
+    const headers = ['Client', 'Nb Tables', 'Total Dû', 'Total Payé', 'Reste', 'Concierge', 'Commission']
+    const rows = Object.values(clientGroups).map(c => [
+      c.name,
+      c.tables.length,
+      c.totalAmount,
+      c.totalPaid,
+      c.totalAmount - c.totalPaid,
+      c.concierge || '',
+      c.commission
+    ])
+    
+    const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n')
+    exportToCSV(csv, `resume_${event.name}_${new Date().toISOString().split('T')[0]}.csv`)
+    toast.success('Export du résumé téléchargé!')
+  }
+
+  // Register a bank transfer
+  const registerTransfer = async () => {
+    if (!transferForm.amount || selectedTables.length === 0) {
+      toast.error('Montant et au moins une table requis')
+      return
+    }
+
+    try {
+      const amount = parseFloat(transferForm.amount)
+      const amountPerTable = amount / selectedTables.length
+
+      // Create payments for each selected table
+      for (const tableId of selectedTables) {
+        const table = tables.find(t => t.id === tableId)
+        if (!table) continue
+
+        // Insert payment
+        await supabase.from('payments').insert({
+          table_id: tableId,
+          amount: amountPerTable,
+          method: 'virement',
+          notes: `Réf: ${transferForm.reference || 'N/A'} - Virement du ${transferForm.date}`
+        })
+
+        // Update table total_paid
+        const newTotalPaid = (table.total_paid || 0) + amountPerTable
+        const tableTotal = (table.sold_price || 0) + ((table.additional_persons || 0) * (table.additional_person_price || 0)) + (table.on_site_additional_revenue || 0)
+        const newStatus = newTotalPaid >= tableTotal ? 'paye' : table.status
+
+        await supabase
+          .from('tables')
+          .update({ 
+            total_paid: newTotalPaid,
+            status: newStatus
+          })
+          .eq('id', tableId)
+      }
+
+      toast.success(`Virement de ${amount.toLocaleString()} ${event.currency} enregistré pour ${selectedTables.length} table(s)!`)
+      setShowTransferModal(false)
+      setTransferForm({ amount: '', reference: '', date: new Date().toISOString().split('T')[0], client_name: '', table_ids: [] })
+      setSelectedTables([])
+      
+      // Refresh data
+      window.location.reload()
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  // Get tables for selected client
+  const getClientTables = (clientName) => {
+    return tables.filter(t => t.client_name === clientName && t.status !== 'libre')
+  }
+
+  // Format currency
+  const formatCurrency = (amount) => {
+    return amount.toLocaleString('fr-CH') + ' ' + event.currency
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold flex items-center gap-2">
+          <Banknote className="w-6 h-6 text-amber-500" />
+          Comptabilité
+        </h2>
+        <Button onClick={() => setShowTransferModal(true)} className="bg-green-500 hover:bg-green-600">
+          <Plus className="w-4 h-4 mr-2" /> Enregistrer un virement
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <TrendingUp className="w-4 h-4" />
+              Chiffre d'affaires
+            </div>
+            <p className="text-2xl font-bold text-green-500">{formatCurrency(stats.totalCA)}</p>
+            <p className="text-xs text-muted-foreground">{stats.tableCount} tables réservées</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Banknote className="w-4 h-4" />
+              Encaissé
+            </div>
+            <p className="text-2xl font-bold text-blue-500">{formatCurrency(stats.totalPaid)}</p>
+            <p className="text-xs text-muted-foreground">{stats.paidCount} tables payées</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Clock className="w-4 h-4" />
+              Reste à encaisser
+            </div>
+            <p className="text-2xl font-bold text-amber-500">{formatCurrency(stats.remaining)}</p>
+            <p className="text-xs text-muted-foreground">{stats.tableCount - stats.paidCount} en attente</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Users className="w-4 h-4" />
+              Commissions
+            </div>
+            <p className="text-2xl font-bold text-purple-500">{formatCurrency(stats.totalCommissions)}</p>
+            <p className="text-xs text-muted-foreground">À verser aux concierges</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/30">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <DollarSign className="w-4 h-4" />
+              Net (après commissions)
+            </div>
+            <p className="text-2xl font-bold text-green-400">{formatCurrency(stats.totalCA - stats.totalCommissions)}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="overview">Résumé par client</TabsTrigger>
+          <TabsTrigger value="payments">Paiements reçus</TabsTrigger>
+          <TabsTrigger value="commissions">Commissions</TabsTrigger>
+          <TabsTrigger value="exports">Exports</TabsTrigger>
+        </TabsList>
+
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-4">
+          <div className="space-y-3">
+            {Object.values(clientGroups).map(client => {
+              const remaining = client.totalAmount - client.totalPaid
+              const isPaid = remaining <= 0
+              return (
+                <Card key={client.name} className={isPaid ? 'border-green-500/30 bg-green-500/5' : ''}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{client.name}</span>
+                          {isPaid && <Badge className="bg-green-500 text-xs">Payé</Badge>}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {client.tables.length} table(s): {client.tables.map(t => t.display_number || t.table_number).join(', ')}
+                        </div>
+                        {client.concierge && (
+                          <div className="text-xs text-purple-400">
+                            Concierge: {client.concierge} (commission: {formatCurrency(client.commission)})
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold">{formatCurrency(client.totalAmount)}</div>
+                        {client.totalPaid > 0 && (
+                          <div className="text-sm text-green-500">Payé: {formatCurrency(client.totalPaid)}</div>
+                        )}
+                        {remaining > 0 && (
+                          <div className="text-sm text-amber-500">Reste: {formatCurrency(remaining)}</div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        </TabsContent>
+
+        {/* Payments Tab */}
+        <TabsContent value="payments" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Historique des paiements</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {payments.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">Aucun paiement enregistré</p>
+              ) : (
+                <div className="space-y-2">
+                  {payments.map(payment => (
+                    <div key={payment.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div>
+                        <div className="font-medium">{payment.tables?.client_name || 'Client inconnu'}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Table {payment.tables?.display_number || payment.tables?.table_number} • {payment.method}
+                          {payment.notes && ` • ${payment.notes}`}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-bold text-green-500">+{formatCurrency(payment.amount)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {payment.created_at && new Date(payment.created_at).toLocaleDateString('fr-CH')}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Commissions Tab */}
+        <TabsContent value="commissions" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Commissions par concierge</CardTitle>
+              <CardDescription>Montants à verser aux concierges</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const conciergeGroups = tables
+                  .filter(t => t.concierge_nom && t.commission_amount > 0)
+                  .reduce((groups, t) => {
+                    const name = t.concierge_nom
+                    if (!groups[name]) groups[name] = { name, total: 0, tables: [] }
+                    groups[name].total += t.commission_amount
+                    groups[name].tables.push(t)
+                    return groups
+                  }, {})
+                
+                if (Object.keys(conciergeGroups).length === 0) {
+                  return <p className="text-center text-muted-foreground py-8">Aucune commission enregistrée</p>
+                }
+
+                return (
+                  <div className="space-y-4">
+                    {Object.values(conciergeGroups).map(concierge => (
+                      <div key={concierge.name} className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-semibold text-purple-400">{concierge.name}</span>
+                          <span className="font-bold text-purple-400">{formatCurrency(concierge.total)}</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {concierge.tables.map(t => (
+                            <div key={t.id} className="flex justify-between">
+                              <span>{t.client_name} (Table {t.display_number || t.table_number})</span>
+                              <span>{formatCurrency(t.commission_amount)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Exports Tab */}
+        <TabsContent value="exports" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="cursor-pointer hover:border-amber-500/50 transition-colors" onClick={exportTables}>
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="p-3 bg-amber-500/20 rounded-lg">
+                  <Table2 className="w-6 h-6 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Export Tables</h3>
+                  <p className="text-sm text-muted-foreground">Toutes les réservations avec détails</p>
+                </div>
+                <Download className="w-5 h-5 ml-auto text-muted-foreground" />
+              </CardContent>
+            </Card>
+
+            <Card className="cursor-pointer hover:border-purple-500/50 transition-colors" onClick={exportCommissions}>
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="p-3 bg-purple-500/20 rounded-lg">
+                  <Users className="w-6 h-6 text-purple-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Export Commissions</h3>
+                  <p className="text-sm text-muted-foreground">Détail par concierge</p>
+                </div>
+                <Download className="w-5 h-5 ml-auto text-muted-foreground" />
+              </CardContent>
+            </Card>
+
+            <Card className="cursor-pointer hover:border-green-500/50 transition-colors" onClick={exportPayments}>
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="p-3 bg-green-500/20 rounded-lg">
+                  <Banknote className="w-6 h-6 text-green-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Export Paiements</h3>
+                  <p className="text-sm text-muted-foreground">Historique complet des encaissements</p>
+                </div>
+                <Download className="w-5 h-5 ml-auto text-muted-foreground" />
+              </CardContent>
+            </Card>
+
+            <Card className="cursor-pointer hover:border-blue-500/50 transition-colors" onClick={exportSummary}>
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="p-3 bg-blue-500/20 rounded-lg">
+                  <FileSpreadsheet className="w-6 h-6 text-blue-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Export Résumé</h3>
+                  <p className="text-sm text-muted-foreground">Vue synthétique par client</p>
+                </div>
+                <Download className="w-5 h-5 ml-auto text-muted-foreground" />
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Bank Transfer Modal */}
+      <Dialog open={showTransferModal} onOpenChange={setShowTransferModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Enregistrer un virement bancaire</DialogTitle>
+            <DialogDescription>
+              Le montant sera réparti entre les tables sélectionnées
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Montant ({event.currency})</Label>
+                <Input
+                  type="number"
+                  value={transferForm.amount}
+                  onChange={(e) => setTransferForm({...transferForm, amount: e.target.value})}
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <Label>Date</Label>
+                <Input
+                  type="date"
+                  value={transferForm.date}
+                  onChange={(e) => setTransferForm({...transferForm, date: e.target.value})}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label>Référence bancaire</Label>
+              <Input
+                value={transferForm.reference}
+                onChange={(e) => setTransferForm({...transferForm, reference: e.target.value})}
+                placeholder="Ex: VIREMENT-12345"
+              />
+            </div>
+
+            <div>
+              <Label>Sélectionner le client</Label>
+              <select
+                value={transferForm.client_name}
+                onChange={(e) => {
+                  const clientName = e.target.value
+                  setTransferForm({...transferForm, client_name: clientName})
+                  if (clientName) {
+                    const clientTables = getClientTables(clientName)
+                    setSelectedTables(clientTables.map(t => t.id))
+                  } else {
+                    setSelectedTables([])
+                  }
+                }}
+                className="w-full p-2 border rounded bg-background"
+              >
+                <option value="">-- Sélectionner --</option>
+                {Object.keys(clientGroups).map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+            </div>
+
+            {transferForm.client_name && (
+              <div>
+                <Label>Tables à associer ({selectedTables.length} sélectionnées)</Label>
+                <div className="space-y-2 mt-2 max-h-40 overflow-y-auto">
+                  {getClientTables(transferForm.client_name).map(table => {
+                    const tableTotal = (table.sold_price || 0) + ((table.additional_persons || 0) * (table.additional_person_price || 0))
+                    const remaining = tableTotal - (table.total_paid || 0)
+                    const isSelected = selectedTables.includes(table.id)
+                    
+                    return (
+                      <div
+                        key={table.id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedTables(selectedTables.filter(id => id !== table.id))
+                          } else {
+                            setSelectedTables([...selectedTables, table.id])
+                          }
+                        }}
+                        className={`p-2 rounded border cursor-pointer ${isSelected ? 'border-green-500 bg-green-500/10' : 'border-muted'}`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="font-medium">Table {table.display_number || table.table_number}</span>
+                            <span className="text-sm text-muted-foreground ml-2">{table.day}</span>
+                          </div>
+                          <div className="text-sm">
+                            {remaining > 0 ? (
+                              <span className="text-amber-500">Reste: {formatCurrency(remaining)}</span>
+                            ) : (
+                              <span className="text-green-500">Payé</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {selectedTables.length > 0 && transferForm.amount && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm">
+                  <strong>{parseFloat(transferForm.amount).toLocaleString()} {event.currency}</strong> sera réparti sur <strong>{selectedTables.length} table(s)</strong>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Soit {(parseFloat(transferForm.amount) / selectedTables.length).toLocaleString()} {event.currency} par table
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTransferModal(false)}>Annuler</Button>
+            <Button 
+              onClick={registerTransfer} 
+              disabled={!transferForm.amount || selectedTables.length === 0}
+              className="bg-green-500 hover:bg-green-600"
+            >
+              Enregistrer le virement
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
 // Guichet d'Accueil Component
 function GuichetView({ event, eventDays }) {
   const [selectedDay, setSelectedDay] = useState('')
