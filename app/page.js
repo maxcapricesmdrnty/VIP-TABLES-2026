@@ -3077,6 +3077,18 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
   const resetTable = async () => {
     setSaving(true)
     try {
+      // First, delete all payments associated with this table
+      const { error: paymentsError } = await supabase
+        .from('payments')
+        .delete()
+        .eq('table_id', table.id)
+      
+      if (paymentsError) {
+        console.error('Error deleting payments:', paymentsError)
+        // Continue even if payments deletion fails (table might not have payments)
+      }
+      
+      // Then reset the table
       const { error } = await supabase
         .from('tables')
         .update({
@@ -3098,7 +3110,7 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
         .eq('id', table.id)
       
       if (error) throw error
-      toast.success('Table libérée!')
+      toast.success('Table libérée! (données et paiements supprimés)')
       setShowConfirmRelease(false)
       onSave()
     } catch (error) {
