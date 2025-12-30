@@ -3540,7 +3540,7 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
           )}
         </div>
 
-        <DialogFooter className="shrink-0 flex-col sm:flex-row gap-2 pt-2 border-t">
+        <DialogFooter className="shrink-0 p-4 pt-2 border-t bg-card flex-col sm:flex-row gap-2">
           {form.status !== 'libre' && !showConfirmRelease && (
             <Button 
               variant="destructive" 
@@ -3548,7 +3548,7 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
               disabled={saving}
               className="w-full sm:w-auto"
             >
-              Libérer la table
+              Libérer
             </Button>
           )}
           {showConfirmRelease && (
