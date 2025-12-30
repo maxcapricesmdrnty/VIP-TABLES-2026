@@ -6266,39 +6266,63 @@ function InvoicesView({ event, onEventUpdate }) {
         yPos += 6
       }
       
+      // Check if we need a new page for Terms & Conditions
+      if (yPos > 220) {
+        doc.addPage()
+        yPos = 20
+      }
+      
       // Terms & Conditions
       yPos += 10
-      doc.setFillColor(...primaryColor)
-      doc.rect(20, yPos, 170, 8, 'F')
-      doc.setTextColor(255, 255, 255)
-      doc.setFont(undefined, 'bold')
-      doc.text('Terms & Conditions', 25, yPos + 6)
-      
-      yPos += 15
-      doc.setTextColor(0, 0, 0)
-      doc.setFont(undefined, 'normal')
-      doc.setFontSize(8)
-      
       const termsText = billingSettings.billing_terms || event.billing_terms || ''
-      const terms = termsText.split('\n')
-      terms.forEach(term => {
-        if (term.trim()) {
-          doc.text(`• ${term.trim()}`, 25, yPos)
-          yPos += 5
-        }
-      })
       
-      // Footer
+      if (termsText.trim()) {
+        doc.setFillColor(...primaryColor)
+        doc.rect(20, yPos, 170, 8, 'F')
+        doc.setTextColor(255, 255, 255)
+        doc.setFont(undefined, 'bold')
+        doc.text('Terms & Conditions', 25, yPos + 6)
+        
+        yPos += 15
+        doc.setTextColor(0, 0, 0)
+        doc.setFont(undefined, 'normal')
+        doc.setFontSize(8)
+        
+        const terms = termsText.split('\n')
+        terms.forEach(term => {
+          if (term.trim()) {
+            // Check if we need a new page
+            if (yPos > 270) {
+              doc.addPage()
+              yPos = 20
+            }
+            doc.text(`• ${term.trim()}`, 25, yPos)
+            yPos += 5
+          }
+        })
+      }
+      
+      // Footer - position dynamically based on content
+      const footerY = Math.max(yPos + 15, 255)
+      
+      // If footer would be off page, add new page
+      if (footerY > 280) {
+        doc.addPage()
+        yPos = 20
+      }
+      
       const thankYou = billingSettings.billing_thank_you || event.billing_thank_you || 'Thank you for your trust'
       const vatText = billingSettings.billing_vat_text || event.billing_vat_text || 'VAT not applicable at this stage'
-      const contactEmail = billingSettings.billing_email || event.billing_email || 'vip@caprices.ch'
       
       doc.setFontSize(10)
       doc.setFont(undefined, 'normal')
-      doc.text(`${thankYou} - ${companyName}!`, 105, 270, { align: 'center' })
+      doc.setTextColor(100, 100, 100)
+      
+      const finalFooterY = footerY > 280 ? 270 : Math.min(footerY, 270)
+      doc.text(`${thankYou} - ${companyName}!`, 105, finalFooterY, { align: 'center' })
       doc.setFontSize(8)
-      doc.text(vatText, 105, 277, { align: 'center' })
-      doc.text(`This ${isConsolidated ? 'consolidated proforma' : 'proforma'} was automatically generated on ${format(new Date(), 'dd/MM/yyyy')}`, 105, 283, { align: 'center' })
+      doc.text(vatText, 105, finalFooterY + 7, { align: 'center' })
+      doc.text(`This ${isConsolidated ? 'consolidated proforma' : 'proforma'} was automatically generated on ${format(new Date(), 'dd/MM/yyyy')}`, 105, finalFooterY + 13, { align: 'center' })
       
       const pdfBase64 = doc.output('datauristring').split(',')[1]
       const clientNameClean = (table.client_name || 'Client').replace(/[^a-zA-Z0-9]/g, '_')
