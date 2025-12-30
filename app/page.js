@@ -6818,7 +6818,7 @@ function InvoicesView({ event, onEventUpdate }) {
           
           {selectedInvoiceTable && (
             <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-              {/* Invoice Preview - New English Format */}
+              {/* Invoice Preview - English Format */}
               <div className="border rounded-lg p-3 sm:p-6 bg-white text-black text-xs sm:text-sm">
                 {/* Header */}
                 <div className="text-center mb-4">
@@ -6833,7 +6833,7 @@ function InvoicesView({ event, onEventUpdate }) {
                     {billingSettings.billing_company_name || event.billing_company_name || 'VIP'}
                   </h2>
                   <p className="text-gray-600 text-xs sm:text-sm">
-                    {isConsolidated ? 'Proforma Consolidée - Réservations Tables' : 'Proforma - Réservation Table'}
+                    {isConsolidated ? 'Consolidated Proforma - Table Reservations' : 'Proforma - Table Reservation'}
                   </p>
                   <p className="text-gray-500 text-[10px] sm:text-xs">Date: {format(new Date(), 'dd/MM/yyyy')}</p>
                 </div>
@@ -6841,33 +6841,34 @@ function InvoicesView({ event, onEventUpdate }) {
                 {/* Two column info - stack on mobile */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-4">
                   <div className="bg-[#4682B4]/10 p-2 sm:p-3 rounded">
-                    <h3 className="font-bold text-[#4682B4] text-[10px] sm:text-xs mb-1 sm:mb-2">Client</h3>
+                    <h3 className="font-bold text-[#4682B4] text-[10px] sm:text-xs mb-1 sm:mb-2">Client Information</h3>
                     <p className="font-medium text-xs sm:text-sm">{selectedInvoiceTable.client_name || 'N/A'}</p>
                     {selectedInvoiceTable.client_email && <p className="text-[10px] sm:text-xs">{selectedInvoiceTable.client_email}</p>}
+                    {selectedInvoiceTable.client_phone && <p className="text-[10px] sm:text-xs">{selectedInvoiceTable.client_phone}</p>}
                   </div>
                   <div className="bg-[#4682B4]/10 p-2 sm:p-3 rounded">
-                    <h3 className="font-bold text-[#4682B4] text-[10px] sm:text-xs mb-1 sm:mb-2">Résumé</h3>
-                    <p className="text-[10px] sm:text-xs">Tables: {selectedInvoiceTables.length}</p>
-                    <p className="text-[10px] sm:text-xs">Jours: {getInvoiceDays().join(', ')}</p>
-                    <p className="text-[10px] sm:text-xs">N°: {selectedInvoiceTables.map(t => t.display_number || t.table_number).join(', ')}</p>
+                    <h3 className="font-bold text-[#4682B4] text-[10px] sm:text-xs mb-1 sm:mb-2">Reservation Summary</h3>
+                    <p className="text-[10px] sm:text-xs">Total Tables: {selectedInvoiceTables.length}</p>
+                    <p className="text-[10px] sm:text-xs">Days: {getInvoiceDays().map(d => format(parseISO(d), 'dd/MM')).join(', ')}</p>
+                    <p className="text-[10px] sm:text-xs">Tables: {selectedInvoiceTables.map(t => t.display_number || t.table_number).join(', ')}</p>
                   </div>
                 </div>
                 
                 {/* Detailed Reservations */}
                 <div className="mb-4">
                   <div className="bg-[#4682B4] text-white px-2 sm:px-3 py-1 rounded-t font-bold text-[10px] sm:text-xs">
-                    Détail des réservations
+                    Detailed Reservations
                   </div>
                   <div className="border border-t-0 rounded-b p-2 overflow-x-auto">
                     {getInvoiceDays().map(day => (
                       <div key={day} className="mb-2">
-                        <p className="font-semibold text-[10px] sm:text-xs">{format(parseISO(day), 'EEE dd MMM yyyy', { locale: fr })} - Table(s): {getTablesForDay(day).map(t => t.display_number || t.table_number).join(', ')}</p>
+                        <p className="font-semibold text-[10px] sm:text-xs">{format(parseISO(day), 'EEEE dd MMMM yyyy')} - Table(s): {getTablesForDay(day).map(t => t.display_number || t.table_number).join(', ')}</p>
                         <table className="w-full text-[10px] sm:text-xs min-w-[300px]">
                           <thead>
                             <tr className="bg-gray-100">
                               <th className="text-left p-1">Description</th>
-                              <th className="text-center p-1">Qté</th>
-                              <th className="text-right p-1">Prix</th>
+                              <th className="text-center p-1">Qty</th>
+                              <th className="text-right p-1">Unit Price</th>
                               <th className="text-right p-1">Total</th>
                             </tr>
                           </thead>
@@ -6876,10 +6877,10 @@ function InvoicesView({ event, onEventUpdate }) {
                               <tr key={t.id}>
                                 <td className="p-1">
                                   Table {t.display_number || t.table_number}
-                                  <br/><span className="text-[9px] sm:text-[10px] italic text-gray-500">(Budget: {formatSwiss(t.sold_price || 0)} {event.currency})</span>
+                                  <br/><span className="text-[9px] sm:text-[10px] italic text-gray-500">(Beverage Budget: {formatSwiss(t.sold_price || 0)} {event.currency})</span>
                                 </td>
                                 <td className="text-center p-1">1</td>
-                                <td className="text-right p-1">{formatSwiss(calculateTableTotal(t))}</td>
+                                <td className="text-right p-1">{formatSwiss(calculateTableTotal(t))} {event.currency}</td>
                                 <td className="text-right p-1">{formatSwiss(calculateTableTotal(t))} {event.currency}</td>
                               </tr>
                             ))}
@@ -6898,7 +6899,7 @@ function InvoicesView({ event, onEventUpdate }) {
                   <span className="font-bold text-lg">Grand Total: {formatSwiss(getGrandTotal())} {event.currency}</span>
                 </div>
                 
-                {/* Banking Info - Always show if any field is filled */}
+                {/* Banking Info */}
                 {(billingSettings.billing_iban || billingSettings.billing_beneficiary || billingSettings.billing_bank_name || 
                   event.billing_iban || event.billing_beneficiary || event.billing_bank_name) && (
                   <div className="mb-4">
@@ -6931,8 +6932,24 @@ function InvoicesView({ event, onEventUpdate }) {
                   </div>
                 )}
                 
+                {/* Terms & Conditions */}
+                {(billingSettings.billing_terms || event.billing_terms) && (
+                  <div className="mb-4">
+                    <div className="bg-[#4682B4] text-white px-3 py-1 rounded-t font-bold text-xs">
+                      Terms & Conditions
+                    </div>
+                    <div className="border border-t-0 rounded-b p-2 text-xs">
+                      <ul className="list-disc list-inside space-y-1">
+                        {(billingSettings.billing_terms || event.billing_terms || '').split('\n').filter(t => t.trim()).map((term, i) => (
+                          <li key={i}>{term.trim()}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Footer */}
-                <div className="text-center text-xs text-gray-500">
+                <div className="text-center text-xs text-gray-500 mt-4 pt-2 border-t">
                   <p>{billingSettings.billing_thank_you || event.billing_thank_you || 'Thank you for your trust'} - {billingSettings.billing_company_name || event.billing_company_name || 'VIP'}!</p>
                   <p>{billingSettings.billing_vat_text || event.billing_vat_text || 'VAT not applicable at this stage'}</p>
                 </div>
