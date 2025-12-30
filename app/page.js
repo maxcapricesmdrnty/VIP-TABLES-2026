@@ -6913,24 +6913,24 @@ function InvoicesView({ event, onEventUpdate }) {
             </div>
           )}
           
-          <DialogFooter className="flex gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setShowInvoiceModal(false)}>
-              Cancel
+          <DialogFooter className="shrink-0 p-4 border-t bg-card flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowInvoiceModal(false)} className="w-full sm:w-auto">
+              Annuler
             </Button>
             <Button 
               onClick={sendInvoiceEmail}
               disabled={sendingEmail === selectedInvoiceTable?.id || (invoiceRecipient === 'custom' && !customEmail)}
-              className="bg-gradient-to-r from-amber-500 to-amber-600 text-black hover:from-amber-600 hover:to-amber-700"
+              className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-amber-600 text-black hover:from-amber-600 hover:to-amber-700"
             >
               {sendingEmail === selectedInvoiceTable?.id ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Sending...
+                  Envoi...
                 </>
               ) : (
                 <>
                   <FileText className="w-4 h-4 mr-2" />
-                  Send Invoice
+                  Envoyer
                 </>
               )}
             </Button>
