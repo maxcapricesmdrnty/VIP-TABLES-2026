@@ -2141,7 +2141,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
 
         {/* Comptabilité View */}
         {view === 'comptabilite' && (
-          <ComptabiliteView event={event} tables={tables} eventDays={eventDays} />
+          <ComptabiliteView event={event} tables={allTables} eventDays={eventDays} />
         )}
 
         {/* Venues View */}
