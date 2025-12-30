@@ -490,6 +490,58 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     { value: 'soft', label: '🥤 Soft Drinks' }
   ]
 
+  // Fetch user role for this event
+  useEffect(() => {
+    fetchUserRole()
+  }, [event.id, user?.email])
+
+  const fetchUserRole = async () => {
+    setRoleLoading(true)
+    try {
+      // Check if user is the event owner (created the event)
+      if (event.user_id === user?.id) {
+        setUserRole('owner')
+        setRoleLoading(false)
+        return
+      }
+
+      // Check if user is a team member for this event
+      const { data: teamMember } = await supabase
+        .from('team_members')
+        .select('role')
+        .eq('event_id', event.id)
+        .eq('email', user?.email?.toLowerCase())
+        .maybeSingle()
+
+      if (teamMember) {
+        setUserRole(teamMember.role)
+      } else {
+        // User has no role for this event - they shouldn't be here
+        // But for now, give them read-only access or redirect
+        setUserRole(null)
+      }
+    } catch (error) {
+      console.error('Error fetching user role:', error)
+      setUserRole(null)
+    } finally {
+      setRoleLoading(false)
+    }
+  }
+
+  // Check if user has access to a specific feature
+  const hasAccess = (feature) => {
+    if (!userRole) return false
+    if (userRole === 'owner' || userRole === 'admin') return true
+    
+    const accessMap = {
+      'chef_equipe': ['dashboard', 'tables', 'invoices', 'comptabilite', 'guichet', 'serveur', 'bar'],
+      'serveur': ['serveur'],
+      'bar': ['bar']
+    }
+    
+    return accessMap[userRole]?.includes(feature) || false
+  }
+
   useEffect(() => {
     fetchVenues()
     fetchEventDays()
