@@ -2906,7 +2906,7 @@ function TableCell({ table, currency, onClick }) {
   return (
     <div
       onClick={onClick}
-      className={`p-1.5 sm:p-2 rounded-lg border-2 cursor-pointer transition-all w-[80px] sm:w-[120px] h-[70px] sm:h-[95px] flex flex-col justify-center ${getStatusClass(table.status)}`}
+      className={`p-1.5 sm:p-2 rounded-lg border-2 cursor-pointer transition-all w-[90px] sm:w-[130px] h-[75px] sm:h-[100px] flex flex-col justify-center ${getStatusClass(table.status)}`}
     >
       {/* Show only display_number (physical number), no zone prefix */}
       <div className="font-bold text-center text-sm sm:text-base leading-tight">
@@ -2915,21 +2915,21 @@ function TableCell({ table, currency, onClick }) {
       
       {hasReservation ? (
         <>
-          {/* Client name - abbreviated on mobile */}
-          <div className="text-[9px] sm:text-xs text-center truncate mt-0.5 sm:mt-1 font-medium px-0.5">
+          {/* Client name - abbreviated on mobile, 2 lines allowed */}
+          <div className="text-[8px] sm:text-xs text-center mt-0.5 sm:mt-1 font-medium px-0.5 leading-tight line-clamp-2">
             <span className="sm:hidden">{formatClientName(table.client_name)}</span>
             <span className="hidden sm:inline">{table.client_name}</span>
           </div>
           
           {/* Number of persons */}
-          <div className="text-[9px] sm:text-[11px] text-center text-muted-foreground flex items-center justify-center gap-0.5 sm:gap-1 mt-0.5">
+          <div className="text-[8px] sm:text-[11px] text-center text-muted-foreground flex items-center justify-center gap-0.5 sm:gap-1 mt-0.5">
             <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
             <span>{totalPersons > 0 ? totalPersons : baseCapacity || '-'}</span>
           </div>
           
           {/* Price - compact format */}
           {table.sold_price > 0 && (
-            <div className="text-[9px] sm:text-xs text-center font-semibold text-amber-400 mt-0.5">
+            <div className="text-[8px] sm:text-xs text-center font-semibold text-amber-400 mt-0.5">
               {formatPrice(table.sold_price)} {currency}
             </div>
           )}
