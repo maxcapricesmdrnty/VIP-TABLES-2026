@@ -1391,8 +1391,21 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
 
   return (
     <div className="min-h-screen flex">
-      {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-card border-r border-border flex flex-col transition-all duration-300 fixed h-full z-40`}>
+      {/* Mobile Overlay - closes sidebar when clicking outside */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      
+      {/* Sidebar - overlay on mobile, fixed on desktop */}
+      <aside className={`
+        ${sidebarOpen ? 'w-64 translate-x-0' : 'w-16 -translate-x-full md:translate-x-0'} 
+        bg-card border-r border-border flex flex-col transition-all duration-300 
+        fixed h-full z-40
+        md:translate-x-0
+      `}>
         {/* Sidebar Header */}
         <div className="p-4 border-b border-border flex items-center justify-between">
           {sidebarOpen && (
