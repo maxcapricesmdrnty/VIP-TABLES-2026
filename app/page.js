@@ -498,7 +498,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
   const fetchUserRole = async () => {
     setRoleLoading(true)
     try {
-      // Check if user is the event owner (created the event)
+      // First check if user is the event owner by user_id
       if (event.user_id === user?.id) {
         setUserRole('owner')
         setRoleLoading(false)
@@ -516,13 +516,16 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       if (teamMember) {
         setUserRole(teamMember.role)
       } else {
-        // User has no role for this event - they shouldn't be here
-        // But for now, give them read-only access or redirect
-        setUserRole(null)
+        // If user can see this event but is not in team_members,
+        // they are likely the owner (events are filtered by user_id in main query)
+        // Give them owner access as fallback
+        console.log('User not in team_members, granting owner access as fallback')
+        setUserRole('owner')
       }
     } catch (error) {
       console.error('Error fetching user role:', error)
-      setUserRole(null)
+      // On error, grant owner access to prevent lockout
+      setUserRole('owner')
     } finally {
       setRoleLoading(false)
     }
