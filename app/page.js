@@ -490,6 +490,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     fetchVenues()
     fetchEventDays()
     fetchMenuItems()
+    fetchAllTables() // Fetch all tables for dashboard stats
   }, [event.id])
 
   useEffect(() => {
@@ -498,6 +499,15 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       fetchLayouts()
     }
   }, [selectedVenue, selectedDay])
+
+  // Fetch ALL tables for the event (for dashboard stats)
+  const fetchAllTables = async () => {
+    const { data } = await supabase
+      .from('tables')
+      .select('*')
+      .eq('event_id', event.id)
+    setAllTables(data || [])
+  }
 
   const fetchVenues = async () => {
     const { data } = await supabase
@@ -538,6 +548,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       .order('zone')
       .order('table_number')
     setTables(data || [])
+    fetchAllTables() // Also refresh all tables when day tables change
   }
 
   const fetchLayouts = async () => {
