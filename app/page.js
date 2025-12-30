@@ -1009,9 +1009,73 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
         await supabase.from('tables').insert(tablesToInsert)
       }
       
+      // UPDATE existing tables with new configuration (capacity and price)
+      // Build a map of table_number -> {capacity, standard_price} from current layout
+      const layoutConfig = {}
+      
+      // Left zone
+      if (layoutForm.left.enabled) {
+        for (let i = 1; i <= layoutForm.left.count; i++) {
+          const tableNumber = `${layoutForm.left.prefix}${i}`
+          layoutConfig[tableNumber] = {
+            capacity: layoutForm.left.capacity || 10,
+            standard_price: layoutForm.left.price
+          }
+        }
+      }
+      
+      // Right zone
+      if (layoutForm.right.enabled) {
+        for (let i = 1; i <= layoutForm.right.count; i++) {
+          const tableNumber = `${layoutForm.right.prefix}${i}`
+          layoutConfig[tableNumber] = {
+            capacity: layoutForm.right.capacity || 10,
+            standard_price: layoutForm.right.price
+          }
+        }
+      }
+      
+      // Back categories
+      layoutForm.backCategories.filter(cat => cat.enabled !== false).forEach((cat) => {
+        const totalTables = cat.rows * cat.tablesPerRow
+        for (let i = 1; i <= totalTables; i++) {
+          const tableNumber = `${cat.prefix}${i}`
+          layoutConfig[tableNumber] = {
+            capacity: cat.capacity || 10,
+            standard_price: cat.price
+          }
+        }
+      })
+      
+      // Update existing tables that need config changes
+      let updatedCount = 0
+      for (const existingTable of (existingTables || [])) {
+        const config = layoutConfig[existingTable.table_number]
+        if (config) {
+          // Check if update is needed
+          const needsUpdate = existingTable.capacity !== config.capacity || 
+                             existingTable.standard_price !== config.standard_price
+          if (needsUpdate) {
+            await supabase
+              .from('tables')
+              .update({ 
+                capacity: config.capacity,
+                standard_price: config.standard_price
+              })
+              .eq('id', existingTable.id)
+            updatedCount++
+          }
+        }
+      }
+      
       const keptCount = reservedTables.length
       const newCount = tablesToInsert.length
-      toast.success(`${newCount} tables créées${keptCount > 0 ? `, ${keptCount} réservations conservées` : ''}!`)
+      let message = ''
+      if (newCount > 0) message += `${newCount} tables créées`
+      if (updatedCount > 0) message += `${message ? ', ' : ''}${updatedCount} tables mises à jour`
+      if (keptCount > 0) message += `${message ? ', ' : ''}${keptCount} réservations conservées`
+      if (!message) message = 'Configuration appliquée'
+      toast.success(message + '!')
       fetchTables()
     } catch (error) {
       toast.error(error.message)
