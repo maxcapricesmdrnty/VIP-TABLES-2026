@@ -440,6 +440,10 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
   const [editingMenuItem, setEditingMenuItem] = useState(null)
   const [venueForm, setVenueForm] = useState({ name: '', capacity: 500 })
   
+  // RBAC - Role-Based Access Control
+  const [userRole, setUserRole] = useState(null) // 'owner', 'admin', 'chef_equipe', 'serveur', 'bar'
+  const [roleLoading, setRoleLoading] = useState(true)
+  
   // Add single table modal
   const [showAddTableModal, setShowAddTableModal] = useState(false)
   const [addTableForm, setAddTableForm] = useState({
