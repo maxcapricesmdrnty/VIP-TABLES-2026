@@ -4847,50 +4847,6 @@ function ComptabiliteView({ event, tables, eventDays }) {
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <TrendingUp className="w-4 h-4" />
-              Chiffre d'affaires
-            </div>
-            <p className="text-2xl font-bold text-green-500">{formatCurrency(stats.totalCA)}</p>
-            <p className="text-xs text-muted-foreground">{stats.tableCount} tables réservées</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <Banknote className="w-4 h-4" />
-              Encaissé
-            </div>
-            <p className="text-2xl font-bold text-blue-500">{formatCurrency(stats.totalPaid)}</p>
-            <p className="text-xs text-muted-foreground">{stats.paidCount} tables payées</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <Clock className="w-4 h-4" />
-              Reste à encaisser
-            </div>
-            <p className="text-2xl font-bold text-amber-500">{formatCurrency(stats.remaining)}</p>
-            <p className="text-xs text-muted-foreground">{stats.tableCount - stats.paidCount} en attente</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <Users className="w-4 h-4" />
-              Commissions
-            </div>
-            <p className="text-2xl font-bold text-purple-500">{formatCurrency(stats.totalCommissions)}</p>
-            <p className="text-xs text-muted-foreground">À verser aux concierges</p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
