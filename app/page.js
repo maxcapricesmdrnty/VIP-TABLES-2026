@@ -3236,8 +3236,8 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl w-[95vw] sm:w-full h-[90vh] sm:h-auto sm:max-h-[90vh] flex flex-col">
-        <DialogHeader className="shrink-0">
+      <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[85vh] p-0 flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0 p-4 pb-2 border-b">
           <DialogTitle className="flex items-center gap-2 flex-wrap">
             Table {table.table_number}
             <Badge className={{
@@ -3251,7 +3251,7 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 py-2 sm:py-4 px-1">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
           {/* Numéro de table + Statut */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="bg-muted/30 p-2 sm:p-3 rounded-lg">
