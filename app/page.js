@@ -5479,9 +5479,17 @@ function GuichetView({ event, eventDays }) {
                         </p>
                       </div>
                     </div>
-                    <Badge variant="outline" className="text-sm">
-                      Tables: {tableNumbers}
-                    </Badge>
+                    <div className="flex flex-wrap gap-2">
+                      {/* Show day badge when viewing all days */}
+                      {selectedDay === 'all' && client.tables[0]?.day && (
+                        <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
+                          {format(parseISO(client.tables[0].day), 'EEE dd/MM', { locale: fr })}
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className="text-sm">
+                        Tables: {tableNumbers}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
 
