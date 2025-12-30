@@ -6313,6 +6313,7 @@ function InvoicesView({ event, onEventUpdate }) {
       
       const thankYou = billingSettings.billing_thank_you || event.billing_thank_you || 'Thank you for your trust'
       const vatText = billingSettings.billing_vat_text || event.billing_vat_text || 'VAT not applicable at this stage'
+      const contactEmail = billingSettings.billing_email || event.billing_email || 'vip@caprices.ch'
       
       doc.setFontSize(10)
       doc.setFont(undefined, 'normal')
