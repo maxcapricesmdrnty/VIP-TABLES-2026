@@ -1706,6 +1706,9 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                     const tablesPerRow = category?.tablesPerRow || Math.min(zoneTables.length, 6)
                     const zoneName = category?.name || (zone === 'back' ? 'Tables Arrière' : `Catégorie ${categoryIndex + 1}`)
                     
+                    // Calculate empty cells needed at the start for right-alignment with offset
+                    const emptyCellsCount = tablesPerRow - zoneTables.length
+                    
                     return (
                       <div key={zone} className="overflow-x-auto">
                         <h3 className="text-center mb-2 sm:mb-4 font-semibold text-muted-foreground text-xs sm:text-base">{zoneName}</h3>
@@ -1719,6 +1722,10 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                             marginRight: 'auto'
                           }}
                         >
+                          {/* Empty cells for alignment - shifts tables to the right */}
+                          {emptyCellsCount > 0 && Array.from({ length: emptyCellsCount }).map((_, i) => (
+                            <div key={`empty-${i}`} className="w-[90px] sm:w-[130px] h-[75px] sm:h-[100px]" />
+                          ))}
                           {zoneTables.map(table => (
                             <TableCell 
                               key={table.id} 
