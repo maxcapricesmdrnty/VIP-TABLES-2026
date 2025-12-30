@@ -430,6 +430,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
   const [selectedVenue, setSelectedVenue] = useState(null)
   const [selectedDay, setSelectedDay] = useState(null)
   const [tables, setTables] = useState([])
+  const [allTables, setAllTables] = useState([]) // All tables for all days (for dashboard stats)
   const [layouts, setLayouts] = useState([])
   const [selectedTable, setSelectedTable] = useState(null)
   const [showTableModal, setShowTableModal] = useState(false)
