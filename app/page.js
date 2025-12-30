@@ -1709,26 +1709,27 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                     return (
                       <div key={zone} className="overflow-x-auto">
                         <h3 className="text-center mb-2 sm:mb-4 font-semibold text-muted-foreground text-xs sm:text-base">{zoneName}</h3>
-                        <div className="flex justify-end">
-                          <div 
-                            className="inline-grid gap-1.5 sm:gap-3"
-                            style={{ 
-                              gridTemplateColumns: `repeat(${tablesPerRow}, minmax(0, 1fr))`,
-                              width: 'fit-content'
-                            }}
-                          >
-                            {zoneTables.map(table => (
-                              <TableCell 
-                                key={table.id} 
-                                table={table}
-                                currency={event.currency}
-                                onClick={() => {
-                                  setSelectedTable(table)
-                                  setShowTableModal(true)
-                                }}
-                              />
-                            ))}
-                          </div>
+                        <div 
+                          className="inline-grid gap-1.5 sm:gap-3 min-w-max"
+                          style={{ 
+                            gridTemplateColumns: `repeat(${tablesPerRow}, auto)`,
+                            display: 'inline-grid',
+                            justifyItems: 'center',
+                            marginLeft: 'auto',
+                            marginRight: 'auto'
+                          }}
+                        >
+                          {zoneTables.map(table => (
+                            <TableCell 
+                              key={table.id} 
+                              table={table}
+                              currency={event.currency}
+                              onClick={() => {
+                                setSelectedTable(table)
+                                setShowTableModal(true)
+                              }}
+                            />
+                          ))}
                         </div>
                       </div>
                     )
