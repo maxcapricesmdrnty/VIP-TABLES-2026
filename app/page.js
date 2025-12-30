@@ -5727,7 +5727,6 @@ function InvoicesView({ event, onEventUpdate }) {
 
   useEffect(() => {
     fetchReservedTables()
-    fetchPayments()
   }, [event.id])
   
   useEffect(() => {
