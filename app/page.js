@@ -4889,15 +4889,6 @@ function ComptabiliteView({ event, tables, eventDays }) {
             <p className="text-xs text-muted-foreground">À verser aux concierges</p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/30">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <DollarSign className="w-4 h-4" />
-              Net (après commissions)
-            </div>
-            <p className="text-2xl font-bold text-green-400">{formatCurrency(stats.totalCA - stats.totalCommissions)}</p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Tabs */}
