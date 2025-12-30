@@ -1442,8 +1442,10 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
               </Button>
             ))}
           </div>
+          )}
 
-          {/* Configuration Section */}
+          {/* Configuration Section - Only for owner/admin */}
+          {configNavItems.length > 0 && (
           <div className="pt-4">
             <Button
               variant="ghost"
