@@ -5392,6 +5392,9 @@ function GuichetView({ event, eventDays }) {
               <SelectValue placeholder="Sélectionner un jour" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">
+                <span className="font-semibold">📋 Tous les jours</span>
+              </SelectItem>
               {availableDays.length > 0 ? availableDays.map(day => (
                 <SelectItem key={day} value={day}>
                   {day ? format(parseISO(day), 'EEEE dd MMMM', { locale: fr }) : 'Date invalide'}
