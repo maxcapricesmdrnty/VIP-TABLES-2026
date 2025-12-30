@@ -6100,70 +6100,71 @@ function InvoicesView({ event, onEventUpdate }) {
       const grandTotal = getGrandTotal()
       const tables = selectedInvoiceTables
       const days = getInvoiceDays()
-      // Use display_number if available, otherwise table_number
       const getTableDisplay = (t) => t.display_number || t.table_number
       const tableNumbers = tables.map(t => getTableDisplay(t)).join(', ')
       const companyName = billingSettings.billing_company_name || event.billing_company_name || 'VIP'
       
       // Colors
-      const primaryColor = [70, 130, 180] // Steel blue like the PDF
+      const primaryColor = [70, 130, 180]
       
-      // Header - Company name
-      doc.setFontSize(24)
+      // Header - Company name (smaller)
+      doc.setFontSize(20)
       doc.setTextColor(...primaryColor)
       doc.setFont(undefined, 'bold')
-      doc.text(companyName, 105, 20, { align: 'center' })
+      doc.text(companyName, 105, 18, { align: 'center' })
       
       // Subtitle
-      doc.setFontSize(14)
+      doc.setFontSize(11)
       doc.setTextColor(0, 0, 0)
       doc.setFont(undefined, 'normal')
       const docType = isConsolidated ? 'Consolidated Proforma - Table Reservations' : 'Proforma - Table Reservation'
-      doc.text(docType, 105, 30, { align: 'center' })
+      doc.text(docType, 105, 26, { align: 'center' })
       
       // Date right aligned
-      doc.setFontSize(10)
-      doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, 190, 40, { align: 'right' })
+      doc.setFontSize(8)
+      doc.text(`Date: ${format(new Date(), 'dd/MM/yyyy')}`, 190, 34, { align: 'right' })
       
       // Two columns: Client Info and Reservation Summary
-      let yPos = 55
+      let yPos = 42
       
       // Client Information - Left box
       doc.setFillColor(...primaryColor)
-      doc.rect(20, yPos, 80, 8, 'F')
+      doc.rect(20, yPos, 80, 6, 'F')
       doc.setTextColor(255, 255, 255)
       doc.setFont(undefined, 'bold')
-      doc.setFontSize(10)
-      doc.text('Client Information', 25, yPos + 6)
+      doc.setFontSize(8)
+      doc.text('Client Information', 25, yPos + 4.5)
       
       doc.setTextColor(0, 0, 0)
       doc.setFont(undefined, 'normal')
-      doc.text(`Name: ${table.client_name || 'N/A'}`, 25, yPos + 18)
-      if (table.client_email) doc.text(`Email: ${table.client_email}`, 25, yPos + 26)
-      if (table.client_phone) doc.text(`Phone: ${table.client_phone}`, 25, yPos + 34)
+      doc.setFontSize(8)
+      doc.text(`Name: ${table.client_name || 'N/A'}`, 25, yPos + 12)
+      if (table.client_email) doc.text(`Email: ${table.client_email}`, 25, yPos + 18)
+      if (table.client_phone) doc.text(`Phone: ${table.client_phone}`, 25, yPos + 24)
       
       // Reservation Summary - Right box
       doc.setFillColor(...primaryColor)
-      doc.rect(110, yPos, 80, 8, 'F')
+      doc.rect(110, yPos, 80, 6, 'F')
       doc.setTextColor(255, 255, 255)
       doc.setFont(undefined, 'bold')
-      doc.text('Reservation Summary', 115, yPos + 6)
+      doc.text('Reservation Summary', 115, yPos + 4.5)
       
       doc.setTextColor(0, 0, 0)
       doc.setFont(undefined, 'normal')
-      doc.text(`Total Tables: ${tables.length}`, 115, yPos + 18)
-      doc.text(`Days: ${days.join(', ')}`, 115, yPos + 26)
-      doc.text(`Table Numbers: ${tableNumbers}`, 115, yPos + 34)
+      doc.text(`Total Tables: ${tables.length}`, 115, yPos + 12)
+      doc.text(`Days: ${days.map(d => format(parseISO(d), 'dd/MM')).join(', ')}`, 115, yPos + 18)
+      doc.text(`Table Numbers: ${tableNumbers}`, 115, yPos + 24)
       
       // Detailed Reservations
-      yPos = 110
+      yPos = 78
       doc.setFillColor(...primaryColor)
-      doc.rect(20, yPos, 170, 8, 'F')
+      doc.rect(20, yPos, 170, 6, 'F')
       doc.setTextColor(255, 255, 255)
       doc.setFont(undefined, 'bold')
-      doc.text('Detailed Reservations', 25, yPos + 6)
+      doc.setFontSize(8)
+      doc.text('Detailed Reservations', 25, yPos + 4.5)
       
-      yPos += 15
+      yPos += 10
       doc.setTextColor(0, 0, 0)
       
       // Group by day
@@ -6173,61 +6174,69 @@ function InvoicesView({ event, onEventUpdate }) {
         
         // Day header
         doc.setFont(undefined, 'bold')
-        doc.setFontSize(10)
-        doc.text(`Day ${day}`, 25, yPos)
+        doc.setFontSize(8)
+        doc.text(`${format(parseISO(day), 'EEEE dd MMMM yyyy')}`, 25, yPos)
         doc.setFont(undefined, 'normal')
-        doc.text(`Tables: ${dayTables.map(t => getTableDisplay(t)).join(', ')}`, 60, yPos)
-        yPos += 8
+        yPos += 5
         
         // Table header row
         doc.setFillColor(240, 240, 240)
-        doc.rect(25, yPos - 4, 160, 7, 'F')
-        doc.setFontSize(9)
+        doc.rect(25, yPos - 3, 160, 5, 'F')
+        doc.setFontSize(7)
         doc.text('Description', 28, yPos)
-        doc.text('Qty', 100, yPos)
-        doc.text('Unit Price', 120, yPos)
+        doc.text('Qty', 95, yPos)
+        doc.text('Unit Price', 115, yPos)
         doc.text('Total', 165, yPos)
-        yPos += 8
+        yPos += 5
         
-        // Table rows
+        // Table rows with Beverage Budget
         dayTables.forEach(t => {
           const tTotal = calculateTableTotal(t)
+          const beverageBudget = t.sold_price || 0
+          doc.setFontSize(7)
           doc.text(`Table ${getTableDisplay(t)} Reservation`, 28, yPos)
-          doc.text('1', 100, yPos)
-          doc.text(`${formatSwiss(tTotal)} ${currency}`, 120, yPos)
+          doc.text('1', 95, yPos)
+          doc.text(`${formatSwiss(tTotal)} ${currency}`, 115, yPos)
           doc.text(`${formatSwiss(tTotal)} ${currency}`, 165, yPos)
-          yPos += 7
+          yPos += 4
+          // Add beverage budget line
+          doc.setFontSize(6)
+          doc.setTextColor(100, 100, 100)
+          doc.text(`(Beverage Budget: ${formatSwiss(beverageBudget)} ${currency})`, 32, yPos)
+          doc.setTextColor(0, 0, 0)
+          yPos += 5
         })
         
         // Day subtotal
         doc.setFont(undefined, 'bold')
-        doc.text(`Day ${day} Subtotal: ${formatSwiss(dayTotal)} ${currency}`, 130, yPos, { align: 'right' })
+        doc.setFontSize(7)
+        doc.text(`Subtotal: ${formatSwiss(dayTotal)} ${currency}`, 185, yPos, { align: 'right' })
         doc.setFont(undefined, 'normal')
-        yPos += 12
+        yPos += 8
       })
       
       // Grand Total
-      yPos += 5
+      yPos += 2
       doc.setFillColor(...primaryColor)
-      doc.rect(20, yPos, 170, 12, 'F')
+      doc.rect(20, yPos, 170, 10, 'F')
       doc.setTextColor(255, 255, 255)
-      doc.setFontSize(14)
+      doc.setFontSize(12)
       doc.setFont(undefined, 'bold')
-      doc.text(`Grand Total: ${formatSwiss(grandTotal)} ${currency}`, 105, yPos + 9, { align: 'center' })
+      doc.text(`Grand Total: ${formatSwiss(grandTotal)} ${currency}`, 105, yPos + 7, { align: 'center' })
       
       // Banking Information
-      yPos += 25
+      yPos += 16
       doc.setTextColor(0, 0, 0)
       doc.setFillColor(...primaryColor)
-      doc.rect(20, yPos, 170, 8, 'F')
+      doc.rect(20, yPos, 170, 6, 'F')
       doc.setTextColor(255, 255, 255)
-      doc.setFontSize(10)
-      doc.text('Banking Information', 25, yPos + 6)
+      doc.setFontSize(8)
+      doc.text('Banking Information', 25, yPos + 4.5)
       
-      yPos += 15
+      yPos += 10
       doc.setTextColor(0, 0, 0)
       doc.setFont(undefined, 'normal')
-      doc.setFontSize(9)
+      doc.setFontSize(7)
       
       const beneficiary = billingSettings.billing_beneficiary || event.billing_beneficiary
       const address = billingSettings.billing_address || event.billing_address
