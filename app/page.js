@@ -1512,52 +1512,60 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-16'} transition-all duration-300 p-6`}>
+      {/* Main Content - fixed margin on desktop, no margin on mobile */}
+      <main className={`flex-1 md:ml-16 ${sidebarOpen ? 'md:ml-64' : 'md:ml-16'} transition-all duration-300 p-4 md:p-6`}>
+        {/* Mobile Header with menu button */}
+        <div className="flex items-center gap-3 mb-4 md:hidden">
+          <Button variant="outline" size="icon" onClick={() => setSidebarOpen(true)}>
+            <Menu className="w-5 h-5" />
+          </Button>
+          <h1 className="font-bold text-amber-400 truncate">{event.name}</h1>
+        </div>
+        
         {/* Dashboard View */}
         {view === 'dashboard' && (
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Chiffre d'affaires par statut */}
             <Card>
-              <CardHeader>
-                <CardTitle>Chiffre d'affaires</CardTitle>
-                <CardDescription>Tous jours et salles confondus</CardDescription>
+              <CardHeader className="p-4 md:p-6">
+                <CardTitle className="text-base md:text-lg">Chiffre d'affaires</CardTitle>
+                <CardDescription className="text-xs md:text-sm">Tous jours et salles confondus</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">Potentiel total</p>
-                    <p className="text-xl font-bold">{stats.potentiel.toLocaleString()} {event.currency}</p>
+              <CardContent className="p-4 md:p-6 pt-0">
+                <div className="grid grid-cols-2 gap-2 md:gap-4">
+                  <div className="p-2 md:p-4 bg-muted rounded-lg">
+                    <p className="text-xs md:text-sm text-muted-foreground">Potentiel total</p>
+                    <p className="text-sm md:text-xl font-bold">{stats.potentiel.toLocaleString()} {event.currency}</p>
                   </div>
-                  <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                    <p className="text-sm text-yellow-400">Réservé</p>
-                    <p className="text-xl font-bold text-yellow-400">{stats.caReserve.toLocaleString()} {event.currency}</p>
+                  <div className="p-2 md:p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                    <p className="text-xs md:text-sm text-yellow-400">Réservé</p>
+                    <p className="text-sm md:text-xl font-bold text-yellow-400">{stats.caReserve.toLocaleString()} {event.currency}</p>
                   </div>
-                  <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                    <p className="text-sm text-blue-400">Confirmé</p>
-                    <p className="text-xl font-bold text-blue-400">{stats.caConfirme.toLocaleString()} {event.currency}</p>
+                  <div className="p-2 md:p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                    <p className="text-xs md:text-sm text-blue-400">Confirmé</p>
+                    <p className="text-sm md:text-xl font-bold text-blue-400">{stats.caConfirme.toLocaleString()} {event.currency}</p>
                   </div>
-                  <div className="p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-                    <p className="text-sm text-purple-400">Payé</p>
-                    <p className="text-xl font-bold text-purple-400">{stats.caPaye.toLocaleString()} {event.currency}</p>
+                  <div className="p-2 md:p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                    <p className="text-xs md:text-sm text-purple-400">Payé</p>
+                    <p className="text-sm md:text-xl font-bold text-purple-400">{stats.caPaye.toLocaleString()} {event.currency}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Résumé financier + Personnes */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>Résumé Financier</CardTitle>
+                <CardHeader className="p-4 md:p-6">
+                  <CardTitle className="text-base md:text-lg">Résumé Financier</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                      <span className="text-muted-foreground">CA Total (Confirmé + Payé)</span>
-                      <span className="font-bold text-lg">{stats.ca.toLocaleString()} {event.currency}</span>
+                <CardContent className="p-4 md:p-6 pt-0">
+                  <div className="space-y-2 md:space-y-4">
+                    <div className="flex justify-between items-center p-2 md:p-3 bg-muted rounded-lg">
+                      <span className="text-xs md:text-sm text-muted-foreground">CA Total (Confirmé + Payé)</span>
+                      <span className="font-bold text-sm md:text-lg">{stats.ca.toLocaleString()} {event.currency}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                    <div className="flex justify-between items-center p-2 md:p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
                       <span className="text-green-400">Déjà encaissé</span>
                       <span className="font-bold text-lg text-green-400">{stats.paid.toLocaleString()} {event.currency}</span>
                     </div>
