@@ -1373,6 +1373,19 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     )
   }
 
+  // Get role display info
+  const getRoleInfo = () => {
+    switch (userRole) {
+      case 'owner': return { label: 'Propriétaire', color: 'bg-amber-500', icon: '👑' }
+      case 'admin': return { label: 'Admin', color: 'bg-red-500', icon: '👑' }
+      case 'chef_equipe': return { label: 'Chef d\'équipe', color: 'bg-amber-500', icon: '⭐' }
+      case 'serveur': return { label: 'Serveur', color: 'bg-blue-500', icon: '🍽️' }
+      case 'bar': return { label: 'Bar', color: 'bg-purple-500', icon: '🍸' }
+      default: return { label: 'Invité', color: 'bg-gray-500', icon: '👤' }
+    }
+  }
+  const roleInfo = getRoleInfo()
+
   return (
     <div className="min-h-screen flex">
       {/* Sidebar */}
@@ -1384,7 +1397,12 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
               <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0">
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <span className="font-bold text-amber-400 truncate">{event.name}</span>
+              <div className="flex flex-col overflow-hidden">
+                <span className="font-bold text-amber-400 truncate text-sm">{event.name}</span>
+                <span className={`text-[10px] ${roleInfo.color} text-white px-1.5 rounded w-fit`}>
+                  {roleInfo.icon} {roleInfo.label}
+                </span>
+              </div>
             </div>
           )}
           <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="shrink-0">
@@ -1407,6 +1425,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
           ))}
 
           {/* Service Section */}
+          {serviceNavItems.length > 0 && (
           <div className="pt-4 space-y-1">
             <p className={`text-xs text-muted-foreground uppercase tracking-wider ${sidebarOpen ? 'px-3 mb-2' : 'text-center'}`}>
               {sidebarOpen ? 'Service' : '•••'}
