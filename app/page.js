@@ -1566,29 +1566,29 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                       <span className="font-bold text-sm md:text-lg">{stats.ca.toLocaleString()} {event.currency}</span>
                     </div>
                     <div className="flex justify-between items-center p-2 md:p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                      <span className="text-green-400">Déjà encaissé</span>
-                      <span className="font-bold text-lg text-green-400">{stats.paid.toLocaleString()} {event.currency}</span>
+                      <span className="text-xs md:text-sm text-green-400">Déjà encaissé</span>
+                      <span className="font-bold text-sm md:text-lg text-green-400">{stats.paid.toLocaleString()} {event.currency}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                      <span className="text-amber-400">Reste à encaisser</span>
-                      <span className="font-bold text-lg text-amber-400">{(stats.ca - stats.paid).toLocaleString()} {event.currency}</span>
+                    <div className="flex justify-between items-center p-2 md:p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                      <span className="text-xs md:text-sm text-amber-400">Reste à encaisser</span>
+                      <span className="font-bold text-sm md:text-lg text-amber-400">{(stats.ca - stats.paid).toLocaleString()} {event.currency}</span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle>Personnes attendues</CardTitle>
+                <CardHeader className="p-4 md:p-6">
+                  <CardTitle className="text-base md:text-lg">Personnes attendues</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4 md:p-6 pt-0">
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
-                      <div className="flex items-center justify-center gap-3">
-                        <Users className="w-12 h-12 text-amber-500" />
-                        <span className="text-5xl font-bold text-amber-400">{stats.totalPersons}</span>
+                      <div className="flex items-center justify-center gap-2 md:gap-3">
+                        <Users className="w-8 h-8 md:w-12 md:h-12 text-amber-500" />
+                        <span className="text-3xl md:text-5xl font-bold text-amber-400">{stats.totalPersons}</span>
                       </div>
-                      <p className="text-muted-foreground mt-2">personnes au total</p>
+                      <p className="text-xs md:text-sm text-muted-foreground mt-2">personnes au total</p>
                     </div>
                   </div>
                 </CardContent>
