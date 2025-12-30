@@ -159,6 +159,8 @@ export default function Home() {
       active: 'Actif',
       archived: 'Archivé'
     }
+    // Don't show badge for draft status
+    if (status === 'draft') return null
     return <Badge className={colors[status]}>{labels[status]}</Badge>
   }
 
