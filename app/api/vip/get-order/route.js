@@ -1,18 +1,24 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Create Supabase client with service role for bypassing RLS
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+// Create Supabase client inside function to avoid build-time errors
+const getSupabase = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) {
+    throw new Error('Supabase configuration missing')
+  }
+  return createClient(url, key)
+}
 
-export async function POST(request) {
+export async function GET(request) {
   try {
-    const { accessToken } = await request.json()
+    const supabase = getSupabase()
+    const { searchParams } = new URL(request.url)
+    const accessToken = searchParams.get('token')
 
     if (!accessToken) {
-      return NextResponse.json({ error: 'Token requis' }, { status: 400 })
+      return NextResponse.json({ error: 'Token required' }, { status: 400 })
     }
 
     // Get order by access token
@@ -20,50 +26,18 @@ export async function POST(request) {
       .from('orders')
       .select(`
         *,
-        order_items (
-          id,
-          menu_item_id,
-          quantity,
-          unit_price,
-          total_price,
-          menu_items (
-            id,
-            name,
-            price,
-            category,
-            format,
-            volume
-          )
-        )
+        tables (*),
+        events (*)
       `)
       .eq('access_token', accessToken)
       .single()
 
     if (orderError || !order) {
-      console.error('Order error:', orderError)
-      return NextResponse.json({ error: 'Commande non trouvée' }, { status: 404 })
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    // Get table info
-    const { data: table, error: tableError } = await supabase
-      .from('tables')
-      .select('*')
-      .eq('id', order.table_id)
-      .single()
-
-    if (tableError || !table) {
-      return NextResponse.json({ error: 'Table non trouvée' }, { status: 404 })
-    }
-
-    // Get event info
-    const { data: event } = await supabase
-      .from('events')
-      .select('name, currency')
-      .eq('id', order.event_id)
-      .single()
-
-    // Get available menu items for this event
-    const { data: menuItems, error: menuError } = await supabase
+    // Get menu items for the event
+    const { data: menuItems } = await supabase
       .from('menu_items')
       .select('*')
       .eq('event_id', order.event_id)
@@ -71,34 +45,37 @@ export async function POST(request) {
       .order('category')
       .order('name')
 
-    if (menuError) {
-      console.error('Menu error:', menuError)
-    }
+    // Get existing order items
+    const { data: orderItems } = await supabase
+      .from('order_items')
+      .select(`
+        *,
+        menu_items (*)
+      `)
+      .eq('order_id', order.id)
 
     // Calculate budget
-    const beverageBudget = table.sold_price || table.standard_price || 0
+    const beverageBudget = order.tables?.sold_price || order.tables?.standard_price || 0
 
     return NextResponse.json({
       success: true,
       order: {
         id: order.id,
         status: order.status,
-        total_amount: order.total_amount || 0,
-        extra_amount: order.extra_amount || 0,
-        budget_exceeded: order.budget_exceeded || false,
-        client_notes: order.client_notes || '',
-        items: order.order_items || [],
+        client_name: order.client_name,
+        client_email: order.client_email,
+        client_notes: order.client_notes,
+        total_amount: order.total_amount,
+        budget_amount: beverageBudget,
+        extra_amount: order.extra_amount,
+        budget_exceeded: order.budget_exceeded,
         confirmed_at: order.confirmed_at
       },
-      table: {
-        id: table.id,
-        table_number: table.table_number,
-        client_name: table.client_name,
-        day: table.day,
-        beverage_budget: beverageBudget
-      },
-      event: event || { name: 'Événement', currency: 'CHF' },
-      menuItems: menuItems || []
+      table: order.tables,
+      event: order.events,
+      menuItems: menuItems || [],
+      orderItems: orderItems || [],
+      beverageBudget
     })
 
   } catch (error) {
