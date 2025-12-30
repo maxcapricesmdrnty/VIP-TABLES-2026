@@ -1696,50 +1696,56 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
 
                 {/* Multiple Back Categories - Fixed grid with horizontal scroll */}
                 <div className="mt-4 sm:mt-8 space-y-3 sm:space-y-6">
-                  {getBackZones().map(zone => {
-                    const zoneTables = getTablesByZone(zone)
-                    if (zoneTables.length === 0) return null
+                  {(() => {
+                    // Find the maximum tablesPerRow from the first category (reference row)
+                    const firstCategory = layoutForm.backCategories[0]
+                    const maxTablesPerRow = firstCategory?.tablesPerRow || 5
                     
-                    // Get the category config to determine tables per row
-                    const categoryIndex = zone === 'back' ? 0 : parseInt(zone.replace('back_', '')) - 1
-                    const category = layoutForm.backCategories[categoryIndex]
-                    const tablesPerRow = category?.tablesPerRow || Math.min(zoneTables.length, 6)
-                    const zoneName = category?.name || (zone === 'back' ? 'Tables Arrière' : `Catégorie ${categoryIndex + 1}`)
-                    
-                    // Calculate empty cells needed at the start for right-alignment with offset
-                    const emptyCellsCount = tablesPerRow - zoneTables.length
-                    
-                    return (
-                      <div key={zone} className="overflow-x-auto">
-                        <h3 className="text-center mb-2 sm:mb-4 font-semibold text-muted-foreground text-xs sm:text-base">{zoneName}</h3>
-                        <div 
-                          className="inline-grid gap-1.5 sm:gap-3 min-w-max"
-                          style={{ 
-                            gridTemplateColumns: `repeat(${tablesPerRow}, auto)`,
-                            display: 'inline-grid',
-                            justifyItems: 'center',
-                            marginLeft: 'auto',
-                            marginRight: 'auto'
-                          }}
-                        >
-                          {/* Empty cells for alignment - shifts tables to the right */}
-                          {emptyCellsCount > 0 && Array.from({ length: emptyCellsCount }).map((_, i) => (
-                            <div key={`empty-${i}`} className="w-[90px] sm:w-[130px] h-[75px] sm:h-[100px]" />
-                          ))}
-                          {zoneTables.map(table => (
-                            <TableCell 
-                              key={table.id} 
-                              table={table}
-                              currency={event.currency}
-                              onClick={() => {
-                                setSelectedTable(table)
-                                setShowTableModal(true)
-                              }}
-                            />
-                          ))}
+                    return getBackZones().map(zone => {
+                      const zoneTables = getTablesByZone(zone)
+                      if (zoneTables.length === 0) return null
+                      
+                      // Get the category config
+                      const categoryIndex = zone === 'back' ? 0 : parseInt(zone.replace('back_', '')) - 1
+                      const category = layoutForm.backCategories[categoryIndex]
+                      const zoneName = category?.name || (zone === 'back' ? 'Tables Arrière' : `Catégorie ${categoryIndex + 1}`)
+                      
+                      // Use maxTablesPerRow for grid, calculate empty cells for alignment
+                      const emptyCellsCount = maxTablesPerRow - zoneTables.length
+                      
+                      return (
+                        <div key={zone} className="overflow-x-auto">
+                          <h3 className="text-center mb-2 sm:mb-4 font-semibold text-muted-foreground text-xs sm:text-base">{zoneName}</h3>
+                          <div 
+                            className="inline-grid gap-1.5 sm:gap-3 min-w-max"
+                            style={{ 
+                              gridTemplateColumns: `repeat(${maxTablesPerRow}, auto)`,
+                              display: 'inline-grid',
+                              justifyItems: 'center',
+                              marginLeft: 'auto',
+                              marginRight: 'auto'
+                            }}
+                          >
+                            {/* Empty cells for alignment - shifts tables to the right */}
+                            {emptyCellsCount > 0 && Array.from({ length: emptyCellsCount }).map((_, i) => (
+                              <div key={`empty-${i}`} className="w-[90px] sm:w-[130px] h-[75px] sm:h-[100px]" />
+                            ))}
+                            {zoneTables.map(table => (
+                              <TableCell 
+                                key={table.id} 
+                                table={table}
+                                currency={event.currency}
+                                onClick={() => {
+                                  setSelectedTable(table)
+                                  setShowTableModal(true)
+                                }}
+                              />
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )
+                      )
+                    })
+                  })()}
                   })}
                 </div>
 
