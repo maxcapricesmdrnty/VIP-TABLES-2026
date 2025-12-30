@@ -5130,7 +5130,7 @@ function ComptabiliteView({ event, tables, eventDays }) {
 
 // Guichet d'Accueil Component
 function GuichetView({ event, eventDays }) {
-  const [selectedDay, setSelectedDay] = useState('')
+  const [selectedDay, setSelectedDay] = useState('all') // 'all' for all days
   const [tables, setTables] = useState([])
   const [payments, setPayments] = useState({})
   const [loading, setLoading] = useState(false)
@@ -5151,34 +5151,34 @@ function GuichetView({ event, eventDays }) {
   const availableDays = (eventDays || []).map(d => d?.date || d?.day).filter(Boolean).sort()
 
   useEffect(() => {
-    if (availableDays.length > 0 && !selectedDay) {
-      // Default to today if available, otherwise first day
-      const today = new Date().toISOString().split('T')[0]
-      if (availableDays.includes(today)) {
-        setSelectedDay(today)
-      } else {
-        setSelectedDay(availableDays[0])
-      }
+    // Default to 'all' to show complete list
+    if (!selectedDay) {
+      setSelectedDay('all')
     }
   }, [availableDays])
 
   useEffect(() => {
-    if (selectedDay) {
-      fetchTablesForDay()
-      fetchPayments()
-    }
+    fetchTablesForDay()
+    fetchPayments()
   }, [selectedDay])
 
   const fetchTablesForDay = async () => {
     setLoading(true)
     try {
-      const { data } = await supabase
+      let query = supabase
         .from('tables')
         .select('*')
         .eq('event_id', event.id)
-        .eq('day', selectedDay)
         .neq('status', 'libre')
+        .order('day')
         .order('client_name')
+      
+      // Filter by day only if not 'all'
+      if (selectedDay && selectedDay !== 'all') {
+        query = query.eq('day', selectedDay)
+      }
+      
+      const { data } = await query
       setTables(data || [])
     } catch (error) {
       console.error('Error fetching tables:', error)
