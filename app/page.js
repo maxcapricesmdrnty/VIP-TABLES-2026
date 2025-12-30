@@ -4712,7 +4712,7 @@ function ComptabiliteView({ event, tables, eventDays }) {
   const exportSummary = () => {
     const headers = ['Client', 'Nb Tables', 'Total Dû', 'Total Payé', 'Reste', 'Concierge', 'Commission']
     const rows = Object.values(clientGroups).map(c => [
-      c.name,
+      `"${(c.name || '').replace(/"/g, '""')}"`,
       c.tables.length,
       c.totalAmount,
       c.totalPaid,
@@ -4721,9 +4721,15 @@ function ComptabiliteView({ event, tables, eventDays }) {
       c.commission
     ])
     
+    if (rows.length === 0) {
+      toast.error('Aucune donnée à exporter')
+      return
+    }
+    
     const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n')
-    exportToCSV(csv, `resume_${event.name}_${new Date().toISOString().split('T')[0]}.csv`)
-    toast.success('Export du résumé téléchargé!')
+    if (exportToCSV(csv, `resume_${event.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`)) {
+      toast.success('Export du résumé téléchargé!')
+    }
   }
 
   // Register a bank transfer
