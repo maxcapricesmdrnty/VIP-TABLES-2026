@@ -4580,15 +4580,51 @@ function ComptabiliteView({ event, tables, eventDays }) {
       return groups
     }, {})
 
-  // Export functions
+  // Export functions - improved for mobile compatibility
   const exportToCSV = (data, filename) => {
-    const BOM = '\uFEFF'
-    const csv = BOM + data
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = filename
-    link.click()
+    try {
+      const BOM = '\uFEFF'
+      const csv = BOM + data
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+      
+      // Try using the download attribute approach
+      const url = URL.createObjectURL(blob)
+      
+      // Create a temporary link
+      const link = document.createElement('a')
+      link.style.display = 'none'
+      link.href = url
+      link.download = filename
+      
+      // Append to body (required for Firefox and mobile)
+      document.body.appendChild(link)
+      
+      // Trigger click
+      link.click()
+      
+      // Cleanup
+      setTimeout(() => {
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      }, 100)
+      
+      return true
+    } catch (error) {
+      console.error('Export error:', error)
+      // Fallback: open in new tab
+      try {
+        const BOM = '\uFEFF'
+        const csv = BOM + data
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        window.open(url, '_blank')
+        toast.info('Fichier ouvert dans un nouvel onglet. Enregistrez-le manuellement.')
+        return true
+      } catch (e) {
+        toast.error('Erreur lors de l\'export')
+        return false
+      }
+    }
   }
 
   const exportTables = () => {
@@ -4601,7 +4637,7 @@ function ComptabiliteView({ event, tables, eventDays }) {
         return [
           t.day,
           t.display_number || t.table_number,
-          t.client_name || '',
+          `"${(t.client_name || '').replace(/"/g, '""')}"`,
           t.client_email || '',
           t.client_phone || '',
           t.status,
@@ -4615,9 +4651,15 @@ function ComptabiliteView({ event, tables, eventDays }) {
         ]
       })
     
+    if (rows.length === 0) {
+      toast.error('Aucune donnée à exporter')
+      return
+    }
+    
     const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n')
-    exportToCSV(csv, `tables_${event.name}_${new Date().toISOString().split('T')[0]}.csv`)
-    toast.success('Export des tables téléchargé!')
+    if (exportToCSV(csv, `tables_${event.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`)) {
+      toast.success('Export des tables téléchargé!')
+    }
   }
 
   const exportCommissions = () => {
@@ -4626,7 +4668,7 @@ function ComptabiliteView({ event, tables, eventDays }) {
       .filter(t => t.concierge_nom && t.commission_amount > 0)
       .map(t => [
         t.concierge_nom,
-        t.client_name || '',
+        `"${(t.client_name || '').replace(/"/g, '""')}"`,
         t.display_number || t.table_number,
         t.day,
         t.sold_price || 0,
@@ -4634,25 +4676,37 @@ function ComptabiliteView({ event, tables, eventDays }) {
         t.commission_amount || 0
       ])
     
+    if (rows.length === 0) {
+      toast.error('Aucune commission à exporter')
+      return
+    }
+    
     const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n')
-    exportToCSV(csv, `commissions_${event.name}_${new Date().toISOString().split('T')[0]}.csv`)
-    toast.success('Export des commissions téléchargé!')
+    if (exportToCSV(csv, `commissions_${event.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`)) {
+      toast.success('Export des commissions téléchargé!')
+    }
   }
 
   const exportPayments = () => {
     const headers = ['Date', 'Table', 'Client', 'Montant', 'Méthode', 'Notes']
     const rows = payments.map(p => [
-      p.created_at ? new Date(p.created_at).toLocaleDateString('fr-CH') : '',
+      p.payment_date || (p.created_at ? new Date(p.created_at).toLocaleDateString('fr-CH') : ''),
       p.tables?.display_number || p.tables?.table_number || '',
-      p.tables?.client_name || '',
+      `"${(p.tables?.client_name || '').replace(/"/g, '""')}"`,
       p.amount || 0,
-      p.method || '',
-      p.notes || ''
+      p.payment_method || p.method || '',
+      `"${(p.notes || '').replace(/"/g, '""')}"`
     ])
     
+    if (rows.length === 0) {
+      toast.error('Aucun paiement à exporter')
+      return
+    }
+    
     const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n')
-    exportToCSV(csv, `paiements_${event.name}_${new Date().toISOString().split('T')[0]}.csv`)
-    toast.success('Export des paiements téléchargé!')
+    if (exportToCSV(csv, `paiements_${event.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`)) {
+      toast.success('Export des paiements téléchargé!')
+    }
   }
 
   const exportSummary = () => {
