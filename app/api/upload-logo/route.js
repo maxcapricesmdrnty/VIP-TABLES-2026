@@ -3,13 +3,20 @@ import { createClient } from '@supabase/supabase-js'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+// Create supabase client inside function to avoid build-time errors
+const getSupabase = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) {
+    throw new Error('Supabase configuration missing')
+  }
+  return createClient(url, key)
+}
 
 export async function POST(request) {
   try {
+    const supabase = getSupabase()
+    
     const formData = await request.formData()
     const file = formData.get('file')
     const eventId = formData.get('eventId')
