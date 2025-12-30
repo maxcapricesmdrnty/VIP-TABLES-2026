@@ -6248,91 +6248,73 @@ function InvoicesView({ event, onEventUpdate }) {
       
       if (beneficiary) {
         doc.text(`Beneficiary: ${beneficiary}`, 25, yPos)
-        yPos += 6
+        yPos += 4
       }
       if (address) {
         doc.text(`Address: ${address}`, 25, yPos)
-        yPos += 6
+        yPos += 4
       }
       if (accountNumber) {
         doc.text(`Account Number: ${accountNumber}`, 25, yPos)
-        yPos += 6
+        yPos += 4
       }
       if (iban) {
         doc.text(`IBAN: ${iban}`, 25, yPos)
-        yPos += 6
+        yPos += 4
       }
       if (bic) {
         doc.text(`BIC/SWIFT: ${bic}`, 25, yPos)
-        yPos += 6
+        yPos += 4
       }
       if (bankName) {
         doc.text(`Bank: ${bankName}`, 25, yPos)
-        yPos += 6
+        yPos += 4
       }
       if (bankAddress) {
         doc.text(`Bank Address: ${bankAddress}`, 25, yPos)
-        yPos += 6
+        yPos += 4
       }
       
-      // Check if we need a new page for Terms & Conditions
-      if (yPos > 220) {
-        doc.addPage()
-        yPos = 20
-      }
-      
-      // Terms & Conditions
-      yPos += 10
+      // Terms & Conditions (only if defined and fits on page)
       const termsText = billingSettings.billing_terms || event.billing_terms || ''
       
-      if (termsText.trim()) {
+      if (termsText.trim() && yPos < 240) {
+        yPos += 6
         doc.setFillColor(...primaryColor)
-        doc.rect(20, yPos, 170, 8, 'F')
+        doc.rect(20, yPos, 170, 6, 'F')
         doc.setTextColor(255, 255, 255)
         doc.setFont(undefined, 'bold')
-        doc.text('Terms & Conditions', 25, yPos + 6)
+        doc.setFontSize(8)
+        doc.text('Terms & Conditions', 25, yPos + 4.5)
         
-        yPos += 15
+        yPos += 10
         doc.setTextColor(0, 0, 0)
         doc.setFont(undefined, 'normal')
-        doc.setFontSize(8)
+        doc.setFontSize(6)
         
         const terms = termsText.split('\n')
         terms.forEach(term => {
-          if (term.trim()) {
-            // Check if we need a new page
-            if (yPos > 270) {
-              doc.addPage()
-              yPos = 20
-            }
+          if (term.trim() && yPos < 270) {
             doc.text(`• ${term.trim()}`, 25, yPos)
-            yPos += 5
+            yPos += 4
           }
         })
       }
       
-      // Footer - position dynamically based on content
-      const footerY = Math.max(yPos + 15, 255)
-      
-      // If footer would be off page, add new page
-      if (footerY > 280) {
-        doc.addPage()
-        yPos = 20
-      }
-      
+      // Footer
       const thankYou = billingSettings.billing_thank_you || event.billing_thank_you || 'Thank you for your trust'
       const vatText = billingSettings.billing_vat_text || event.billing_vat_text || 'VAT not applicable at this stage'
       const contactEmail = billingSettings.billing_email || event.billing_email || 'vip@caprices.ch'
       
-      doc.setFontSize(10)
+      doc.setFontSize(8)
       doc.setFont(undefined, 'normal')
       doc.setTextColor(100, 100, 100)
       
-      const finalFooterY = footerY > 280 ? 270 : Math.min(footerY, 270)
-      doc.text(`${thankYou} - ${companyName}!`, 105, finalFooterY, { align: 'center' })
-      doc.setFontSize(8)
-      doc.text(vatText, 105, finalFooterY + 7, { align: 'center' })
-      doc.text(`This ${isConsolidated ? 'consolidated proforma' : 'proforma'} was automatically generated on ${format(new Date(), 'dd/MM/yyyy')}`, 105, finalFooterY + 13, { align: 'center' })
+      const footerY = Math.max(yPos + 8, 275)
+      doc.text(`${thankYou} - ${companyName}!`, 105, footerY, { align: 'center' })
+      doc.setFontSize(6)
+      doc.text(vatText, 105, footerY + 5, { align: 'center' })
+      doc.text(`Proforma generated on ${format(new Date(), 'dd/MM/yyyy')} | Contact: ${contactEmail}`, 105, footerY + 9, { align: 'center' })
       
       const pdfBase64 = doc.output('datauristring').split(',')[1]
       const clientNameClean = (table.client_name || 'Client').replace(/[^a-zA-Z0-9]/g, '_')
