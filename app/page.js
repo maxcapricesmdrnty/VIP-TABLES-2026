@@ -5450,7 +5450,7 @@ function GuichetView({ event, eventDays }) {
         <Card className="p-8 text-center">
           <Ticket className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
           <p className="text-muted-foreground">
-            {selectedDay ? 'Aucune réservation pour ce jour' : 'Sélectionnez un jour'}
+            {selectedDay === 'all' ? 'Aucune réservation pour cet événement' : 'Aucune réservation pour ce jour'}
           </p>
         </Card>
       ) : (
