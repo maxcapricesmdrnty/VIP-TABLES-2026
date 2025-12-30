@@ -1746,7 +1746,6 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                       )
                     })
                   })()}
-                  })}
                 </div>
 
                 {/* Legend - responsive */}
