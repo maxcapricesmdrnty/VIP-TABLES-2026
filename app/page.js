@@ -4925,7 +4925,10 @@ function ComptabiliteView({ event, tables, eventDays }) {
                           {isPaid && <Badge className="bg-green-500 text-xs">Payé</Badge>}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {client.tables.length} table(s): {client.tables.map(t => t.display_number || t.table_number).join(', ')}
+                          {client.tables.length} table(s): {client.tables.map(t => {
+                            const day = t.day ? format(parseISO(t.day), 'dd/MM', { locale: fr }) : ''
+                            return `${t.display_number || t.table_number}${day ? ` (${day})` : ''}`
+                          }).join(', ')}
                         </div>
                         {client.concierge && (
                           <div className="text-xs text-purple-400">
