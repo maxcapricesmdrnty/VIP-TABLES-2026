@@ -30,6 +30,7 @@ export default function Home() {
   const [authEmail, setAuthEmail] = useState('')
   const [authPassword, setAuthPassword] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const [eventForm, setEventForm] = useState({
     name: '',
