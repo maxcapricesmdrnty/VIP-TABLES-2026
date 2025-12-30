@@ -5767,9 +5767,18 @@ function InvoicesView({ event, onEventUpdate }) {
 
   const fetchPayments = async () => {
     try {
+      // Get all table IDs for this event first
+      const tableIds = reservedTables.map(t => t.id)
+      
+      if (tableIds.length === 0) {
+        setPayments({})
+        return
+      }
+      
       const { data } = await supabase
         .from('payments')
         .select('*')
+        .in('table_id', tableIds)
         .order('payment_date', { ascending: false })
       
       // Group payments by table_id
@@ -5783,6 +5792,13 @@ function InvoicesView({ event, onEventUpdate }) {
       console.error('Error fetching payments:', error)
     }
   }
+
+  // Re-fetch payments when reservedTables changes
+  useEffect(() => {
+    if (reservedTables.length > 0) {
+      fetchPayments()
+    }
+  }, [reservedTables])
 
   // Save billing settings
   const saveBillingSettings = async () => {
