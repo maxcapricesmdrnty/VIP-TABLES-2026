@@ -4692,8 +4692,9 @@ function ComptabiliteView({ event, tables, eventDays }) {
         await supabase.from('payments').insert({
           table_id: tableId,
           amount: amountPerTable,
-          method: 'virement',
-          notes: `Réf: ${transferForm.reference || 'N/A'} - Virement du ${transferForm.date}`
+          payment_method: 'virement',
+          payment_date: transferForm.date || new Date().toISOString().split('T')[0],
+          notes: `Réf: ${transferForm.reference || 'N/A'}`
         })
 
         // Update table total_paid
