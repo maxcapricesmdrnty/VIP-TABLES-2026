@@ -1328,11 +1328,50 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
   const mainNavItems = allMainNavItems.filter(item => hasAccess(item.id))
   const configNavItems = (userRole === 'owner' || userRole === 'admin') ? allConfigNavItems : []
   const serviceNavItems = allServiceNavItems.filter(item => hasAccess(item.id))
-  
-  const serviceNavItems = [
-    { id: 'serveur', label: 'Serveur', icon: ShoppingCart },
-    { id: 'bar', label: 'Bar', icon: Wine },
-  ]
+
+  // Set default view based on role when loading
+  useEffect(() => {
+    if (!roleLoading && userRole) {
+      // Redirect to appropriate view based on role
+      if (userRole === 'serveur' && view !== 'serveur') {
+        setView('serveur')
+      } else if (userRole === 'bar' && view !== 'bar') {
+        setView('bar')
+      } else if (!hasAccess(view) && mainNavItems.length > 0) {
+        setView(mainNavItems[0].id)
+      }
+    }
+  }, [roleLoading, userRole])
+
+  // Show loading while fetching role
+  if (roleLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-amber-500" />
+          <p className="mt-2 text-muted-foreground">Chargement des permissions...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // No access at all
+  if (!userRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="p-8 text-center max-w-md">
+          <div className="text-4xl mb-4">🔒</div>
+          <h2 className="text-xl font-bold mb-2">Accès non autorisé</h2>
+          <p className="text-muted-foreground mb-4">
+            Vous n'avez pas accès à cet événement. Contactez l'administrateur pour être ajouté à l'équipe.
+          </p>
+          <Button onClick={onBack} variant="outline">
+            <ChevronLeft className="w-4 h-4 mr-2" /> Retour aux événements
+          </Button>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex">
