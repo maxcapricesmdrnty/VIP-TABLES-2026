@@ -1302,7 +1302,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [configOpen, setConfigOpen] = useState(true)
 
-  const mainNavItems = [
+  // Filter navigation items based on user role
+  const allMainNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'tables', label: 'Tables', icon: Table2 },
     { id: 'invoices', label: 'Factures', icon: Receipt },
@@ -1310,13 +1311,23 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     { id: 'guichet', label: 'Guichet', icon: Ticket },
   ]
 
-  const configNavItems = [
+  const allConfigNavItems = [
     { id: 'days', label: 'Jours', icon: Calendar },
     { id: 'venues', label: 'Salles', icon: Users },
     { id: 'layout', label: 'Plan', icon: Settings },
     { id: 'menu', label: 'Menu', icon: Wine },
     { id: 'team', label: 'Équipe', icon: UserCheck },
   ]
+
+  const allServiceNavItems = [
+    { id: 'serveur', label: 'Serveur', icon: ShoppingCart },
+    { id: 'bar', label: 'Bar', icon: Wine },
+  ]
+
+  // Apply RBAC filtering
+  const mainNavItems = allMainNavItems.filter(item => hasAccess(item.id))
+  const configNavItems = (userRole === 'owner' || userRole === 'admin') ? allConfigNavItems : []
+  const serviceNavItems = allServiceNavItems.filter(item => hasAccess(item.id))
   
   const serviceNavItems = [
     { id: 'serveur', label: 'Serveur', icon: ShoppingCart },
