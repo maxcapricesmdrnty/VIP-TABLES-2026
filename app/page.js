@@ -1223,18 +1223,24 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     reserve: tables.filter(t => t.status === 'reserve').length,
     confirme: tables.filter(t => t.status === 'confirme').length,
     paye: tables.filter(t => t.status === 'paye').length,
-    // Montant potentiel total (toutes les tables avec leur prix standard)
-    potentiel: tables.reduce((sum, t) => sum + (t.standard_price || 0), 0),
-    // CA par statut
-    caReserve: tables.filter(t => t.status === 'reserve').reduce((sum, t) => sum + calculateTableTotal(t), 0),
-    caConfirme: tables.filter(t => t.status === 'confirme').reduce((sum, t) => sum + calculateTableTotal(t), 0),
-    caPaye: tables.filter(t => t.status === 'paye').reduce((sum, t) => sum + calculateTableTotal(t), 0),
-    // CA total (confirmé + payé)
-    ca: tables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => sum + calculateTableTotal(t), 0),
-    paid: tables.reduce((sum, t) => sum + (t.total_paid || 0), 0),
-    // Total personnes (toutes tables non-libres)
-    totalPersons: tables.filter(t => t.status !== 'libre').reduce((sum, t) => sum + calculateTablePersons(t), 0),
-    commissions: tables.reduce((sum, t) => sum + (t.commission_amount || 0), 0)
+    // Montant potentiel total (TOUTES les tables de TOUS les jours avec leur prix standard)
+    potentiel: allTables.reduce((sum, t) => sum + (t.standard_price || 0), 0),
+    // CA par statut (TOUTES les tables)
+    caReserve: allTables.filter(t => t.status === 'reserve').reduce((sum, t) => sum + calculateTableTotal(t), 0),
+    caConfirme: allTables.filter(t => t.status === 'confirme').reduce((sum, t) => sum + calculateTableTotal(t), 0),
+    caPaye: allTables.filter(t => t.status === 'paye').reduce((sum, t) => sum + calculateTableTotal(t), 0),
+    // CA total (confirmé + payé) - TOUTES les tables
+    ca: allTables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => sum + calculateTableTotal(t), 0),
+    paid: allTables.reduce((sum, t) => sum + (t.total_paid || 0), 0),
+    // Total personnes (toutes tables non-libres de TOUS les jours)
+    totalPersons: allTables.filter(t => t.status !== 'libre').reduce((sum, t) => sum + calculateTablePersons(t), 0),
+    commissions: allTables.reduce((sum, t) => sum + (t.commission_amount || 0), 0),
+    // Stats pour le jour sélectionné (pour affichage séparé si besoin)
+    dayStats: {
+      total: tables.length,
+      libre: tables.filter(t => t.status === 'libre').length,
+      potentiel: tables.reduce((sum, t) => sum + (t.standard_price || 0), 0),
+    }
   }
 
   const [sidebarOpen, setSidebarOpen] = useState(true)
