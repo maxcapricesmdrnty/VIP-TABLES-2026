@@ -6715,13 +6715,13 @@ function InvoicesView({ event, onEventUpdate }) {
 
       {/* Invoice Preview Modal */}
       <Dialog open={showInvoiceModal} onOpenChange={setShowInvoiceModal}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-amber-500" />
-              Invoice Preview {isConsolidated && '(Consolidated)'}
+        <DialogContent className="max-w-3xl w-[95vw] max-h-[85vh] p-0 flex flex-col overflow-hidden">
+          <DialogHeader className="shrink-0 p-4 border-b">
+            <DialogTitle className="flex items-center gap-2 text-sm sm:text-base">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
+              Facture {isConsolidated && '(Consolidée)'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">
               {isConsolidated 
                 ? `${selectedInvoiceTables.length} tables - ${selectedInvoiceTable?.client_name || 'Client'}`
                 : `Table ${selectedInvoiceTable?.table_number} - ${selectedInvoiceTable?.client_name || 'Client'}`
@@ -6730,57 +6730,57 @@ function InvoicesView({ event, onEventUpdate }) {
           </DialogHeader>
           
           {selectedInvoiceTable && (
-            <div className="space-y-6">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
               {/* Invoice Preview - New English Format */}
-              <div className="border rounded-lg p-6 bg-white text-black text-sm">
+              <div className="border rounded-lg p-3 sm:p-6 bg-white text-black text-xs sm:text-sm">
                 {/* Header */}
                 <div className="text-center mb-4">
                   {(billingSettings.billing_logo_url || event.billing_logo_url) && (
                     <img 
                       src={billingSettings.billing_logo_url || event.billing_logo_url} 
                       alt="Logo" 
-                      className="h-12 mx-auto mb-2 object-contain" 
+                      className="h-8 sm:h-12 mx-auto mb-2 object-contain" 
                     />
                   )}
-                  <h2 className="text-xl font-bold text-[#4682B4]">
+                  <h2 className="text-base sm:text-xl font-bold text-[#4682B4]">
                     {billingSettings.billing_company_name || event.billing_company_name || 'VIP'}
                   </h2>
-                  <p className="text-gray-600">
-                    {isConsolidated ? 'Consolidated Proforma - Table Reservations' : 'Proforma - Table Reservation'}
+                  <p className="text-gray-600 text-xs sm:text-sm">
+                    {isConsolidated ? 'Proforma Consolidée - Réservations Tables' : 'Proforma - Réservation Table'}
                   </p>
-                  <p className="text-gray-500 text-xs">Date: {format(new Date(), 'dd/MM/yyyy')}</p>
+                  <p className="text-gray-500 text-[10px] sm:text-xs">Date: {format(new Date(), 'dd/MM/yyyy')}</p>
                 </div>
                 
-                {/* Two column info */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="bg-[#4682B4]/10 p-3 rounded">
-                    <h3 className="font-bold text-[#4682B4] text-xs mb-2">Client Information</h3>
-                    <p className="font-medium">{selectedInvoiceTable.client_name || 'N/A'}</p>
-                    {selectedInvoiceTable.client_email && <p className="text-xs">{selectedInvoiceTable.client_email}</p>}
+                {/* Two column info - stack on mobile */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-4">
+                  <div className="bg-[#4682B4]/10 p-2 sm:p-3 rounded">
+                    <h3 className="font-bold text-[#4682B4] text-[10px] sm:text-xs mb-1 sm:mb-2">Client</h3>
+                    <p className="font-medium text-xs sm:text-sm">{selectedInvoiceTable.client_name || 'N/A'}</p>
+                    {selectedInvoiceTable.client_email && <p className="text-[10px] sm:text-xs">{selectedInvoiceTable.client_email}</p>}
                   </div>
-                  <div className="bg-[#4682B4]/10 p-3 rounded">
-                    <h3 className="font-bold text-[#4682B4] text-xs mb-2">Reservation Summary</h3>
-                    <p className="text-xs">Total Tables: {selectedInvoiceTables.length}</p>
-                    <p className="text-xs">Days: {getInvoiceDays().join(', ')}</p>
-                    <p className="text-xs">Tables: {selectedInvoiceTables.map(t => t.display_number || t.table_number).join(', ')}</p>
+                  <div className="bg-[#4682B4]/10 p-2 sm:p-3 rounded">
+                    <h3 className="font-bold text-[#4682B4] text-[10px] sm:text-xs mb-1 sm:mb-2">Résumé</h3>
+                    <p className="text-[10px] sm:text-xs">Tables: {selectedInvoiceTables.length}</p>
+                    <p className="text-[10px] sm:text-xs">Jours: {getInvoiceDays().join(', ')}</p>
+                    <p className="text-[10px] sm:text-xs">N°: {selectedInvoiceTables.map(t => t.display_number || t.table_number).join(', ')}</p>
                   </div>
                 </div>
                 
                 {/* Detailed Reservations */}
                 <div className="mb-4">
-                  <div className="bg-[#4682B4] text-white px-3 py-1 rounded-t font-bold text-xs">
-                    Detailed Reservations
+                  <div className="bg-[#4682B4] text-white px-2 sm:px-3 py-1 rounded-t font-bold text-[10px] sm:text-xs">
+                    Détail des réservations
                   </div>
-                  <div className="border border-t-0 rounded-b p-2">
+                  <div className="border border-t-0 rounded-b p-2 overflow-x-auto">
                     {getInvoiceDays().map(day => (
                       <div key={day} className="mb-2">
-                        <p className="font-semibold text-xs">{format(parseISO(day), 'EEEE dd MMMM yyyy', { locale: fr })} - Table(s): {getTablesForDay(day).map(t => t.display_number || t.table_number).join(', ')}</p>
-                        <table className="w-full text-xs">
+                        <p className="font-semibold text-[10px] sm:text-xs">{format(parseISO(day), 'EEE dd MMM yyyy', { locale: fr })} - Table(s): {getTablesForDay(day).map(t => t.display_number || t.table_number).join(', ')}</p>
+                        <table className="w-full text-[10px] sm:text-xs min-w-[300px]">
                           <thead>
                             <tr className="bg-gray-100">
                               <th className="text-left p-1">Description</th>
-                              <th className="text-center p-1">Qty</th>
-                              <th className="text-right p-1">Unit Price</th>
+                              <th className="text-center p-1">Qté</th>
+                              <th className="text-right p-1">Prix</th>
                               <th className="text-right p-1">Total</th>
                             </tr>
                           </thead>
@@ -6788,11 +6788,11 @@ function InvoicesView({ event, onEventUpdate }) {
                             {getTablesForDay(day).map(t => (
                               <tr key={t.id}>
                                 <td className="p-1">
-                                  Table {t.display_number || t.table_number} - {format(parseISO(day), 'dd/MM/yyyy')}
-                                  <br/><span className="text-[10px] italic text-gray-500">(Beverage budget: {formatSwiss(t.sold_price || 0)} {event.currency})</span>
+                                  Table {t.display_number || t.table_number}
+                                  <br/><span className="text-[9px] sm:text-[10px] italic text-gray-500">(Budget: {formatSwiss(t.sold_price || 0)} {event.currency})</span>
                                 </td>
                                 <td className="text-center p-1">1</td>
-                                <td className="text-right p-1">{formatSwiss(calculateTableTotal(t))} {event.currency}</td>
+                                <td className="text-right p-1">{formatSwiss(calculateTableTotal(t))}</td>
                                 <td className="text-right p-1">{formatSwiss(calculateTableTotal(t))} {event.currency}</td>
                               </tr>
                             ))}
