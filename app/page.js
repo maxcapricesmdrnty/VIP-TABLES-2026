@@ -5858,7 +5858,7 @@ function InvoicesView({ event, onEventUpdate }) {
   const [selectedInvoiceTable, setSelectedInvoiceTable] = useState(null)
   const [selectedInvoiceTables, setSelectedInvoiceTables] = useState([]) // For consolidated
   const [isConsolidated, setIsConsolidated] = useState(false)
-  const [invoiceRecipient, setInvoiceRecipient] = useState('vip')
+  const [selectedRecipients, setSelectedRecipients] = useState({ vip: false, client: false, custom: false })
   const [customEmail, setCustomEmail] = useState('')
   const [invoiceNotes, setInvoiceNotes] = useState('') // Custom notes for invoice
   
