@@ -6982,6 +6982,42 @@ function InvoicesView({ event, onEventUpdate }) {
         </DialogContent>
       </Dialog>
 
+      {/* Notes Modal */}
+      <Dialog open={showNotesModal} onOpenChange={setShowNotesModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <StickyNote className="w-5 h-5 text-blue-400" />
+              Notes internes
+            </DialogTitle>
+            <DialogDescription>
+              {selectedClientForNotes?.client_name || 'Client'} - {selectedClientForNotes?.tables?.length || 0} table(s)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Textarea
+              value={editingNotes}
+              onChange={(e) => setEditingNotes(e.target.value)}
+              placeholder="Ajouter une note interne pour ce client..."
+              className="min-h-[150px]"
+            />
+            <p className="text-xs text-muted-foreground">
+              ⚠️ Ces notes sont pour usage interne uniquement. Elles n'apparaissent pas sur les factures envoyées aux clients.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNotesModal(false)}>Annuler</Button>
+            <Button 
+              onClick={saveClientNotes} 
+              disabled={savingNotes}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white"
+            >
+              {savingNotes ? 'Enregistrement...' : 'Sauvegarder'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Invoice Preview Modal */}
       <Dialog open={showInvoiceModal} onOpenChange={setShowInvoiceModal}>
         <DialogContent className="max-w-3xl w-[95vw] max-h-[85vh] p-0 flex flex-col overflow-hidden">
