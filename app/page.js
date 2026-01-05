@@ -7080,10 +7080,11 @@ function InvoicesView({ event, onEventUpdate }) {
                   <Textarea
                     value={invoiceNotes}
                     onChange={(e) => setInvoiceNotes(e.target.value)}
+                    onBlur={saveInvoiceNotes}
                     placeholder="Note pour usage interne uniquement (non visible par le client)..."
                     className="min-h-[80px] bg-background"
                   />
-                  <p className="text-xs text-muted-foreground">⚠️ Cette note est pour usage interne uniquement. Elle n'apparaîtra PAS sur la facture envoyée au client.</p>
+                  <p className="text-xs text-muted-foreground">⚠️ Usage interne uniquement. N'apparaît PAS sur la facture. Sauvegardé automatiquement.</p>
                 </div>
                 
                 <Label className="text-base font-semibold">Envoyer à:</Label>
