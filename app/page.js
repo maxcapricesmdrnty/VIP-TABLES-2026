@@ -6477,32 +6477,46 @@ function InvoicesView({ event, onEventUpdate }) {
         ? `Invoice_${clientNameClean}_${companyName}.pdf`
         : `Invoice_Table_${table.table_number}_${companyName}.pdf`
       
-      const response = await fetch('/api/invoice/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: recipientEmail,
-          subject: `${companyName} - ${isConsolidated ? 'Consolidated ' : ''}Invoice - ${table.client_name || 'Client'}`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #4682B4;">${companyName}</h2>
-              <p>Dear ${table.client_name || 'Client'},</p>
-              <p>Please find attached your ${isConsolidated ? 'consolidated ' : ''}invoice for your VIP table reservation.</p>
-              <p><strong>Total Amount: ${formatSwiss(grandTotal)} ${currency}</strong></p>
-              <p>If you have any questions, please don't hesitate to contact us.</p>
-              <p>Best regards,<br>The ${companyName} Team</p>
-              <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-              <p style="font-size: 12px; color: #666;">${contactEmail}</p>
-            </div>
-          `,
-          pdfBase64,
-          fileName
+      // Send to all selected recipients
+      const emailPromises = recipientEmails.map(email => 
+        fetch('/api/invoice/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: email,
+            subject: `${companyName} - ${isConsolidated ? 'Consolidated ' : ''}Invoice - ${table.client_name || 'Client'}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #4682B4;">${companyName}</h2>
+                <p>Dear ${table.client_name || 'Client'},</p>
+                <p>Please find attached your ${isConsolidated ? 'consolidated ' : ''}invoice for your VIP table reservation.</p>
+                <p><strong>Total Amount: ${formatSwiss(grandTotal)} ${currency}</strong></p>
+                <p>If you have any questions, please don't hesitate to contact us.</p>
+                <p>Best regards,<br>The ${companyName} Team</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="font-size: 12px; color: #666;">${contactEmail}</p>
+              </div>
+            `,
+            pdfBase64,
+            fileName
+          })
         })
-      })
-
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error)
-      toast.success(`Invoice sent to ${recipientEmail}`)
+      )
+      
+      const results = await Promise.all(emailPromises)
+      const failedEmails = []
+      
+      for (let i = 0; i < results.length; i++) {
+        if (!results[i].ok) {
+          failedEmails.push(recipientEmails[i])
+        }
+      }
+      
+      if (failedEmails.length > 0) {
+        toast.error(`Erreur pour: ${failedEmails.join(', ')}`)
+      } else {
+        toast.success(`Facture envoyée à ${recipientEmails.length} destinataire(s)`)
+      }
       setShowInvoiceModal(false)
     } catch (error) {
       toast.error(`Error: ${error.message}`)
