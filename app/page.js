@@ -6199,14 +6199,21 @@ function InvoicesView({ event, onEventUpdate }) {
     }
   }
 
-  // Get recipient email based on selection
-  const getRecipientEmail = () => {
-    switch (invoiceRecipient) {
-      case 'vip': return billingSettings.billing_email || 'vip@caprices.ch'
-      case 'client': return selectedInvoiceTable?.client_email || ''
-      case 'custom': return customEmail
-      default: return ''
+  // Get all selected recipient emails
+  const getSelectedEmails = () => {
+    const emails = []
+    if (selectedRecipients.vip) {
+      emails.push(billingSettings.billing_email || 'vip@caprices.ch')
     }
+    if (selectedRecipients.client && selectedInvoiceTable?.client_email) {
+      emails.push(selectedInvoiceTable.client_email)
+    }
+    if (selectedRecipients.custom && customEmail) {
+      // Support multiple emails separated by comma or semicolon
+      const customEmails = customEmail.split(/[,;]/).map(e => e.trim()).filter(e => e.includes('@'))
+      emails.push(...customEmails)
+    }
+    return [...new Set(emails)] // Remove duplicates
   }
 
   // Get all unique days from selected tables
