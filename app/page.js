@@ -6124,7 +6124,7 @@ function InvoicesView({ event, onEventUpdate }) {
     setSelectedInvoiceTable(table)
     setSelectedInvoiceTables([table])
     setIsConsolidated(false)
-    setInvoiceRecipient('vip')
+    setSelectedRecipients({ vip: false, client: false, custom: false })
     setCustomEmail('')
     setInvoiceNotes(table.invoice_notes || '') // Load existing notes
     setShowInvoiceModal(true)
@@ -6135,7 +6135,7 @@ function InvoicesView({ event, onEventUpdate }) {
     setSelectedInvoiceTable(tables[0])
     setSelectedInvoiceTables(tables)
     setIsConsolidated(true)
-    setInvoiceRecipient('vip')
+    setSelectedRecipients({ vip: false, client: false, custom: false })
     setCustomEmail('')
     // For consolidated, use notes from first table or empty
     setInvoiceNotes(tables[0]?.invoice_notes || '')
