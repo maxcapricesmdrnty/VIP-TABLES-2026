@@ -6894,6 +6894,19 @@ function InvoicesView({ event, onEventUpdate }) {
                     })}
                   </div>
                   
+                  {/* Display existing notes */}
+                  {client.tables[0]?.invoice_notes && (
+                    <div className="mt-3 p-2 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                      <div className="text-xs text-blue-400 font-medium flex items-center gap-1 mb-1">
+                        <StickyNote className="w-3 h-3" />
+                        Note interne:
+                      </div>
+                      <div className="text-xs text-muted-foreground whitespace-pre-wrap">
+                        {client.tables[0].invoice_notes}
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* Client total */}
                   <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t flex flex-col sm:flex-row justify-between sm:items-center gap-1">
                     <div className="text-sm">
