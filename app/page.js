@@ -6115,7 +6115,7 @@ function InvoicesView({ event, onEventUpdate }) {
     setIsConsolidated(false)
     setInvoiceRecipient('vip')
     setCustomEmail('')
-    setInvoiceNotes('')
+    setInvoiceNotes(table.invoice_notes || '') // Load existing notes
     setShowInvoiceModal(true)
   }
 
@@ -6126,8 +6126,30 @@ function InvoicesView({ event, onEventUpdate }) {
     setIsConsolidated(true)
     setInvoiceRecipient('vip')
     setCustomEmail('')
-    setInvoiceNotes('')
+    // For consolidated, use notes from first table or empty
+    setInvoiceNotes(tables[0]?.invoice_notes || '')
     setShowInvoiceModal(true)
+  }
+  
+  // Save invoice notes to database
+  const saveInvoiceNotes = async () => {
+    if (!selectedInvoiceTables.length) return
+    
+    try {
+      // Save notes to all selected tables (for consolidated invoices)
+      const tableIds = selectedInvoiceTables.map(t => t.id)
+      await supabase
+        .from('tables')
+        .update({ invoice_notes: invoiceNotes })
+        .in('id', tableIds)
+      
+      // Update local state
+      setReservedTables(prev => prev.map(t => 
+        tableIds.includes(t.id) ? { ...t, invoice_notes: invoiceNotes } : t
+      ))
+    } catch (error) {
+      console.error('Error saving invoice notes:', error)
+    }
   }
 
   // Get recipient email based on selection
