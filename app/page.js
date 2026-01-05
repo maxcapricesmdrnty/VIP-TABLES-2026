@@ -2982,6 +2982,7 @@ function TableCell({ table, currency, onClick }) {
       libre: 'bg-green-500/20 border-green-500 hover:bg-green-500/30',
       reserve: 'bg-yellow-500/20 border-yellow-500 hover:bg-yellow-500/30',
       confirme: 'bg-blue-500/20 border-blue-500 hover:bg-blue-500/30',
+      partiel: 'bg-orange-500/20 border-orange-500 hover:bg-orange-500/30',
       paye: 'bg-purple-500/20 border-purple-500 hover:bg-purple-500/30'
     }
     return classes[status] || ''
