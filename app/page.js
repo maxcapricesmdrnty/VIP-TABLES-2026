@@ -5849,6 +5849,7 @@ function InvoicesView({ event, onEventUpdate }) {
   const [isConsolidated, setIsConsolidated] = useState(false)
   const [invoiceRecipient, setInvoiceRecipient] = useState('vip')
   const [customEmail, setCustomEmail] = useState('')
+  const [invoiceNotes, setInvoiceNotes] = useState('') // Custom notes for invoice
   
   // Billing settings tab
   const [activeTab, setActiveTab] = useState('invoices')
