@@ -7040,6 +7040,18 @@ function InvoicesView({ event, onEventUpdate }) {
                   </div>
                 )}
                 
+                {/* Custom Notes - only show if notes are entered */}
+                {invoiceNotes && (
+                  <div className="mb-4">
+                    <div className="bg-[#4682B4] text-white px-3 py-1 rounded-t font-bold text-xs">
+                      Notes
+                    </div>
+                    <div className="border border-t-0 rounded-b p-2 text-xs whitespace-pre-wrap">
+                      {invoiceNotes}
+                    </div>
+                  </div>
+                )}
+                
                 {/* Footer */}
                 <div className="text-center text-xs text-gray-500 mt-4 pt-2 border-t">
                   <p>{billingSettings.billing_thank_you || event.billing_thank_you || 'Thank you for your trust'} - {billingSettings.billing_company_name || event.billing_company_name || 'VIP'}!</p>
