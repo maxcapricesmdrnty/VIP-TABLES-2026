@@ -6824,6 +6824,19 @@ function InvoicesView({ event, onEventUpdate }) {
                               ))}
                             </div>
                           )}
+                          
+                          {/* Show invoice notes if present */}
+                          {table.invoice_notes && (
+                            <div className="mt-2 pt-2 border-t border-border/50">
+                              <div className="text-[10px] sm:text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                                <StickyNote className="w-3 h-3" />
+                                Note interne:
+                              </div>
+                              <div className="text-[10px] sm:text-xs text-muted-foreground italic whitespace-pre-wrap">
+                                {table.invoice_notes}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )
                     })}
