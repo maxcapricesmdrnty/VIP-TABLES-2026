@@ -7188,22 +7188,6 @@ function InvoicesView({ event, onEventUpdate }) {
               
               {/* Email Options */}
               <div className="space-y-4">
-                {/* Internal Notes field */}
-                <div className="space-y-2">
-                  <Label className="text-base font-semibold flex items-center gap-2">
-                    <StickyNote className="w-4 h-4" />
-                    Notes internes (optionnel)
-                  </Label>
-                  <Textarea
-                    value={invoiceNotes}
-                    onChange={(e) => setInvoiceNotes(e.target.value)}
-                    onBlur={saveInvoiceNotes}
-                    placeholder="Note pour usage interne uniquement (non visible par le client)..."
-                    className="min-h-[80px] bg-background"
-                  />
-                  <p className="text-xs text-muted-foreground">⚠️ Usage interne uniquement. N'apparaît PAS sur la facture. Sauvegardé automatiquement.</p>
-                </div>
-                
                 <Label className="text-base font-semibold">Envoyer à:</Label>
                 
                 <div className="space-y-3">
