@@ -7290,7 +7290,7 @@ function InvoicesView({ event, onEventUpdate }) {
             </Button>
             <Button 
               onClick={sendInvoiceEmail}
-              disabled={sendingEmail === selectedInvoiceTable?.id || (invoiceRecipient === 'custom' && !customEmail)}
+              disabled={sendingEmail === selectedInvoiceTable?.id || getSelectedEmails().length === 0}
               className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-amber-600 text-black hover:from-amber-600 hover:to-amber-700"
             >
               {sendingEmail === selectedInvoiceTable?.id ? (
@@ -7301,7 +7301,7 @@ function InvoicesView({ event, onEventUpdate }) {
               ) : (
                 <>
                   <FileText className="w-4 h-4 mr-2" />
-                  Envoyer
+                  Envoyer {getSelectedEmails().length > 0 && `(${getSelectedEmails().length})`}
                 </>
               )}
             </Button>
