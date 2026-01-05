@@ -3367,9 +3367,10 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
               libre: 'bg-green-500',
               reserve: 'bg-yellow-500',
               confirme: 'bg-blue-500',
+              partiel: 'bg-orange-500',
               paye: 'bg-purple-500'
             }[form.status]}>
-              {form.status === 'libre' ? 'Libre' : form.status === 'reserve' ? 'Réservé' : form.status === 'confirme' ? 'Confirmé' : 'Payé'}
+              {form.status === 'libre' ? 'Libre' : form.status === 'reserve' ? 'Réservé' : form.status === 'confirme' ? 'Confirmé' : form.status === 'partiel' ? 'Partiellement payé' : 'Payé'}
             </Badge>
           </DialogTitle>
         </DialogHeader>
