@@ -6157,6 +6157,42 @@ function InvoicesView({ event, onEventUpdate }) {
       console.error('Error saving invoice notes:', error)
     }
   }
+  
+  // Open notes modal for a client
+  const openNotesModal = (client) => {
+    setSelectedClientForNotes(client)
+    // Get existing notes from first table (or combine if different)
+    const existingNotes = client.tables[0]?.invoice_notes || ''
+    setEditingNotes(existingNotes)
+    setShowNotesModal(true)
+  }
+  
+  // Save notes for a client (all their tables)
+  const saveClientNotes = async () => {
+    if (!selectedClientForNotes) return
+    
+    setSavingNotes(true)
+    try {
+      const tableIds = selectedClientForNotes.tables.map(t => t.id)
+      await supabase
+        .from('tables')
+        .update({ invoice_notes: editingNotes })
+        .in('id', tableIds)
+      
+      // Update local state
+      setReservedTables(prev => prev.map(t => 
+        tableIds.includes(t.id) ? { ...t, invoice_notes: editingNotes } : t
+      ))
+      
+      toast.success('Notes sauvegardées!')
+      setShowNotesModal(false)
+    } catch (error) {
+      console.error('Error saving notes:', error)
+      toast.error('Erreur lors de la sauvegarde')
+    } finally {
+      setSavingNotes(false)
+    }
+  }
 
   // Get recipient email based on selection
   const getRecipientEmail = () => {
