@@ -6192,6 +6192,9 @@ function InvoicesView({ event, onEventUpdate }) {
 
     setSendingEmail(table.id)
     
+    // Save notes before sending
+    await saveInvoiceNotes()
+    
     try {
       const doc = new jsPDF()
       const currency = event?.currency || 'CHF'
