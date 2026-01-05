@@ -5842,6 +5842,12 @@ function InvoicesView({ event, onEventUpdate }) {
   const [selectedTableForPayment, setSelectedTableForPayment] = useState(null)
   const [paymentForm, setPaymentForm] = useState({ amount: '', method: 'virement', reference: '', notes: '' })
   
+  // Notes modal state
+  const [showNotesModal, setShowNotesModal] = useState(false)
+  const [selectedClientForNotes, setSelectedClientForNotes] = useState(null)
+  const [editingNotes, setEditingNotes] = useState('')
+  const [savingNotes, setSavingNotes] = useState(false)
+  
   // Invoice preview modal states
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
   const [selectedInvoiceTable, setSelectedInvoiceTable] = useState(null)
