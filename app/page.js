@@ -6797,6 +6797,16 @@ function InvoicesView({ event, onEventUpdate }) {
                           <span className="hidden sm:inline">Facture</span>
                         </Button>
                       )}
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => openNotesModal(client)}
+                        className={`text-xs ${client.tables[0]?.invoice_notes ? 'text-blue-400 border-blue-400 hover:bg-blue-400/10' : 'text-muted-foreground border-border hover:bg-muted'}`}
+                        title="Notes internes"
+                      >
+                        <StickyNote className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" /> 
+                        <span className="hidden sm:inline">Notes</span>
+                      </Button>
                     </div>
                   </div>
                 </CardHeader>
