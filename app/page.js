@@ -6115,6 +6115,7 @@ function InvoicesView({ event, onEventUpdate }) {
     setIsConsolidated(false)
     setInvoiceRecipient('vip')
     setCustomEmail('')
+    setInvoiceNotes('')
     setShowInvoiceModal(true)
   }
 
@@ -6125,6 +6126,7 @@ function InvoicesView({ event, onEventUpdate }) {
     setIsConsolidated(true)
     setInvoiceRecipient('vip')
     setCustomEmail('')
+    setInvoiceNotes('')
     setShowInvoiceModal(true)
   }
 
