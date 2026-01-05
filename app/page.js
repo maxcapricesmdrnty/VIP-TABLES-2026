@@ -7214,62 +7214,72 @@ function InvoicesView({ event, onEventUpdate }) {
               
               {/* Email Options */}
               <div className="space-y-4">
-                <Label className="text-base font-semibold">Envoyer à:</Label>
+                <Label className="text-base font-semibold">Envoyer à: <span className="text-xs text-muted-foreground font-normal">(sélection multiple possible)</span></Label>
                 
                 <div className="space-y-3">
                   {/* Option VIP */}
                   <div 
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${invoiceRecipient === 'vip' ? 'border-amber-500 bg-amber-500/10' : 'border-border hover:bg-muted/50'}`}
-                    onClick={() => setInvoiceRecipient('vip')}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selectedRecipients.vip ? 'border-amber-500 bg-amber-500/10' : 'border-border hover:bg-muted/50'}`}
+                    onClick={() => setSelectedRecipients({...selectedRecipients, vip: !selectedRecipients.vip})}
                   >
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${invoiceRecipient === 'vip' ? 'border-amber-500' : 'border-muted-foreground'}`}>
-                      {invoiceRecipient === 'vip' && <div className="w-2 h-2 rounded-full bg-amber-500" />}
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${selectedRecipients.vip ? 'border-amber-500 bg-amber-500' : 'border-muted-foreground'}`}>
+                      {selectedRecipients.vip && <Check className="w-3 h-3 text-black" />}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium">Internal Copy</p>
+                      <p className="font-medium">Copie interne</p>
                       <p className="text-sm text-muted-foreground">{billingSettings.billing_email || 'vip@caprices.ch'}</p>
                     </div>
                   </div>
                   
                   {/* Option Client */}
                   <div 
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${invoiceRecipient === 'client' ? 'border-amber-500 bg-amber-500/10' : 'border-border hover:bg-muted/50'} ${!selectedInvoiceTable.client_email ? 'opacity-50' : ''}`}
-                    onClick={() => selectedInvoiceTable.client_email && setInvoiceRecipient('client')}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selectedRecipients.client ? 'border-amber-500 bg-amber-500/10' : 'border-border hover:bg-muted/50'} ${!selectedInvoiceTable.client_email ? 'opacity-50' : ''}`}
+                    onClick={() => selectedInvoiceTable.client_email && setSelectedRecipients({...selectedRecipients, client: !selectedRecipients.client})}
                   >
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${invoiceRecipient === 'client' ? 'border-amber-500' : 'border-muted-foreground'}`}>
-                      {invoiceRecipient === 'client' && <div className="w-2 h-2 rounded-full bg-amber-500" />}
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${selectedRecipients.client ? 'border-amber-500 bg-amber-500' : 'border-muted-foreground'}`}>
+                      {selectedRecipients.client && <Check className="w-3 h-3 text-black" />}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium">Client Email</p>
+                      <p className="font-medium">Email du client</p>
                       <p className="text-sm text-muted-foreground">
-                        {selectedInvoiceTable.client_email || 'Not provided'}
+                        {selectedInvoiceTable.client_email || 'Non fourni'}
                       </p>
                     </div>
                   </div>
                   
-                  {/* Option Custom */}
+                  {/* Option Custom - Multiple emails */}
                   <div 
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${invoiceRecipient === 'custom' ? 'border-amber-500 bg-amber-500/10' : 'border-border hover:bg-muted/50'}`}
-                    onClick={() => setInvoiceRecipient('custom')}
+                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selectedRecipients.custom ? 'border-amber-500 bg-amber-500/10' : 'border-border hover:bg-muted/50'}`}
+                    onClick={() => setSelectedRecipients({...selectedRecipients, custom: !selectedRecipients.custom})}
                   >
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${invoiceRecipient === 'custom' ? 'border-amber-500' : 'border-muted-foreground'}`}>
-                      {invoiceRecipient === 'custom' && <div className="w-2 h-2 rounded-full bg-amber-500" />}
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center mt-0.5 ${selectedRecipients.custom ? 'border-amber-500 bg-amber-500' : 'border-muted-foreground'}`}>
+                      {selectedRecipients.custom && <Check className="w-3 h-3 text-black" />}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium">Other Email Address</p>
-                      {invoiceRecipient === 'custom' && (
-                        <Input 
-                          type="email"
-                          className="mt-2 bg-background"
-                          placeholder="email@example.com"
-                          value={customEmail}
-                          onChange={(e) => setCustomEmail(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
+                      <p className="font-medium">Autre(s) adresse(s)</p>
+                      {selectedRecipients.custom && (
+                        <>
+                          <Input 
+                            type="text"
+                            className="mt-2 bg-background"
+                            placeholder="email1@exemple.com, email2@exemple.com"
+                            value={customEmail}
+                            onChange={(e) => setCustomEmail(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">Séparez les adresses par une virgule ou point-virgule</p>
+                        </>
                       )}
                     </div>
                   </div>
                 </div>
+                
+                {/* Summary of selected recipients */}
+                {(selectedRecipients.vip || selectedRecipients.client || selectedRecipients.custom) && (
+                  <div className="p-2 bg-muted/50 rounded-lg text-xs text-muted-foreground">
+                    <strong>Destinataires:</strong> {getSelectedEmails().join(', ') || 'Aucun'}
+                  </div>
+                )}
               </div>
             </div>
           )}
