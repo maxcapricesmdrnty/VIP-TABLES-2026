@@ -6377,6 +6377,38 @@ function InvoicesView({ event, onEventUpdate }) {
         })
       }
       
+      // Custom Notes (only if provided and fits on page)
+      if (invoiceNotes && invoiceNotes.trim() && yPos < 250) {
+        yPos += 6
+        doc.setFillColor(...primaryColor)
+        doc.rect(20, yPos, 170, 6, 'F')
+        doc.setTextColor(255, 255, 255)
+        doc.setFont(undefined, 'bold')
+        doc.setFontSize(8)
+        doc.text('Notes', 25, yPos + 4.5)
+        
+        yPos += 10
+        doc.setTextColor(0, 0, 0)
+        doc.setFont(undefined, 'normal')
+        doc.setFontSize(7)
+        
+        // Split notes by lines and render
+        const notesLines = invoiceNotes.split('\n')
+        notesLines.forEach(line => {
+          if (line.trim() && yPos < 270) {
+            // Wrap long lines
+            const maxWidth = 160
+            const wrappedLines = doc.splitTextToSize(line, maxWidth)
+            wrappedLines.forEach(wrappedLine => {
+              if (yPos < 270) {
+                doc.text(wrappedLine, 25, yPos)
+                yPos += 4
+              }
+            })
+          }
+        })
+      }
+      
       // Footer
       const thankYou = billingSettings.billing_thank_you || event.billing_thank_you || 'Thank you for your trust'
       const vatText = billingSettings.billing_vat_text || event.billing_vat_text || 'VAT not applicable at this stage'
