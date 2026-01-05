@@ -3394,6 +3394,7 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                 <option value="libre">🟢 Libre</option>
                 <option value="reserve">🟡 Réservé</option>
                 <option value="confirme">🔵 Confirmé</option>
+                <option value="partiel">🟠 Partiellement payé</option>
                 <option value="paye">🟣 Payé</option>
               </select>
             </div>
