@@ -6232,12 +6232,12 @@ function InvoicesView({ event, onEventUpdate }) {
     return selectedInvoiceTables.reduce((sum, t) => sum + calculateTableTotal(t), 0)
   }
 
-  // Send invoice by email with selected recipient (supports single and consolidated)
+  // Send invoice by email with selected recipients (supports multiple)
   const sendInvoiceEmail = async () => {
-    const recipientEmail = getRecipientEmail()
+    const recipientEmails = getSelectedEmails()
     
-    if (!recipientEmail || !recipientEmail.includes('@')) {
-      toast.error('Invalid email address')
+    if (recipientEmails.length === 0) {
+      toast.error('Veuillez sélectionner au moins un destinataire')
       return
     }
 
