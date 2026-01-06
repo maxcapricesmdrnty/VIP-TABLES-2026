@@ -4755,6 +4755,25 @@ function FeedbackView({ event, user, userRole }) {
     }
   }
   
+  // Delete feedback (admin only)
+  const deleteFeedback = async (feedbackId) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce feedback ?')) return
+    
+    try {
+      const { error } = await supabase
+        .from('feedbacks')
+        .delete()
+        .eq('id', feedbackId)
+      
+      if (error) throw error
+      
+      toast.success('Feedback supprimé!')
+      fetchFeedbacks()
+    } catch (error) {
+      toast.error('Erreur: ' + error.message)
+    }
+  }
+  
   // Get type badge
   const getTypeBadge = (type) => {
     switch (type) {
