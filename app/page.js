@@ -4643,6 +4643,396 @@ function BarView({ event }) {
   )
 }
 
+// Feedback Component
+function FeedbackView({ event, user, userRole }) {
+  const [feedbacks, setFeedbacks] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showNewFeedback, setShowNewFeedback] = useState(false)
+  const [filter, setFilter] = useState('all') // all, bug, feature, question
+  const [statusFilter, setStatusFilter] = useState('all') // all, nouveau, en_cours, resolu, rejete
+  const [savingFeedback, setSavingFeedback] = useState(false)
+  const [newFeedback, setNewFeedback] = useState({
+    type: 'bug',
+    title: '',
+    description: '',
+    page: '',
+    priority: 'moyenne'
+  })
+  
+  const isAdmin = userRole === 'owner' || userRole === 'admin'
+  const currency = event?.currency || 'CHF'
+  
+  // Fetch feedbacks
+  useEffect(() => {
+    fetchFeedbacks()
+  }, [event.id])
+  
+  const fetchFeedbacks = async () => {
+    setLoading(true)
+    try {
+      let query = supabase
+        .from('feedbacks')
+        .select('*')
+        .eq('event_id', event.id)
+        .order('created_at', { ascending: false })
+      
+      // If not admin, only show own feedbacks
+      if (!isAdmin) {
+        query = query.eq('user_id', user.id)
+      }
+      
+      const { data, error } = await query
+      if (error) throw error
+      setFeedbacks(data || [])
+    } catch (error) {
+      console.error('Error fetching feedbacks:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  // Submit new feedback
+  const submitFeedback = async () => {
+    if (!newFeedback.title || !newFeedback.description) {
+      toast.error('Titre et description requis')
+      return
+    }
+    
+    setSavingFeedback(true)
+    try {
+      const { error } = await supabase.from('feedbacks').insert({
+        event_id: event.id,
+        user_id: user.id,
+        user_email: user.email,
+        type: newFeedback.type,
+        title: newFeedback.title,
+        description: newFeedback.description,
+        page: newFeedback.page,
+        priority: newFeedback.priority,
+        status: 'nouveau'
+      })
+      
+      if (error) throw error
+      
+      toast.success('Feedback envoyé!')
+      setShowNewFeedback(false)
+      setNewFeedback({ type: 'bug', title: '', description: '', page: '', priority: 'moyenne' })
+      fetchFeedbacks()
+    } catch (error) {
+      toast.error('Erreur: ' + error.message)
+    } finally {
+      setSavingFeedback(false)
+    }
+  }
+  
+  // Update feedback status (admin only)
+  const updateFeedbackStatus = async (feedbackId, newStatus) => {
+    try {
+      const { error } = await supabase
+        .from('feedbacks')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', feedbackId)
+      
+      if (error) throw error
+      
+      toast.success('Statut mis à jour!')
+      fetchFeedbacks()
+    } catch (error) {
+      toast.error('Erreur: ' + error.message)
+    }
+  }
+  
+  // Get type badge
+  const getTypeBadge = (type) => {
+    switch (type) {
+      case 'bug': return <Badge className="bg-red-500">🐛 Bug</Badge>
+      case 'feature': return <Badge className="bg-green-500">💡 Amélioration</Badge>
+      case 'question': return <Badge className="bg-blue-500">❓ Question</Badge>
+      default: return <Badge>{type}</Badge>
+    }
+  }
+  
+  // Get status badge
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'nouveau': return <Badge className="bg-yellow-500">🆕 Nouveau</Badge>
+      case 'en_cours': return <Badge className="bg-blue-500">🔄 En cours</Badge>
+      case 'resolu': return <Badge className="bg-green-500">✅ Résolu</Badge>
+      case 'rejete': return <Badge className="bg-gray-500">❌ Rejeté</Badge>
+      default: return <Badge>{status}</Badge>
+    }
+  }
+  
+  // Get priority badge
+  const getPriorityBadge = (priority) => {
+    switch (priority) {
+      case 'haute': return <Badge variant="outline" className="border-red-500 text-red-500">🔴 Haute</Badge>
+      case 'moyenne': return <Badge variant="outline" className="border-yellow-500 text-yellow-500">🟡 Moyenne</Badge>
+      case 'basse': return <Badge variant="outline" className="border-green-500 text-green-500">🟢 Basse</Badge>
+      default: return null
+    }
+  }
+  
+  // Filter feedbacks
+  const filteredFeedbacks = feedbacks.filter(f => {
+    if (filter !== 'all' && f.type !== filter) return false
+    if (statusFilter !== 'all' && f.status !== statusFilter) return false
+    return true
+  })
+  
+  // Stats
+  const stats = {
+    total: feedbacks.length,
+    nouveau: feedbacks.filter(f => f.status === 'nouveau').length,
+    en_cours: feedbacks.filter(f => f.status === 'en_cours').length,
+    resolu: feedbacks.filter(f => f.status === 'resolu').length
+  }
+  
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <MessageCircle className="w-5 h-5 text-amber-500" />
+            Feedback
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {isAdmin ? 'Tous les feedbacks de l\'équipe' : 'Vos feedbacks et suggestions'}
+          </p>
+        </div>
+        <Button 
+          onClick={() => setShowNewFeedback(true)}
+          className="bg-gradient-to-r from-amber-500 to-amber-600 text-black"
+        >
+          <MessageSquarePlus className="w-4 h-4 mr-2" />
+          Nouveau feedback
+        </Button>
+      </div>
+      
+      {/* Stats for Admin */}
+      {isAdmin && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card className="p-3">
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-xs text-muted-foreground">Total</div>
+          </Card>
+          <Card className="p-3 border-yellow-500/30">
+            <div className="text-2xl font-bold text-yellow-500">{stats.nouveau}</div>
+            <div className="text-xs text-muted-foreground">Nouveaux</div>
+          </Card>
+          <Card className="p-3 border-blue-500/30">
+            <div className="text-2xl font-bold text-blue-500">{stats.en_cours}</div>
+            <div className="text-xs text-muted-foreground">En cours</div>
+          </Card>
+          <Card className="p-3 border-green-500/30">
+            <div className="text-2xl font-bold text-green-500">{stats.resolu}</div>
+            <div className="text-xs text-muted-foreground">Résolus</div>
+          </Card>
+        </div>
+      )}
+      
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2">
+        <Select value={filter} onValueChange={setFilter}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les types</SelectItem>
+            <SelectItem value="bug">🐛 Bugs</SelectItem>
+            <SelectItem value="feature">💡 Améliorations</SelectItem>
+            <SelectItem value="question">❓ Questions</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Statut" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les statuts</SelectItem>
+            <SelectItem value="nouveau">🆕 Nouveau</SelectItem>
+            <SelectItem value="en_cours">🔄 En cours</SelectItem>
+            <SelectItem value="resolu">✅ Résolu</SelectItem>
+            <SelectItem value="rejete">❌ Rejeté</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      {/* Feedbacks List */}
+      {loading ? (
+        <div className="flex justify-center p-8">
+          <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+        </div>
+      ) : filteredFeedbacks.length === 0 ? (
+        <Card className="p-8 text-center">
+          <MessageCircle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">Aucun feedback pour le moment</p>
+          <Button 
+            variant="outline" 
+            className="mt-4"
+            onClick={() => setShowNewFeedback(true)}
+          >
+            Créer le premier feedback
+          </Button>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {filteredFeedbacks.map(feedback => (
+            <Card key={feedback.id} className="p-4">
+              <div className="flex flex-col sm:flex-row justify-between gap-3">
+                <div className="flex-1 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {getTypeBadge(feedback.type)}
+                    {getStatusBadge(feedback.status)}
+                    {getPriorityBadge(feedback.priority)}
+                  </div>
+                  <h3 className="font-semibold">{feedback.title}</h3>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{feedback.description}</p>
+                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    {isAdmin && <span>Par: {feedback.user_email}</span>}
+                    {feedback.page && <span>• Page: {feedback.page}</span>}
+                    <span>• {format(new Date(feedback.created_at), 'dd/MM/yyyy HH:mm', { locale: fr })}</span>
+                  </div>
+                </div>
+                
+                {/* Admin actions */}
+                {isAdmin && (
+                  <div className="flex sm:flex-col gap-2">
+                    <Select 
+                      value={feedback.status} 
+                      onValueChange={(v) => updateFeedbackStatus(feedback.id, v)}
+                    >
+                      <SelectTrigger className="w-[130px] h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nouveau">🆕 Nouveau</SelectItem>
+                        <SelectItem value="en_cours">🔄 En cours</SelectItem>
+                        <SelectItem value="resolu">✅ Résolu</SelectItem>
+                        <SelectItem value="rejete">❌ Rejeté</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+      
+      {/* New Feedback Dialog */}
+      <Dialog open={showNewFeedback} onOpenChange={setShowNewFeedback}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquarePlus className="w-5 h-5 text-amber-500" />
+              Nouveau feedback
+            </DialogTitle>
+            <DialogDescription>
+              Signalez un bug, proposez une amélioration ou posez une question
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Type */}
+            <div>
+              <Label>Type</Label>
+              <Select value={newFeedback.type} onValueChange={(v) => setNewFeedback({...newFeedback, type: v})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bug">🐛 Bug - Quelque chose ne fonctionne pas</SelectItem>
+                  <SelectItem value="feature">💡 Amélioration - Une idée ou suggestion</SelectItem>
+                  <SelectItem value="question">❓ Question - Besoin d'aide</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Title */}
+            <div>
+              <Label>Titre *</Label>
+              <Input
+                value={newFeedback.title}
+                onChange={(e) => setNewFeedback({...newFeedback, title: e.target.value})}
+                placeholder="Résumé court du problème ou de l'idée"
+              />
+            </div>
+            
+            {/* Description */}
+            <div>
+              <Label>Description *</Label>
+              <Textarea
+                value={newFeedback.description}
+                onChange={(e) => setNewFeedback({...newFeedback, description: e.target.value})}
+                placeholder="Décrivez en détail le problème ou votre suggestion..."
+                className="min-h-[100px]"
+              />
+            </div>
+            
+            {/* Page */}
+            <div>
+              <Label>Page concernée (optionnel)</Label>
+              <Select value={newFeedback.page} onValueChange={(v) => setNewFeedback({...newFeedback, page: v})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une page" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Non spécifié</SelectItem>
+                  <SelectItem value="dashboard">Dashboard</SelectItem>
+                  <SelectItem value="tables">Tables</SelectItem>
+                  <SelectItem value="factures">Factures</SelectItem>
+                  <SelectItem value="comptabilite">Comptabilité</SelectItem>
+                  <SelectItem value="guichet">Guichet</SelectItem>
+                  <SelectItem value="configuration">Configuration</SelectItem>
+                  <SelectItem value="autre">Autre</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Priority */}
+            <div>
+              <Label>Priorité</Label>
+              <Select value={newFeedback.priority} onValueChange={(v) => setNewFeedback({...newFeedback, priority: v})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="basse">🟢 Basse - Peut attendre</SelectItem>
+                  <SelectItem value="moyenne">🟡 Moyenne - Important mais pas urgent</SelectItem>
+                  <SelectItem value="haute">🔴 Haute - Urgent / bloquant</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewFeedback(false)}>
+              Annuler
+            </Button>
+            <Button 
+              onClick={submitFeedback}
+              disabled={savingFeedback || !newFeedback.title || !newFeedback.description}
+              className="bg-gradient-to-r from-amber-500 to-amber-600 text-black"
+            >
+              {savingFeedback ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Envoi...
+                </>
+              ) : (
+                'Envoyer'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
 // Comptabilité Component
 function ComptabiliteView({ event, tables, eventDays }) {
   const [payments, setPayments] = useState([])
