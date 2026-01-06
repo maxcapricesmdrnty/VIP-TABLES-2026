@@ -550,9 +550,9 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     if (userRole === 'owner' || userRole === 'admin') return true
     
     const accessMap = {
-      'chef_equipe': ['dashboard', 'tables', 'invoices', 'comptabilite', 'guichet', 'serveur', 'bar'],
-      'serveur': ['serveur'],
-      'bar': ['bar']
+      'chef_equipe': ['dashboard', 'tables', 'invoices', 'comptabilite', 'guichet', 'serveur', 'bar', 'feedback'],
+      'serveur': ['serveur', 'feedback'],
+      'bar': ['bar', 'feedback']
     }
     
     return accessMap[userRole]?.includes(feature) || false
