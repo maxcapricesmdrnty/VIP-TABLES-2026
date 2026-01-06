@@ -4664,6 +4664,7 @@ function FeedbackView({ event, user, userRole }) {
   const [filter, setFilter] = useState('all') // all, bug, feature, question
   const [statusFilter, setStatusFilter] = useState('all') // all, nouveau, en_cours, resolu, rejete
   const [savingFeedback, setSavingFeedback] = useState(false)
+  const [deletingFeedback, setDeletingFeedback] = useState(null) // ID of feedback being deleted
   const [newFeedback, setNewFeedback] = useState({
     type: 'bug',
     title: '',
