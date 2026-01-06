@@ -4954,8 +4954,13 @@ function FeedbackView({ event, user, userRole }) {
                       size="sm"
                       className="h-8 text-red-400 border-red-400/50 hover:bg-red-500/10"
                       onClick={() => deleteFeedback(feedback.id)}
+                      disabled={deletingFeedback === feedback.id}
                     >
-                      <Trash2 className="w-3 h-3" />
+                      {deletingFeedback === feedback.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3 h-3" />
+                      )}
                     </Button>
                   </div>
                 )}
