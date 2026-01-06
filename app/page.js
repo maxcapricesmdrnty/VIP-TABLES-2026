@@ -4946,6 +4946,14 @@ function FeedbackView({ event, user, userRole }) {
                         <SelectItem value="rejete">❌ Rejeté</SelectItem>
                       </SelectContent>
                     </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-red-400 border-red-400/50 hover:bg-red-500/10"
+                      onClick={() => deleteFeedback(feedback.id)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
                   </div>
                 )}
               </div>
