@@ -1574,6 +1574,20 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
             )}
           </div>
           )}
+          
+          {/* Feedback - Always visible at bottom */}
+          {hasAccess('feedback') && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <Button
+                variant={view === 'feedback' ? 'secondary' : 'ghost'}
+                onClick={() => setView('feedback')}
+                className={`w-full justify-start ${view === 'feedback' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : ''}`}
+              >
+                <MessageCircle className="w-4 h-4 shrink-0" />
+                {sidebarOpen && <span className="ml-2">Feedback</span>}
+              </Button>
+            </div>
+          )}
         </nav>
 
         {/* Sidebar Footer */}
