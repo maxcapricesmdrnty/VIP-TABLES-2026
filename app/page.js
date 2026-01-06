@@ -2258,6 +2258,11 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
           <ComptabiliteView event={event} tables={allTables} eventDays={eventDays} />
         )}
 
+        {/* Feedback View */}
+        {view === 'feedback' && (
+          <FeedbackView event={event} user={user} userRole={userRole} />
+        )}
+
         {/* Venues View */}
         {view === 'venues' && (
           <div className="space-y-6">
