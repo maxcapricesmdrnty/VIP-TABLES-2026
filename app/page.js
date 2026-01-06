@@ -1391,6 +1391,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     { id: 'invoices', label: 'Factures', icon: Receipt },
     { id: 'comptabilite', label: 'Comptabilité', icon: Banknote },
     { id: 'guichet', label: 'Guichet', icon: Ticket },
+    { id: 'feedback', label: 'Feedback', icon: MessageCircle },
   ]
 
   const allConfigNavItems = [
