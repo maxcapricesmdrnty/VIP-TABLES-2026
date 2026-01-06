@@ -4758,8 +4758,7 @@ function FeedbackView({ event, user, userRole }) {
   
   // Delete feedback (admin only)
   const deleteFeedback = async (feedbackId) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce feedback ?')) return
-    
+    setDeletingFeedback(feedbackId)
     try {
       const { error } = await supabase
         .from('feedbacks')
@@ -4771,7 +4770,10 @@ function FeedbackView({ event, user, userRole }) {
       toast.success('Feedback supprimé!')
       fetchFeedbacks()
     } catch (error) {
+      console.error('Delete error:', error)
       toast.error('Erreur: ' + error.message)
+    } finally {
+      setDeletingFeedback(null)
     }
   }
   
