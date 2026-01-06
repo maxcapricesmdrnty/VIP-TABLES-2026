@@ -4975,12 +4975,12 @@ function FeedbackView({ event, user, userRole }) {
             {/* Page */}
             <div>
               <Label>Page concernée (optionnel)</Label>
-              <Select value={newFeedback.page} onValueChange={(v) => setNewFeedback({...newFeedback, page: v})}>
+              <Select value={newFeedback.page || 'none'} onValueChange={(v) => setNewFeedback({...newFeedback, page: v === 'none' ? '' : v})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner une page" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Non spécifié</SelectItem>
+                  <SelectItem value="none">Non spécifié</SelectItem>
                   <SelectItem value="dashboard">Dashboard</SelectItem>
                   <SelectItem value="tables">Tables</SelectItem>
                   <SelectItem value="factures">Factures</SelectItem>
