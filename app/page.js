@@ -7546,10 +7546,12 @@ function InvoicesView({ event, onEventUpdate }) {
                     <p className="font-medium text-xs sm:text-sm">{selectedInvoiceTable.client_name || 'N/A'}</p>
                     {selectedInvoiceTable.client_email && <p className="text-[10px] sm:text-xs">{selectedInvoiceTable.client_email}</p>}
                     {selectedInvoiceTable.client_phone && <p className="text-[10px] sm:text-xs">{selectedInvoiceTable.client_phone}</p>}
+                    {selectedInvoiceTable.client_address && <p className="text-[10px] sm:text-xs">{selectedInvoiceTable.client_address}</p>}
                   </div>
                   <div className="bg-[#4682B4]/10 p-2 sm:p-3 rounded">
                     <h3 className="font-bold text-[#4682B4] text-[10px] sm:text-xs mb-1 sm:mb-2">Reservation Summary</h3>
                     <p className="text-[10px] sm:text-xs">Total Tables: {selectedInvoiceTables.length}</p>
+                    <p className="text-[10px] sm:text-xs">Nombre de personnes: {selectedInvoiceTables.reduce((sum, t) => sum + (t.capacity || 0) + (t.additional_persons || 0), 0)}</p>
                     <p className="text-[10px] sm:text-xs">Days: {getInvoiceDays().map(d => format(parseISO(d), 'dd/MM')).join(', ')}</p>
                     <p className="text-[10px] sm:text-xs">Tables: {selectedInvoiceTables.map(t => t.display_number || t.table_number).join(', ')}</p>
                   </div>
