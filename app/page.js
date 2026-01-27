@@ -6737,9 +6737,11 @@ function InvoicesView({ event, onEventUpdate }) {
       doc.setTextColor(0, 0, 0)
       doc.setFont(undefined, 'normal')
       doc.setFontSize(8)
-      doc.text(`Name: ${table.client_name || 'N/A'}`, 25, yPos + 12)
-      if (table.client_email) doc.text(`Email: ${table.client_email}`, 25, yPos + 18)
-      if (table.client_phone) doc.text(`Phone: ${table.client_phone}`, 25, yPos + 24)
+      let clientYPos = yPos + 12
+      doc.text(`Name: ${table.client_name || 'N/A'}`, 25, clientYPos)
+      if (table.client_email) { clientYPos += 6; doc.text(`Email: ${table.client_email}`, 25, clientYPos) }
+      if (table.client_phone) { clientYPos += 6; doc.text(`Phone: ${table.client_phone}`, 25, clientYPos) }
+      if (table.client_address) { clientYPos += 6; doc.text(`Address: ${table.client_address}`, 25, clientYPos) }
       
       // Reservation Summary - Right box
       doc.setFillColor(...primaryColor)
@@ -6748,11 +6750,15 @@ function InvoicesView({ event, onEventUpdate }) {
       doc.setFont(undefined, 'bold')
       doc.text('Reservation Summary', 115, yPos + 4.5)
       
+      // Calculate total persons
+      const totalPersons = tables.reduce((sum, t) => sum + (t.capacity || 0) + (t.additional_persons || 0), 0)
+      
       doc.setTextColor(0, 0, 0)
       doc.setFont(undefined, 'normal')
       doc.text(`Total Tables: ${tables.length}`, 115, yPos + 12)
-      doc.text(`Days: ${days.map(d => format(parseISO(d), 'dd/MM')).join(', ')}`, 115, yPos + 18)
-      doc.text(`Table Numbers: ${tableNumbers}`, 115, yPos + 24)
+      doc.text(`Nombre de personnes: ${totalPersons}`, 115, yPos + 18)
+      doc.text(`Days: ${days.map(d => format(parseISO(d), 'dd/MM')).join(', ')}`, 115, yPos + 24)
+      doc.text(`Table Numbers: ${tableNumbers}`, 115, yPos + 30)
       
       // Detailed Reservations
       yPos = 78
