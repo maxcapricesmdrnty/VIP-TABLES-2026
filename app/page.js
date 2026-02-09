@@ -5129,14 +5129,18 @@ function ComptabiliteView({ event, tables, eventDays }) {
   }
   stats.remaining = stats.totalCA - stats.totalPaid
 
-  // Group tables by client
+  // Group tables by client (using email as primary key, like InvoicesView)
   const clientGroups = tables
     .filter(t => t.client_name && t.status !== 'libre')
     .reduce((groups, table) => {
-      const name = table.client_name
-      if (!groups[name]) {
-        groups[name] = { 
-          name, 
+      // Use email (lowercase) as primary key, fallback to phone, then name
+      const key = table.client_email?.toLowerCase() || table.client_phone || table.client_name
+      if (!groups[key]) {
+        groups[key] = { 
+          name: table.client_name,
+          client_email: table.client_email,
+          client_phone: table.client_phone,
+          client_address: table.client_address,
           tables: [], 
           totalAmount: 0, 
           totalPaid: 0,
@@ -5145,10 +5149,14 @@ function ComptabiliteView({ event, tables, eventDays }) {
         }
       }
       const tableTotal = (table.sold_price || 0) + ((table.additional_persons || 0) * (table.additional_person_price || 0)) + (table.on_site_additional_revenue || 0)
-      groups[name].tables.push(table)
-      groups[name].totalAmount += tableTotal
-      groups[name].totalPaid += (table.total_paid || 0)
-      groups[name].commission += (table.commission_amount || 0)
+      groups[key].tables.push(table)
+      groups[key].totalAmount += tableTotal
+      groups[key].totalPaid += (table.total_paid || 0)
+      groups[key].commission += (table.commission_amount || 0)
+      // Update name if more complete
+      if (table.client_name && table.client_name.length > groups[key].name?.length) {
+        groups[key].name = table.client_name
+      }
       return groups
     }, {})
 
