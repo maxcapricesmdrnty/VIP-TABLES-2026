@@ -200,11 +200,15 @@ export default function Home() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{authMode === 'login' ? 'Connexion' : 'Inscription'}</DialogTitle>
+              <DialogTitle>
+                {authMode === 'login' ? 'Connexion' : authMode === 'signup' ? 'Inscription' : 'Réinitialiser le mot de passe'}
+              </DialogTitle>
               <DialogDescription>
                 {authMode === 'login' 
                   ? 'Connectez-vous à votre compte' 
-                  : 'Créez un nouveau compte'}
+                  : authMode === 'signup'
+                  ? 'Créez un nouveau compte'
+                  : 'Entrez votre email pour recevoir un lien de réinitialisation'}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAuth}>
@@ -219,41 +223,53 @@ export default function Home() {
                     required
                   />
                 </div>
-                <div>
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={authPassword}
-                      onChange={(e) => setAuthPassword(e.target.value)}
-                      required
-                      minLength={6}
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                {authMode !== 'reset' && (
+                  <div>
+                    <Label htmlFor="password">Mot de passe</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
               <DialogFooter className="flex-col gap-2">
                 <Button type="submit" disabled={authLoading} className="w-full">
                   {authLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  {authMode === 'login' ? 'Se connecter' : "S'inscrire"}
+                  {authMode === 'login' ? 'Se connecter' : authMode === 'signup' ? "S'inscrire" : 'Envoyer le lien'}
                 </Button>
+                {authMode === 'login' && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="text-amber-500"
+                    onClick={() => setAuthMode('reset')}
+                  >
+                    Mot de passe oublié ?
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="ghost"
                   onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
                 >
                   {authMode === 'login' 
-                    ? "Pas de compte? S'inscrire" 
-                    : 'Déjà un compte? Se connecter'}
+                    ? "Pas de compte ? S'inscrire" 
+                    : 'Déjà un compte ? Se connecter'}
                 </Button>
               </DialogFooter>
             </form>
