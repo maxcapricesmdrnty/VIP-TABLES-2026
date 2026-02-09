@@ -5118,7 +5118,7 @@ function ComptabiliteView({ event, tables, eventDays }) {
 
   // Calculate stats
   const stats = {
-    totalCA: tables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => {
+    totalCA: tables.filter(t => ['confirme', 'partiel', 'paye'].includes(t.status)).reduce((sum, t) => {
       const total = (t.sold_price || 0) + ((t.additional_persons || 0) * (t.additional_person_price || 0)) + (t.on_site_additional_revenue || 0)
       return sum + total
     }, 0),
