@@ -113,6 +113,32 @@ export default function Home() {
     }
   }
 
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault()
+    if (newPassword !== confirmPassword) {
+      toast.error('Les mots de passe ne correspondent pas')
+      return
+    }
+    if (newPassword.length < 6) {
+      toast.error('Le mot de passe doit contenir au moins 6 caractères')
+      return
+    }
+    
+    setAuthLoading(true)
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+      toast.success('Mot de passe mis à jour avec succès!')
+      setShowUpdatePassword(false)
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setUser(null)
