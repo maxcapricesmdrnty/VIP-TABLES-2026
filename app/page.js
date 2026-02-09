@@ -5642,9 +5642,11 @@ function ComptabiliteView({ event, tables, eventDays }) {
                 }}
                 className="w-full p-2 border rounded bg-background"
               >
-                <option value="">-- Sélectionner --</option>
-                {Object.keys(clientGroups).map(name => (
-                  <option key={name} value={name}>{name}</option>
+                <option value="">-- Sélectionner un client --</option>
+                {Object.entries(clientGroups).map(([key, client]) => (
+                  <option key={key} value={key}>
+                    {client.name} {client.tables.length > 1 ? `(${client.tables.length} tables)` : ''}
+                  </option>
                 ))}
               </select>
             </div>
@@ -5653,7 +5655,7 @@ function ComptabiliteView({ event, tables, eventDays }) {
               <div>
                 <Label>Tables à associer ({selectedTables.length} sélectionnées)</Label>
                 <div className="space-y-2 mt-2 max-h-40 overflow-y-auto">
-                  {getClientTables(transferForm.client_name).map(table => {
+                  {(clientGroups[transferForm.client_name]?.tables || []).map(table => {
                     const tableTotal = (table.sold_price || 0) + ((table.additional_persons || 0) * (table.additional_person_price || 0))
                     const remaining = tableTotal - (table.total_paid || 0)
                     const isSelected = selectedTables.includes(table.id)
