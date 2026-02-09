@@ -5405,11 +5405,11 @@ function ComptabiliteView({ event, tables, eventDays }) {
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
           <div className="space-y-3">
-            {Object.values(clientGroups).map(client => {
+            {Object.values(clientGroups).map((client, idx) => {
               const remaining = client.totalAmount - client.totalPaid
               const isPaid = remaining <= 0
               return (
-                <Card key={client.name} className={isPaid ? 'border-green-500/30 bg-green-500/5' : ''}>
+                <Card key={idx} className={isPaid ? 'border-green-500/30 bg-green-500/5' : ''}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -5417,6 +5417,11 @@ function ComptabiliteView({ event, tables, eventDays }) {
                           <span className="font-semibold">{client.name}</span>
                           {isPaid && <Badge className="bg-green-500 text-xs">Payé</Badge>}
                         </div>
+                        {(client.client_email || client.client_phone) && (
+                          <div className="text-xs text-muted-foreground">
+                            {client.client_email}{client.client_phone && ` • ${client.client_phone}`}
+                          </div>
+                        )}
                         <div className="text-sm text-muted-foreground">
                           {client.tables.length} table(s): {client.tables.map(t => {
                             const day = t.day ? format(parseISO(t.day), 'dd/MM', { locale: fr }) : ''
