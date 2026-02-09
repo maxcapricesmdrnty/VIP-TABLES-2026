@@ -47,6 +47,19 @@ export default function Home() {
 
   useEffect(() => {
     checkUser()
+    
+    // Listen for auth state changes (for password reset flow)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setShowUpdatePassword(true)
+      }
+      if (event === 'SIGNED_IN' && session) {
+        setUser(session.user)
+        fetchEvents()
+      }
+    })
+    
+    return () => subscription.unsubscribe()
   }, [])
 
   const checkUser = async () => {
