@@ -317,6 +317,60 @@ export default function Home() {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Update Password Dialog */}
+        <Dialog open={showUpdatePassword} onOpenChange={setShowUpdatePassword}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nouveau mot de passe</DialogTitle>
+              <DialogDescription>
+                Entrez votre nouveau mot de passe
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleUpdatePassword}>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+                  <div className="relative">
+                    <Input
+                      id="newPassword"
+                      type={showPassword ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+                  <Input
+                    id="confirmPassword"
+                    type={showPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={6}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={authLoading} className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-black">
+                  {authLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Mettre à jour le mot de passe
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     )
   }
