@@ -71,16 +71,25 @@ export default function Home() {
         })
         if (error) throw error
         toast.success('Connexion réussie!')
-      } else {
+        setShowAuthDialog(false)
+        checkUser()
+      } else if (authMode === 'signup') {
         const { error } = await supabase.auth.signUp({
           email: authEmail,
           password: authPassword
         })
         if (error) throw error
         toast.success('Compte créé! Vérifiez votre email.')
+        setShowAuthDialog(false)
+        checkUser()
+      } else if (authMode === 'reset') {
+        const { error } = await supabase.auth.resetPasswordForEmail(authEmail, {
+          redirectTo: window.location.origin
+        })
+        if (error) throw error
+        toast.success('Email de réinitialisation envoyé! Vérifiez votre boîte mail.')
+        setAuthMode('login')
       }
-      setShowAuthDialog(false)
-      checkUser()
     } catch (error) {
       toast.error(error.message)
     } finally {
