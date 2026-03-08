@@ -1235,9 +1235,10 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     caReserve: tables.filter(t => t.status === 'reserve').reduce((sum, t) => sum + calculateTableTotal(t), 0),
     caConfirme: tables.filter(t => t.status === 'confirme').reduce((sum, t) => sum + calculateTableTotal(t), 0),
     caPaye: tables.filter(t => t.status === 'paye').reduce((sum, t) => sum + calculateTableTotal(t), 0),
-    // CA total (confirmé + payé)
+    // CA total (confirmé + payé uniquement)
     ca: tables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => sum + calculateTableTotal(t), 0),
-    paid: tables.reduce((sum, t) => sum + (t.total_paid || 0), 0),
+    // Déjà encaissé (total_paid uniquement pour les tables confirmées ou payées)
+    paid: tables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => sum + (t.total_paid || 0), 0),
     // Total personnes (toutes tables non-libres)
     totalPersons: tables.filter(t => t.status !== 'libre').reduce((sum, t) => sum + calculateTablePersons(t), 0),
     commissions: tables.reduce((sum, t) => sum + (t.commission_amount || 0), 0)
@@ -4839,20 +4840,23 @@ function ComptabiliteView({ event, tables, eventDays }) {
 
   // Calculate stats
   const stats = {
+    // CA Total = somme de calculateTableTotal pour les tables confirmées ou payées
     totalCA: tables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => {
       const total = (t.sold_price || 0) + ((t.additional_persons || 0) * (t.additional_person_price || 0)) + (t.on_site_additional_revenue || 0)
       return sum + total
     }, 0),
-    totalPaid: tables.reduce((sum, t) => sum + (t.total_paid || 0), 0),
-    totalCommissions: tables.reduce((sum, t) => sum + (t.commission_amount || 0), 0),
-    tableCount: tables.filter(t => t.status !== 'libre').length,
+    // Déjà encaissé = somme de total_paid uniquement pour les tables confirmées ou payées
+    totalPaid: tables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => sum + (t.total_paid || 0), 0),
+    totalCommissions: tables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => sum + (t.commission_amount || 0), 0),
+    tableCount: tables.filter(t => ['confirme', 'paye'].includes(t.status)).length,
     paidCount: tables.filter(t => t.status === 'paye').length
   }
+  // Reste à encaisser = CA Total - Déjà encaissé
   stats.remaining = stats.totalCA - stats.totalPaid
 
-  // Group tables by client
+  // Group tables by client (only confirmed/paid tables)
   const clientGroups = tables
-    .filter(t => t.client_name && t.status !== 'libre')
+    .filter(t => t.client_name && ['confirme', 'paye'].includes(t.status))
     .reduce((groups, table) => {
       const name = table.client_name
       if (!groups[name]) {
@@ -6554,7 +6558,7 @@ function InvoicesView({ event, onEventUpdate }) {
     }
 
     try {
-      // Insert without payment_method constraint issue
+      // Insert payment
       const { error } = await supabase.from('payments').insert({
         table_id: selectedTableForPayment.id,
         amount: parseFloat(paymentForm.amount),
@@ -6562,6 +6566,28 @@ function InvoicesView({ event, onEventUpdate }) {
       })
 
       if (error) throw error
+
+      // Recalculate total_paid from all payments for this table
+      const { data: allPayments } = await supabase
+        .from('payments')
+        .select('amount')
+        .eq('table_id', selectedTableForPayment.id)
+      
+      const newTotalPaid = (allPayments || []).reduce((sum, p) => sum + (p.amount || 0), 0)
+      
+      // Calculate table total using the same formula as everywhere
+      const tableTotal = (selectedTableForPayment.sold_price || 0) + 
+        ((selectedTableForPayment.additional_persons || 0) * (selectedTableForPayment.additional_person_price || 0)) + 
+        (selectedTableForPayment.on_site_additional_revenue || 0)
+      
+      // Update status to 'paye' if fully paid, otherwise keep current status
+      const newStatus = newTotalPaid >= tableTotal ? 'paye' : 
+        selectedTableForPayment.status === 'libre' ? 'libre' : selectedTableForPayment.status
+      
+      await supabase
+        .from('tables')
+        .update({ total_paid: newTotalPaid, status: newStatus })
+        .eq('id', selectedTableForPayment.id)
 
       toast.success('Paiement enregistré!')
       setShowPaymentDialog(false)
