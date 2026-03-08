@@ -2853,6 +2853,20 @@ function TableModal({ table, open, onClose, currency, event, onSave, onViewPreor
         newStatus = 'reserve'
       }
 
+      // If status is being changed to 'libre', delete associated VIP order
+      if (newStatus === 'libre' && table.status !== 'libre') {
+        const { data: existingOrder } = await supabase
+          .from('orders')
+          .select('id')
+          .eq('table_id', table.id)
+          .maybeSingle()
+
+        if (existingOrder) {
+          await supabase.from('order_items').delete().eq('order_id', existingOrder.id)
+          await supabase.from('orders').delete().eq('id', existingOrder.id)
+        }
+      }
+
       const { error } = await supabase
         .from('tables')
         .update({
@@ -2875,6 +2889,19 @@ function TableModal({ table, open, onClose, currency, event, onSave, onViewPreor
     if (!confirm('Êtes-vous sûr de vouloir libérer cette table? Toutes les informations seront effacées.')) return
     setSaving(true)
     try {
+      // Delete associated VIP order and its items
+      const { data: existingOrder } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('table_id', table.id)
+        .maybeSingle()
+
+      if (existingOrder) {
+        await supabase.from('order_items').delete().eq('order_id', existingOrder.id)
+        await supabase.from('orders').delete().eq('id', existingOrder.id)
+      }
+
+      // Reset the table
       await supabase
         .from('tables')
         .update({
@@ -2884,6 +2911,7 @@ function TableModal({ table, open, onClose, currency, event, onSave, onViewPreor
           client_phone: null,
           client_address: null,
           sold_price: 0,
+          total_paid: 0,
           concierge_nom: null,
           concierge_commission: 0,
           additional_persons: 0,
