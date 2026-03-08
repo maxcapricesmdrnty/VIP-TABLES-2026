@@ -3679,6 +3679,8 @@ function TeamManagementView({ event }) {
 // Pre-Orders Dashboard Component
 function PreOrdersView({ event, eventDays, initialDay }) {
   const [selectedDay, setSelectedDay] = useState(initialDay || '')
+  const [venues, setVenues] = useState([])
+  const [selectedVenue, setSelectedVenue] = useState(null)
   const [tables, setTables] = useState([])
   const [orders, setOrders] = useState([])
   const [layouts, setLayouts] = useState([])
@@ -3698,6 +3700,23 @@ function PreOrdersView({ event, eventDays, initialDay }) {
 
   const availableDays = (eventDays || []).map(d => d?.date || d?.day).filter(Boolean).sort()
 
+  // Fetch venues on mount
+  useEffect(() => {
+    const fetchVenues = async () => {
+      if (!event?.id) return
+      const { data } = await supabase
+        .from('venues')
+        .select('*')
+        .eq('event_id', event.id)
+        .order('name')
+      setVenues(data || [])
+      if (data && data.length > 0 && !selectedVenue) {
+        setSelectedVenue(data[0])
+      }
+    }
+    fetchVenues()
+  }, [event?.id])
+
   // Auto-select initialDay, current day, or first available
   useEffect(() => {
     if (availableDays.length > 0 && !selectedDay) {
@@ -3710,30 +3729,31 @@ function PreOrdersView({ event, eventDays, initialDay }) {
     }
   }, [availableDays, initialDay])
 
-  // Fetch data when day changes
+  // Fetch data when day or venue changes
   useEffect(() => {
-    if (selectedDay && event?.id) {
+    if (selectedDay && event?.id && selectedVenue) {
       fetchData()
     }
-  }, [selectedDay, event?.id])
+  }, [selectedDay, event?.id, selectedVenue?.id])
 
   const fetchData = async () => {
+    if (!selectedVenue) return
     setLoading(true)
     try {
-      // Fetch VIP tables (with sold_price > 0)
+      // Fetch VIP tables (with sold_price > 0) filtered by venue
       const { data: tablesData } = await supabase
         .from('tables')
         .select('*')
-        .eq('event_id', event.id)
+        .eq('venue_id', selectedVenue.id)
         .eq('day', selectedDay)
         .gt('sold_price', 0)
         .order('table_number')
 
-      // Fetch layouts for this event and day
+      // Fetch layouts for this venue and day
       const { data: layoutsData } = await supabase
         .from('table_layouts')
         .select('*')
-        .eq('event_id', event.id)
+        .eq('venue_id', selectedVenue.id)
         .eq('day', selectedDay)
         .order('zone')
 
@@ -3917,7 +3937,9 @@ function PreOrdersView({ event, eventDays, initialDay }) {
   // Copy recap to clipboard
   const copyRecap = () => {
     const grouped = getGroupedItems()
+    const venueName = selectedVenue?.name || 'Toutes scènes'
     let text = `📦 RÉCAP PRÉ-COMMANDES - ${selectedDay}\n`
+    text += `🎪 ${venueName}\n`
     text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`
 
     Object.entries(grouped).forEach(([category, items]) => {
@@ -3962,7 +3984,8 @@ function PreOrdersView({ event, eventDays, initialDay }) {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `precommandes_${selectedDay}.csv`
+    const venueSuffix = selectedVenue?.name ? `_${selectedVenue.name.replace(/\s+/g, '_')}` : ''
+    link.download = `precommandes_${selectedDay}${venueSuffix}.csv`
     link.click()
     toast.success('Export CSV téléchargé!')
   }
@@ -4192,20 +4215,38 @@ function PreOrdersView({ event, eventDays, initialDay }) {
           </div>
         </div>
 
-        <Select value={selectedDay} onValueChange={setSelectedDay}>
-          <SelectTrigger className="w-[180px]">
-            <Calendar className="w-4 h-4 mr-2" />
-            <SelectValue placeholder="Sélectionner un jour" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableDays.map(day => (
-              <SelectItem key={day} value={day}>
-                {day ? format(parseISO(day), 'EEEE dd MMM', { locale: fr }) : day}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={selectedDay} onValueChange={setSelectedDay}>
+            <SelectTrigger className="w-[180px]">
+              <Calendar className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Sélectionner un jour" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableDays.map(day => (
+                <SelectItem key={day} value={day}>
+                  {day ? format(parseISO(day), 'EEEE dd MMM', { locale: fr }) : day}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      {/* Venue Selector */}
+      {venues.length > 1 && (
+        <div className="flex gap-2 flex-wrap">
+          {venues.map(venue => (
+            <Button
+              key={venue.id}
+              variant={selectedVenue?.id === venue.id ? 'default' : 'outline'}
+              onClick={() => setSelectedVenue(venue)}
+              className={selectedVenue?.id === venue.id ? 'bg-purple-500 hover:bg-purple-600' : ''}
+            >
+              🎪 {venue.name}
+            </Button>
+          ))}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
