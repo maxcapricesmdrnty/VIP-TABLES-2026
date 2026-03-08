@@ -3,13 +3,14 @@ import { createClient } from '@supabase/supabase-js'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
-
 export async function POST(request) {
   try {
+    // Create Supabase client inside handler for Vercel build compatibility
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+
     const formData = await request.formData()
     const file = formData.get('file')
     const eventId = formData.get('eventId')
