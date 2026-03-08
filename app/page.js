@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Calendar, MapPin, Plus, LogOut, Settings, Users, Table2, Loader2, Wine, FileText, Download, Trash2, Edit, ChevronLeft, ChevronRight, X, PanelLeftClose, PanelLeft, LayoutDashboard, Receipt, Cog, ChevronDown, Upload, FileSpreadsheet, Check, Link, Copy, ExternalLink, ShoppingCart, Ticket, Search, Filter, UserCheck, Clock, CreditCard, StickyNote, Banknote, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
+import { Calendar, MapPin, Plus, LogOut, Settings, Users, Table2, Loader2, Wine, FileText, Download, Trash2, Edit, ChevronLeft, ChevronRight, X, PanelLeftClose, PanelLeft, LayoutDashboard, Receipt, Cog, ChevronDown, Upload, FileSpreadsheet, Check, Link, Link as LinkIcon, Copy, ExternalLink, ShoppingCart, Ticket, Search, Filter, UserCheck, Clock, CreditCard, StickyNote, Banknote, TrendingUp, TrendingDown, DollarSign, Eye, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { format, parseISO, eachDayOfInterval } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -1245,8 +1245,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
   ]
   
   const serviceNavItems = [
-    { id: 'serveur', label: 'Serveur', icon: ShoppingCart },
-    { id: 'bar', label: 'Bar', icon: Wine },
+    { id: 'preorders', label: 'Pré-commandes', icon: ShoppingCart },
   ]
 
   return (
@@ -1282,11 +1281,8 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
             </Button>
           ))}
 
-          {/* Service Section */}
+          {/* Pré-commandes Section */}
           <div className="pt-4 space-y-1">
-            <p className={`text-xs text-muted-foreground uppercase tracking-wider ${sidebarOpen ? 'px-3 mb-2' : 'text-center'}`}>
-              {sidebarOpen ? 'Service' : '•••'}
-            </p>
             {serviceNavItems.map(item => (
               <Button
                 key={item.id}
@@ -1295,7 +1291,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                 className={`w-full justify-start ${view === item.id ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : ''}`}
               >
                 <item.icon className="w-4 h-4 shrink-0" />
-                {sidebarOpen && <span className="ml-2">{item.label}</span>}
+                {sidebarOpen && <span className="ml-2">📦 {item.label}</span>}
               </Button>
             ))}
           </div>
@@ -1951,14 +1947,9 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
           <TeamManagementView event={event} />
         )}
 
-        {/* Server View */}
-        {view === 'serveur' && (
-          <ServerOrderView event={event} eventDays={eventDays} />
-        )}
-
-        {/* Bar View */}
-        {view === 'bar' && (
-          <BarView event={event} />
+        {/* Pre-Orders View */}
+        {view === 'preorders' && (
+          <PreOrdersView event={event} eventDays={eventDays} />
         )}
 
         {/* Invoices View */}
@@ -3538,25 +3529,21 @@ function TeamManagementView({ event }) {
   )
 }
 
-// Server Order Component (Mobile-First) - With Pre-order Support
-function ServerOrderView({ event, eventDays }) {
+
+// Pre-Orders Dashboard Component
+function PreOrdersView({ event, eventDays }) {
   const [selectedDay, setSelectedDay] = useState('')
   const [tables, setTables] = useState([])
-  const [selectedTable, setSelectedTable] = useState(null)
-  const [preOrder, setPreOrder] = useState(null)
-  const [preOrderItems, setPreOrderItems] = useState([])
-  const [menuItems, setMenuItems] = useState([])
-  const [cart, setCart] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const [serverName, setServerName] = useState('')
-  const [showServerDialog, setShowServerDialog] = useState(true)
-  const [sending, setSending] = useState(false)
-  const [activeTab, setActiveTab] = useState('preorder') // preorder, add
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('status')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [selectedTableDetail, setSelectedTableDetail] = useState(null)
+  const [showDetailModal, setShowDetailModal] = useState(false)
 
   const availableDays = (eventDays || []).map(d => d?.date || d?.day).filter(Boolean).sort()
 
+  // Auto-select current day or first available
   useEffect(() => {
     if (availableDays.length > 0 && !selectedDay) {
       const today = new Date().toISOString().split('T')[0]
@@ -3564,700 +3551,601 @@ function ServerOrderView({ event, eventDays }) {
     }
   }, [availableDays])
 
+  // Fetch data when day changes
   useEffect(() => {
-    if (selectedDay) fetchTables()
-  }, [selectedDay])
-
-  useEffect(() => {
-    fetchMenuItems()
-  }, [event.id])
-
-  useEffect(() => {
-    if (selectedTable) {
-      fetchPreOrder()
+    if (selectedDay && event?.id) {
+      fetchData()
     }
-  }, [selectedTable])
+  }, [selectedDay, event?.id])
 
-  const fetchTables = async () => {
+  const fetchData = async () => {
     setLoading(true)
     try {
-      const { data } = await supabase
+      // Fetch VIP tables (with sold_price > 0)
+      const { data: tablesData } = await supabase
         .from('tables')
         .select('*')
         .eq('event_id', event.id)
         .eq('day', selectedDay)
-        .neq('status', 'libre')
+        .gt('sold_price', 0)
         .order('table_number')
-      setTables(data || [])
+
+      // Fetch orders with items for these tables
+      const tableIds = (tablesData || []).map(t => t.id)
+      let ordersData = []
+      
+      if (tableIds.length > 0) {
+        const { data } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            order_items (
+              id,
+              menu_item_id,
+              quantity,
+              unit_price,
+              total_price,
+              menu_items (
+                id,
+                name,
+                price,
+                category,
+                format,
+                volume
+              )
+            )
+          `)
+          .in('table_id', tableIds)
+        ordersData = data || []
+      }
+
+      setTables(tablesData || [])
+      setOrders(ordersData)
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Error fetching pre-orders:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchPreOrder = async () => {
-    if (!selectedTable) return
-    try {
-      // Fetch pre-order from orders table
-      const { data: order } = await supabase
-        .from('orders')
-        .select('*, order_items(*, menu_items(name, category))')
-        .eq('table_id', selectedTable.id)
-        .eq('status', 'confirmed')
-        .single()
-      
-      if (order) {
-        setPreOrder(order)
-        // Transform items with served count
-        const items = (order.order_items || []).map(item => ({
-          ...item,
-          name: item.menu_items?.name || item.item_name || 'Article',
-          category: item.menu_items?.category || '',
-          served: item.served_quantity || 0,
-          remaining: item.quantity - (item.served_quantity || 0)
-        }))
-        setPreOrderItems(items)
-      } else {
-        setPreOrder(null)
-        setPreOrderItems([])
-      }
-    } catch (error) {
-      console.error('Error fetching pre-order:', error)
-      setPreOrder(null)
-      setPreOrderItems([])
-    }
+  // Get order for a table
+  const getOrderForTable = (tableId) => {
+    return orders.find(o => o.table_id === tableId)
   }
 
-  const fetchMenuItems = async () => {
-    try {
-      const { data } = await supabase
-        .from('menu_items')
-        .select('*')
-        .eq('event_id', event.id)
-        .order('category')
-      setMenuItems(data || [])
-    } catch (error) {
-      console.error('Error:', error)
-    }
+  // Get status for a table
+  const getTableStatus = (table) => {
+    const order = getOrderForTable(table.id)
+    if (!order) return { status: 'no_link', label: 'Pas de lien', color: 'bg-gray-500', badge: '⚫' }
+    if (order.status === 'confirmed') return { status: 'confirmed', label: 'Confirmée', color: 'bg-green-500', badge: '🟢' }
+    return { status: 'pending', label: 'En attente', color: 'bg-yellow-500', badge: '🟡' }
   }
 
-  const getBudgetStatus = (table) => {
-    const budget = table.beverage_budget || 0
-    const consumed = table.consumed_amount || 0
-    const remaining = budget - consumed
-    const percent = budget > 0 ? (remaining / budget) * 100 : 0
-    if (percent > 50) return { color: 'bg-green-500', text: 'text-green-500', label: '🟢' }
-    if (percent > 10) return { color: 'bg-yellow-500', text: 'text-yellow-500', label: '🟡' }
-    return { color: 'bg-red-500', text: 'text-red-500', label: '🔴' }
+  // Calculate stats
+  const stats = {
+    total: tables.length,
+    confirmed: tables.filter(t => getTableStatus(t).status === 'confirmed').length,
+    pending: tables.filter(t => getTableStatus(t).status === 'pending').length,
+    noLink: tables.filter(t => getTableStatus(t).status === 'no_link').length
   }
 
-  const categories = [...new Set(menuItems.map(i => i.category))].filter(Boolean)
-
-  const filteredItems = menuItems.filter(item => {
-    const matchCategory = selectedCategory === 'all' || item.category === selectedCategory
-    const matchSearch = !searchQuery || 
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.category || '').toLowerCase().includes(searchQuery.toLowerCase())
-    return matchCategory && matchSearch
+  // Filter tables by status
+  const filteredTables = tables.filter(table => {
+    if (statusFilter === 'all') return true
+    return getTableStatus(table).status === statusFilter
+  }).sort((a, b) => {
+    // Sort: pending first, then no_link, then confirmed
+    const statusOrder = { pending: 0, no_link: 1, confirmed: 2 }
+    return statusOrder[getTableStatus(a).status] - statusOrder[getTableStatus(b).status]
   })
 
-  const addToCart = (item) => {
-    const existing = cart.find(c => c.id === item.id)
-    if (existing) {
-      setCart(cart.map(c => c.id === item.id ? {...c, quantity: c.quantity + 1} : c))
-    } else {
-      setCart([...cart, { ...item, quantity: 1 }])
+  // Get aggregated items for bar recap
+  const getAggregatedItems = () => {
+    const confirmedOrders = orders.filter(o => o.status === 'confirmed')
+    const itemsMap = new Map()
+
+    confirmedOrders.forEach(order => {
+      (order.order_items || []).forEach(item => {
+        const menuItem = item.menu_items
+        if (!menuItem) return
+        
+        const key = menuItem.id
+        if (itemsMap.has(key)) {
+          const existing = itemsMap.get(key)
+          existing.quantity += item.quantity
+          existing.total += item.total_price
+        } else {
+          itemsMap.set(key, {
+            id: menuItem.id,
+            name: menuItem.name,
+            category: menuItem.category || 'Autre',
+            format: menuItem.format || '',
+            price: menuItem.price,
+            quantity: item.quantity,
+            total: item.total_price
+          })
+        }
+      })
+    })
+
+    return Array.from(itemsMap.values())
+  }
+
+  // Group items by category
+  const getGroupedItems = () => {
+    const items = getAggregatedItems()
+    const grouped = {}
+    
+    items.forEach(item => {
+      const cat = item.category
+      if (!grouped[cat]) grouped[cat] = []
+      grouped[cat].push(item)
+    })
+
+    return grouped
+  }
+
+  // Calculate totals
+  const calculateTotals = () => {
+    const items = getAggregatedItems()
+    return items.reduce((acc, item) => acc + item.total, 0)
+  }
+
+  // Copy recap to clipboard
+  const copyRecap = () => {
+    const grouped = getGroupedItems()
+    let text = `📦 RÉCAP PRÉ-COMMANDES - ${selectedDay}\n`
+    text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`
+
+    Object.entries(grouped).forEach(([category, items]) => {
+      text += `📌 ${category.toUpperCase()}\n`
+      items.forEach(item => {
+        text += `   ${item.quantity}x ${item.name} (${item.format}) = ${item.total.toLocaleString()} ${event.currency}\n`
+      })
+      const catTotal = items.reduce((s, i) => s + i.total, 0)
+      text += `   ➜ Sous-total: ${catTotal.toLocaleString()} ${event.currency}\n\n`
+    })
+
+    text += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
+    text += `💰 TOTAL GÉNÉRAL: ${calculateTotals().toLocaleString()} ${event.currency}\n`
+
+    navigator.clipboard.writeText(text)
+    toast.success('Récap copié dans le presse-papier!')
+  }
+
+  // Export to CSV
+  const exportCSV = () => {
+    const items = getAggregatedItems()
+    if (items.length === 0) {
+      toast.error('Aucune donnée à exporter')
+      return
     }
+
+    const headers = ['Catégorie', 'Nom', 'Format', 'Quantité', 'Prix unitaire', 'Total']
+    const rows = items.map(item => [
+      item.category,
+      item.name,
+      item.format,
+      item.quantity,
+      item.price,
+      item.total
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `precommandes_${selectedDay}.csv`
+    link.click()
+    toast.success('Export CSV téléchargé!')
   }
 
-  const removeFromCart = (itemId) => {
-    const existing = cart.find(c => c.id === itemId)
-    if (existing && existing.quantity > 1) {
-      setCart(cart.map(c => c.id === itemId ? {...c, quantity: c.quantity - 1} : c))
-    } else {
-      setCart(cart.filter(c => c.id !== itemId))
-    }
+  // View table detail
+  const viewTableDetail = (table) => {
+    const order = getOrderForTable(table.id)
+    setSelectedTableDetail({ table, order })
+    setShowDetailModal(true)
   }
-
-  const getCartTotal = () => cart.reduce((s, c) => s + (c.price * c.quantity), 0)
-  
-  const getRemainingBudget = () => {
-    if (!selectedTable) return 0
-    const budget = selectedTable.beverage_budget || 0
-    const consumed = selectedTable.consumed_amount || 0
-    return Math.max(0, budget - consumed)
-  }
-
-  const getWithinBudget = () => Math.min(getRemainingBudget(), getCartTotal())
-  const getSupplement = () => Math.max(0, getCartTotal() - getRemainingBudget())
 
   const formatSwiss = (amount) => (amount || 0).toLocaleString('de-CH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 
-  // Mark pre-order item as served
-  const markAsServed = async (item) => {
-    if (item.remaining <= 0) return
-    try {
-      const newServed = (item.served || 0) + 1
-      await supabase
-        .from('order_items')
-        .update({ served_quantity: newServed })
-        .eq('id', item.id)
-      
-      // Update consumed amount on table
-      const newConsumed = (selectedTable.consumed_amount || 0) + item.unit_price
-      await supabase
-        .from('tables')
-        .update({ consumed_amount: newConsumed })
-        .eq('id', selectedTable.id)
-      
-      toast.success(`${item.name} servi!`)
-      fetchPreOrder()
-      fetchTables()
-      // Update local selectedTable
-      setSelectedTable(prev => ({...prev, consumed_amount: newConsumed}))
-    } catch (error) {
-      toast.error('Erreur: ' + error.message)
-    }
-  }
-
-  // Send new order to bar
-  const sendOrder = async () => {
-    if (!selectedTable || cart.length === 0) return
-    setSending(true)
-    try {
-      const cartTotal = getCartTotal()
-      const withinBudget = getWithinBudget()
-      const supplement = getSupplement()
-
-      // Create live order
-      const { data: order, error: orderError } = await supabase
-        .from('live_orders')
-        .insert({
-          table_id: selectedTable.id,
-          event_id: event.id,
-          server_name: serverName,
-          status: 'new',
-          total_amount: cartTotal,
-          within_budget: withinBudget,
-          supplement: supplement
-        })
-        .select()
-        .single()
-      
-      if (orderError) throw orderError
-
-      // Create order items
-      const items = cart.map(c => ({
-        order_id: order.id,
-        menu_item_id: c.id,
-        item_name: c.name,
-        item_category: c.category,
-        quantity: c.quantity,
-        unit_price: c.price,
-        total_price: c.price * c.quantity
-      }))
-      
-      const { error: itemsError } = await supabase.from('live_order_items').insert(items)
-      if (itemsError) throw itemsError
-
-      // Update table consumed amount
-      const newConsumed = (selectedTable.consumed_amount || 0) + cartTotal
-      await supabase
-        .from('tables')
-        .update({ consumed_amount: newConsumed })
-        .eq('id', selectedTable.id)
-
-      const message = supplement > 0 
-        ? `Commande envoyée! ⚠️ ${formatSwiss(supplement)} ${event.currency} à encaisser`
-        : 'Commande envoyée au bar!'
-      toast.success(message)
-      setCart([])
-      setSelectedTable(prev => ({...prev, consumed_amount: newConsumed}))
-      fetchTables()
-    } catch (error) {
-      toast.error('Erreur: ' + error.message)
-    } finally {
-      setSending(false)
-    }
-  }
-
-  // Server name dialog
-  if (showServerDialog) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Card className="p-6 w-full max-w-md">
-          <div className="text-center mb-6">
-            <ShoppingCart className="w-12 h-12 mx-auto mb-4 text-purple-500" />
-            <h2 className="text-xl font-bold">Prise de Commande</h2>
-            <p className="text-muted-foreground">Identifiez-vous pour commencer</p>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <Label>Votre nom</Label>
-              <Input
-                value={serverName}
-                onChange={(e) => setServerName(e.target.value)}
-                placeholder="Ex: Max, Léa..."
-                className="text-lg"
-              />
-            </div>
-            <Button 
-              onClick={() => serverName && setShowServerDialog(false)}
-              disabled={!serverName}
-              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white text-lg py-6"
-            >
-              Commencer
-            </Button>
-          </div>
-        </Card>
+        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ShoppingCart className="w-6 h-6 text-purple-500" />
-          <h2 className="text-xl font-semibold">Service</h2>
-          <Badge variant="outline">{serverName}</Badge>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-purple-500/20 rounded-lg">
+            <ShoppingCart className="w-6 h-6 text-purple-500" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">📦 Pré-commandes VIP</h2>
+            <p className="text-sm text-muted-foreground">Suivi des commandes anticipées</p>
+          </div>
         </div>
+
         <Select value={selectedDay} onValueChange={setSelectedDay}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Jour" />
+          <SelectTrigger className="w-[180px]">
+            <Calendar className="w-4 h-4 mr-2" />
+            <SelectValue placeholder="Sélectionner un jour" />
           </SelectTrigger>
           <SelectContent>
             {availableDays.map(day => (
               <SelectItem key={day} value={day}>
-                {day ? format(parseISO(day), 'dd MMM', { locale: fr }) : day}
+                {day ? format(parseISO(day), 'EEEE dd MMM', { locale: fr }) : day}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Table Selection */}
-      {!selectedTable ? (
-        <div className="space-y-3">
-          <p className="text-muted-foreground">Sélectionnez une table:</p>
-          {loading ? (
-            <div className="flex justify-center py-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {tables.map(table => {
-                const status = getBudgetStatus(table)
-                const budget = table.beverage_budget || 0
-                const consumed = table.consumed_amount || 0
-                const remaining = budget - consumed
-                return (
-                  <Card 
-                    key={table.id}
-                    className={`p-4 cursor-pointer hover:border-purple-500 transition-all border-2 ${remaining > budget * 0.5 ? 'border-green-500/50' : remaining > budget * 0.1 ? 'border-yellow-500/50' : 'border-red-500/50'}`}
-                    onClick={() => { setSelectedTable(table); setActiveTab('preorder'); }}
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-4 bg-card">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-500/20 rounded-lg">
+              <Users className="w-5 h-5 text-purple-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.total}</p>
+              <p className="text-xs text-muted-foreground">Tables VIP</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-green-500/10 border-green-500/30">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-500/20 rounded-lg">
+              <Check className="w-5 h-5 text-green-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-green-500">{stats.confirmed}</p>
+              <p className="text-xs text-muted-foreground">Confirmées</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-yellow-500/10 border-yellow-500/30">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-yellow-500/20 rounded-lg">
+              <Clock className="w-5 h-5 text-yellow-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-yellow-500">{stats.pending}</p>
+              <p className="text-xs text-muted-foreground">En attente</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-gray-500/10 border-gray-500/30">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gray-500/20 rounded-lg">
+              <LinkIcon className="w-5 h-5 text-gray-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-500">{stats.noLink}</p>
+              <p className="text-xs text-muted-foreground">Sans lien</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-border pb-2">
+        <Button
+          variant={activeTab === 'status' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('status')}
+          className={activeTab === 'status' ? 'bg-purple-500 text-white' : ''}
+        >
+          📊 Statut tables
+        </Button>
+        <Button
+          variant={activeTab === 'recap' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('recap')}
+          className={activeTab === 'recap' ? 'bg-purple-500 text-white' : ''}
+        >
+          🍾 Récap bar
+        </Button>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'status' && (
+        <div className="space-y-4">
+          {/* Filters */}
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              size="sm"
+              variant={statusFilter === 'all' ? 'default' : 'outline'}
+              onClick={() => setStatusFilter('all')}
+              className={statusFilter === 'all' ? 'bg-purple-500' : ''}
+            >
+              Toutes ({stats.total})
+            </Button>
+            <Button
+              size="sm"
+              variant={statusFilter === 'confirmed' ? 'default' : 'outline'}
+              onClick={() => setStatusFilter('confirmed')}
+              className={statusFilter === 'confirmed' ? 'bg-green-500' : ''}
+            >
+              🟢 Confirmées ({stats.confirmed})
+            </Button>
+            <Button
+              size="sm"
+              variant={statusFilter === 'pending' ? 'default' : 'outline'}
+              onClick={() => setStatusFilter('pending')}
+              className={statusFilter === 'pending' ? 'bg-yellow-500 text-black' : ''}
+            >
+              🟡 En attente ({stats.pending})
+            </Button>
+            <Button
+              size="sm"
+              variant={statusFilter === 'no_link' ? 'default' : 'outline'}
+              onClick={() => setStatusFilter('no_link')}
+              className={statusFilter === 'no_link' ? 'bg-gray-500' : ''}
+            >
+              ⚫ Sans lien ({stats.noLink})
+            </Button>
+          </div>
+
+          {/* Tables Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredTables.map(table => {
+              const status = getTableStatus(table)
+              const order = getOrderForTable(table.id)
+              const budget = table.sold_price || 0
+              const ordered = order?.total_amount || 0
+              const excess = order?.extra_amount || 0
+
+              return (
+                <Card 
+                  key={table.id}
+                  className={`p-4 border-2 ${
+                    status.status === 'confirmed' ? 'border-green-500/50 bg-green-500/5' :
+                    status.status === 'pending' ? 'border-yellow-500/50 bg-yellow-500/5' :
+                    'border-gray-500/30 bg-gray-500/5'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold">{table.table_number}</span>
+                        <span className="text-lg">{status.badge}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate max-w-[180px]">
+                        {table.client_name || 'Client'}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className={
+                      status.status === 'confirmed' ? 'border-green-500 text-green-500' :
+                      status.status === 'pending' ? 'border-yellow-500 text-yellow-500' :
+                      'border-gray-500 text-gray-500'
+                    }>
+                      {status.label}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Budget boisson</span>
+                      <span className="font-medium">{formatSwiss(budget)} {event.currency}</span>
+                    </div>
+                    
+                    {order && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Commandé</span>
+                          <span className="font-medium text-purple-400">{formatSwiss(ordered)} {event.currency}</span>
+                        </div>
+                        
+                        {excess > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-red-400">Excédent</span>
+                            <span className="font-bold text-red-400">+{formatSwiss(excess)} {event.currency}</span>
+                          </div>
+                        )}
+
+                        {order.confirmed_at && (
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Confirmé le</span>
+                            <span>{format(new Date(order.confirmed_at), 'dd/MM à HH:mm')}</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-3"
+                    onClick={() => viewTableDetail(table)}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-xl">{table.table_number}</span>
-                      <span className="text-lg">{status.label}</span>
+                    <Eye className="w-4 h-4 mr-2" />
+                    Voir détail
+                  </Button>
+                </Card>
+              )
+            })}
+          </div>
+
+          {filteredTables.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground">
+              <ShoppingCart className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Aucune table trouvée avec ce filtre</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'recap' && (
+        <div className="space-y-4">
+          {/* Actions */}
+          <div className="flex gap-2">
+            <Button onClick={copyRecap} variant="outline">
+              <Copy className="w-4 h-4 mr-2" />
+              Copier le récap
+            </Button>
+            <Button onClick={exportCSV} variant="outline">
+              <Download className="w-4 h-4 mr-2" />
+              Exporter CSV
+            </Button>
+          </div>
+
+          {/* Grouped Items */}
+          {Object.entries(getGroupedItems()).length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Wine className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Aucune commande confirmée pour ce jour</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(getGroupedItems()).map(([category, items]) => {
+                const categoryTotal = items.reduce((s, i) => s + i.total, 0)
+                
+                return (
+                  <Card key={category} className="overflow-hidden">
+                    <div className="bg-purple-500/20 px-4 py-2 border-b border-border">
+                      <h3 className="font-bold text-purple-400">{category}</h3>
                     </div>
-                    <p className="text-sm truncate mb-1">{table.client_name || 'Client'}</p>
-                    <div className="text-xs text-muted-foreground">
-                      Budget: {formatSwiss(budget)} {event.currency}
-                    </div>
-                    <div className={`text-sm font-bold ${status.text}`}>
-                      Reste: {formatSwiss(remaining)} {event.currency}
+                    <div className="divide-y divide-border">
+                      {items.map(item => (
+                        <div key={item.id} className="px-4 py-3 flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="font-medium">{item.name}</p>
+                            <p className="text-xs text-muted-foreground">{item.format}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold">{item.quantity}x</p>
+                            <p className="text-xs text-muted-foreground">{formatSwiss(item.price)} {event.currency}/u</p>
+                          </div>
+                          <div className="text-right ml-4 min-w-[100px]">
+                            <p className="font-bold text-purple-400">{formatSwiss(item.total)} {event.currency}</p>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="px-4 py-3 bg-muted/30 flex justify-between">
+                        <span className="font-medium">Sous-total {category}</span>
+                        <span className="font-bold">{formatSwiss(categoryTotal)} {event.currency}</span>
+                      </div>
                     </div>
                   </Card>
                 )
               })}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {/* Table Header */}
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <Button variant="outline" size="sm" onClick={() => { setSelectedTable(null); setPreOrder(null); setCart([]); }}>
-                ← Retour
-              </Button>
-              <div className="text-center flex-1">
-                <p className="font-bold text-xl">{selectedTable.table_number}</p>
-                <p className="text-sm text-muted-foreground">{selectedTable.client_name}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Budget restant</p>
-                <p className={`text-xl font-bold ${getBudgetStatus(selectedTable).text}`}>
-                  {formatSwiss(getRemainingBudget())} {event.currency}
-                </p>
-              </div>
-            </div>
-          </Card>
 
-          {/* Tabs */}
-          <div className="flex gap-2">
-            <Button 
-              variant={activeTab === 'preorder' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('preorder')}
-              className={activeTab === 'preorder' ? 'bg-purple-500' : ''}
-            >
-              📋 Pré-commande
-            </Button>
-            <Button 
-              variant={activeTab === 'add' ? 'default' : 'outline'}
-              onClick={() => setActiveTab('add')}
-              className={activeTab === 'add' ? 'bg-purple-500' : ''}
-            >
-              ➕ Ajouter
-            </Button>
-          </div>
-
-          {/* Pre-order Tab */}
-          {activeTab === 'preorder' && (
-            <Card className="p-4">
-              <h3 className="font-bold mb-4 flex items-center gap-2">
-                📋 Articles pré-commandés
-                {preOrder && <Badge className="bg-green-500">Confirmée</Badge>}
-              </h3>
-              
-              {!preOrder || preOrderItems.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">
-                  Aucune pré-commande pour cette table
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {preOrderItems.map(item => (
-                    <div 
-                      key={item.id} 
-                      className={`flex items-center justify-between p-3 rounded-lg ${item.remaining > 0 ? 'bg-muted/50' : 'bg-green-500/10 border border-green-500/30'}`}
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">{item.category}</p>
-                        <p className="text-sm">
-                          <span className="text-green-500">{item.served || 0} servi(s)</span>
-                          {item.remaining > 0 && <span className="text-muted-foreground"> / {item.quantity} commandé(s)</span>}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{formatSwiss(item.unit_price)} {event.currency}</span>
-                        {item.remaining > 0 ? (
-                          <Button 
-                            size="lg"
-                            onClick={() => markAsServed(item)}
-                            className="bg-green-500 hover:bg-green-600 text-white px-6"
-                          >
-                            Servir ({item.remaining})
-                          </Button>
-                        ) : (
-                          <Badge className="bg-green-500">✓ Tout servi</Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  
-                  <div className="border-t pt-4 mt-4">
-                    <div className="flex justify-between text-sm">
-                      <span>Total pré-commande:</span>
-                      <span className="font-bold">{formatSwiss(preOrder.total_amount)} {event.currency}</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-green-500">
-                      <span>Déjà servi:</span>
-                      <span>{formatSwiss(selectedTable.consumed_amount || 0)} {event.currency}</span>
-                    </div>
+              {/* Grand Total */}
+              <Card className="p-4 bg-gradient-to-r from-purple-500/20 to-purple-600/20 border-purple-500/50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-lg font-bold">💰 Total général</p>
+                    <p className="text-sm text-muted-foreground">{stats.confirmed} commandes confirmées</p>
                   </div>
+                  <p className="text-3xl font-bold text-purple-400">
+                    {formatSwiss(calculateTotals())} {event.currency}
+                  </p>
                 </div>
-              )}
-            </Card>
-          )}
-
-          {/* Add Tab */}
-          {activeTab === 'add' && (
-            <div className="grid md:grid-cols-2 gap-4">
-              {/* Products */}
-              <div className="space-y-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Rechercher..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                  <Button
-                    size="sm"
-                    variant={selectedCategory === 'all' ? 'default' : 'outline'}
-                    onClick={() => setSelectedCategory('all')}
-                    className={selectedCategory === 'all' ? 'bg-purple-500' : ''}
-                  >
-                    Tout
-                  </Button>
-                  {categories.map(cat => (
-                    <Button
-                      key={cat}
-                      size="sm"
-                      variant={selectedCategory === cat ? 'default' : 'outline'}
-                      onClick={() => setSelectedCategory(cat)}
-                      className={selectedCategory === cat ? 'bg-purple-500' : ''}
-                    >
-                      {cat}
-                    </Button>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 max-h-[40vh] overflow-y-auto">
-                  {filteredItems.map(item => (
-                    <Card 
-                      key={item.id}
-                      className="p-3 cursor-pointer hover:bg-purple-500/10 hover:border-purple-500 transition-all"
-                      onClick={() => addToCart(item)}
-                    >
-                      <p className="font-medium text-sm truncate">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.category}</p>
-                      <p className="text-purple-500 font-bold">{formatSwiss(item.price)} {event.currency}</p>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-
-              {/* Cart */}
-              <Card className="p-4">
-                <h3 className="font-bold mb-3">🛒 Nouvelle commande</h3>
-                
-                {cart.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">Sélectionnez des produits</p>
-                ) : (
-                  <div className="space-y-2 max-h-[25vh] overflow-y-auto">
-                    {cart.map(item => (
-                      <div key={item.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{item.name}</p>
-                          <p className="text-xs text-muted-foreground">{formatSwiss(item.price)} x {item.quantity}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline" onClick={() => removeFromCart(item.id)}>-</Button>
-                          <span className="w-6 text-center">{item.quantity}</span>
-                          <Button size="sm" variant="outline" onClick={() => addToCart(item)}>+</Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="border-t mt-4 pt-4 space-y-2">
-                  <div className="flex justify-between">
-                    <span>Total</span>
-                    <span className="font-bold">{formatSwiss(getCartTotal())} {event.currency}</span>
-                  </div>
-                  {getWithinBudget() > 0 && (
-                    <div className="flex justify-between text-sm text-green-500">
-                      <span>✓ Dans forfait</span>
-                      <span>{formatSwiss(getWithinBudget())} {event.currency}</span>
-                    </div>
-                  )}
-                  {getSupplement() > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-orange-500 font-bold">⚠️ À encaisser</span>
-                      <span className="text-orange-500 font-bold">{formatSwiss(getSupplement())} {event.currency}</span>
-                    </div>
-                  )}
-                </div>
-
-                <Button 
-                  onClick={sendOrder}
-                  disabled={cart.length === 0 || sending}
-                  className={`w-full mt-4 text-lg py-6 ${getSupplement() > 0 ? 'bg-gradient-to-r from-orange-500 to-orange-600' : 'bg-gradient-to-r from-purple-500 to-purple-600'} text-white`}
-                >
-                  {sending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
-                  {getSupplement() > 0 ? `Envoyer (${formatSwiss(getSupplement())} à encaisser)` : 'Envoyer au Bar'}
-                </Button>
               </Card>
             </div>
           )}
         </div>
       )}
-    </div>
-  )
-}
 
-// Bar View Component (Kanban)
-function BarView({ event }) {
-  const [orders, setOrders] = useState([])
-  const [loading, setLoading] = useState(true)
+      {/* Detail Modal */}
+      <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          {selectedTableDetail && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <span className="text-xl">{selectedTableDetail.table.table_number}</span>
+                  <span>{getTableStatus(selectedTableDetail.table).badge}</span>
+                </DialogTitle>
+                <DialogDescription>
+                  {selectedTableDetail.table.client_name || 'Client'}
+                </DialogDescription>
+              </DialogHeader>
 
-  useEffect(() => {
-    fetchOrders()
-    // Auto-refresh every 5 seconds
-    const interval = setInterval(fetchOrders, 5000)
-    return () => clearInterval(interval)
-  }, [event.id])
+              <div className="space-y-4">
+                {/* Budget Info */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">Budget boisson</p>
+                    <p className="text-lg font-bold">{formatSwiss(selectedTableDetail.table.sold_price)} {event.currency}</p>
+                  </div>
+                  {selectedTableDetail.order && (
+                    <div className="p-3 bg-purple-500/10 rounded-lg">
+                      <p className="text-xs text-muted-foreground">Commandé</p>
+                      <p className="text-lg font-bold text-purple-400">
+                        {formatSwiss(selectedTableDetail.order.total_amount)} {event.currency}
+                      </p>
+                    </div>
+                  )}
+                </div>
 
-  const fetchOrders = async () => {
-    try {
-      const { data } = await supabase
-        .from('live_orders')
-        .select(`
-          *,
-          live_order_items(*),
-          tables(table_number, client_name)
-        `)
-        .eq('event_id', event.id)
-        .in('status', ['new', 'preparing', 'ready'])
-        .order('created_at', { ascending: true })
-      setOrders(data || [])
-    } catch (error) {
-      console.error('Error:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+                {/* Order Items */}
+                {selectedTableDetail.order?.order_items?.length > 0 ? (
+                  <div>
+                    <h4 className="font-medium mb-2">Articles commandés</h4>
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                      {selectedTableDetail.order.order_items.map((item, idx) => (
+                        <div key={idx} className="flex justify-between p-2 bg-muted/30 rounded">
+                          <div>
+                            <p className="font-medium">{item.menu_items?.name || 'Article'}</p>
+                            <p className="text-xs text-muted-foreground">{item.menu_items?.category}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium">{item.quantity}x</p>
+                            <p className="text-sm text-purple-400">{formatSwiss(item.total_price)} {event.currency}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <p>Aucun article commandé</p>
+                  </div>
+                )}
 
-  const updateStatus = async (orderId, newStatus) => {
-    try {
-      const { error } = await supabase
-        .from('live_orders')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq('id', orderId)
-      if (error) throw error
-      fetchOrders()
-    } catch (error) {
-      toast.error('Erreur: ' + error.message)
-    }
-  }
+                {/* Client Notes */}
+                {selectedTableDetail.order?.client_notes && (
+                  <div>
+                    <h4 className="font-medium mb-2">📝 Notes du client</h4>
+                    <div className="p-3 bg-muted/30 rounded-lg italic">
+                      {selectedTableDetail.order.client_notes}
+                    </div>
+                  </div>
+                )}
 
-  const getTimeAgo = (date) => {
-    const mins = Math.floor((Date.now() - new Date(date).getTime()) / 60000)
-    if (mins < 1) return 'À l\'instant'
-    if (mins < 60) return `Il y a ${mins} min`
-    return `Il y a ${Math.floor(mins / 60)}h${mins % 60}min`
-  }
-
-  const newOrders = orders.filter(o => o.status === 'new')
-  const preparingOrders = orders.filter(o => o.status === 'preparing')
-  const readyOrders = orders.filter(o => o.status === 'ready')
-
-  const OrderCard = ({ order, actions }) => (
-    <Card className={`p-4 ${order.status === 'new' ? 'border-red-500 bg-red-500/5' : order.status === 'preparing' ? 'border-yellow-500 bg-yellow-500/5' : 'border-green-500 bg-green-500/5'}`}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="font-bold text-lg">#{order.order_number}</span>
-        <span className="text-xs text-muted-foreground">{getTimeAgo(order.created_at)}</span>
-      </div>
-      <div className="mb-3">
-        <p className="font-semibold">{order.tables?.table_number}</p>
-        <p className="text-sm text-muted-foreground">{order.tables?.client_name}</p>
-      </div>
-      <div className="space-y-1 mb-3 max-h-32 overflow-y-auto">
-        {order.live_order_items?.map((item, i) => (
-          <div key={i} className="flex justify-between text-sm">
-            <span>{item.quantity}x {item.item_name}</span>
-          </div>
-        ))}
-      </div>
-      <div className="text-xs text-muted-foreground mb-3">
-        Serveur: {order.server_name}
-      </div>
-      {actions}
-    </Card>
-  )
-
-  if (loading) {
-    return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin" /></div>
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Wine className="w-6 h-6 text-purple-500" />
-          <h2 className="text-xl font-semibold">Bar - Commandes</h2>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-sm text-muted-foreground">Actualisation auto</span>
-          <span className="text-lg font-mono">{format(new Date(), 'HH:mm:ss')}</span>
-        </div>
-      </div>
-
-      {/* Kanban Columns */}
-      <div className="grid md:grid-cols-3 gap-4">
-        {/* New Orders */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 p-2 bg-red-500/20 rounded-lg">
-            <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-            <h3 className="font-bold">NOUVELLES ({newOrders.length})</h3>
-          </div>
-          <div className="space-y-3 min-h-[200px]">
-            {newOrders.map(order => (
-              <OrderCard 
-                key={order.id} 
-                order={order}
-                actions={
-                  <Button 
-                    onClick={() => updateStatus(order.id, 'preparing')}
-                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-black"
-                  >
-                    Commencer ▶
-                  </Button>
-                }
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Preparing */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 p-2 bg-yellow-500/20 rounded-lg">
-            <div className="w-3 h-3 bg-yellow-500 rounded-full" />
-            <h3 className="font-bold">EN COURS ({preparingOrders.length})</h3>
-          </div>
-          <div className="space-y-3 min-h-[200px]">
-            {preparingOrders.map(order => (
-              <OrderCard 
-                key={order.id} 
-                order={order}
-                actions={
-                  <Button 
-                    onClick={() => updateStatus(order.id, 'ready')}
-                    className="w-full bg-green-500 hover:bg-green-600 text-white"
-                  >
-                    Prêt ✓
-                  </Button>
-                }
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Ready */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 p-2 bg-green-500/20 rounded-lg">
-            <div className="w-3 h-3 bg-green-500 rounded-full" />
-            <h3 className="font-bold">PRÊTES ({readyOrders.length})</h3>
-          </div>
-          <div className="space-y-3 min-h-[200px]">
-            {readyOrders.map(order => (
-              <OrderCard 
-                key={order.id} 
-                order={order}
-                actions={
-                  <Button 
-                    onClick={() => updateStatus(order.id, 'delivered')}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    Livré ✓
-                  </Button>
-                }
-              />
-            ))}
-          </div>
-        </div>
-      </div>
+                {/* Excess Warning */}
+                {selectedTableDetail.order?.extra_amount > 0 && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                    <div className="flex items-center gap-2 text-red-400">
+                      <AlertTriangle className="w-5 h-5" />
+                      <span className="font-bold">
+                        Excédent: +{formatSwiss(selectedTableDetail.order.extra_amount)} {event.currency}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      À régler sur place le jour de l'événement
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
