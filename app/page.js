@@ -3922,7 +3922,7 @@ function PreOrdersView({ event, eventDays }) {
                   }`}
                 >
                   {/* Numéro de table en grand */}
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
                       <span className="text-3xl font-black text-white">{table.display_number || table.table_number}</span>
                       <span className="text-2xl">{status.badge}</span>
@@ -3935,6 +3935,11 @@ function PreOrdersView({ event, eventDays }) {
                       {status.label}
                     </Badge>
                   </div>
+                  
+                  {/* Date/Jour */}
+                  <p className="text-xs text-purple-400 mb-2">
+                    📅 {table.day ? format(parseISO(table.day), 'EEEE dd MMM', { locale: fr }) : selectedDay}
+                  </p>
                   
                   <p className="text-sm text-muted-foreground truncate mb-3">
                     {table.client_name || 'Client'}
@@ -4071,9 +4076,12 @@ function PreOrdersView({ event, eventDays }) {
           {selectedTableDetail && (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <span className="text-xl">{selectedTableDetail.table.table_number}</span>
-                  <span>{getTableStatus(selectedTableDetail.table).badge}</span>
+                <DialogTitle className="flex items-center gap-3">
+                  <span className="text-2xl font-black">{selectedTableDetail.table.display_number || selectedTableDetail.table.table_number}</span>
+                  <span className="text-xl">{getTableStatus(selectedTableDetail.table).badge}</span>
+                  <span className="text-sm text-purple-400 font-normal">
+                    📅 {selectedTableDetail.table.day ? format(parseISO(selectedTableDetail.table.day), 'EEEE dd MMM', { locale: fr }) : ''}
+                  </span>
                 </DialogTitle>
                 <DialogDescription>
                   {selectedTableDetail.table.client_name || 'Client'}
