@@ -3632,6 +3632,7 @@ function PreOrdersView({ event, eventDays }) {
   const [selectedDay, setSelectedDay] = useState('')
   const [tables, setTables] = useState([])
   const [orders, setOrders] = useState([])
+  const [layouts, setLayouts] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('status')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -3667,6 +3668,14 @@ function PreOrdersView({ event, eventDays }) {
         .gt('sold_price', 0)
         .order('table_number')
 
+      // Fetch layouts for this event and day
+      const { data: layoutsData } = await supabase
+        .from('table_layouts')
+        .select('*')
+        .eq('event_id', event.id)
+        .eq('day', selectedDay)
+        .order('zone')
+
       // Fetch orders with items for these tables
       const tableIds = (tablesData || []).map(t => t.id)
       let ordersData = []
@@ -3697,6 +3706,7 @@ function PreOrdersView({ event, eventDays }) {
       }
 
       setTables(tablesData || [])
+      setLayouts(layoutsData || [])
       setOrders(ordersData)
     } catch (error) {
       console.error('Error fetching pre-orders:', error)
@@ -3726,20 +3736,60 @@ function PreOrdersView({ event, eventDays }) {
     noLink: tables.filter(t => getTableStatus(t).status === 'no_link').length
   }
 
-  // Filter tables by status
-  const filteredTables = tables.filter(table => {
+  // Filter tables by status (just show/hide, don't reorder)
+  const isTableVisible = (table) => {
     if (statusFilter === 'all') return true
     return getTableStatus(table).status === statusFilter
-  }).sort((a, b) => {
-    // Sort: pending first, then no_link, then confirmed
-    const statusOrder = { pending: 0, no_link: 1, confirmed: 2 }
-    const statusDiff = statusOrder[getTableStatus(a).status] - statusOrder[getTableStatus(b).status]
-    if (statusDiff !== 0) return statusDiff
-    // Then sort by table number within each status group
-    const numA = parseInt(a.display_number || a.table_number || '0', 10)
-    const numB = parseInt(b.display_number || b.table_number || '0', 10)
-    return numA - numB
-  })
+  }
+
+  // Get unique zones from tables, ordered
+  const getZones = () => {
+    const zones = [...new Set(tables.map(t => t.zone))].filter(Boolean)
+    // Sort zones: 'scene' first, then 'privilege', then others in order
+    return zones.sort((a, b) => {
+      const order = { scene: 0, privilege: 1, vip: 2 }
+      const aOrder = order[a] ?? (a.startsWith('back') ? 10 + parseInt(a.replace('back_', '') || '0') : 99)
+      const bOrder = order[b] ?? (b.startsWith('back') ? 10 + parseInt(b.replace('back_', '') || '0') : 99)
+      return aOrder - bOrder
+    })
+  }
+
+  // Get tables for a specific zone, sorted by table_number
+  const getTablesByZone = (zone) => {
+    return tables
+      .filter(t => t.zone === zone && isTableVisible(t))
+      .sort((a, b) => {
+        const numA = parseInt(a.display_number || a.table_number || '0', 10)
+        const numB = parseInt(b.display_number || b.table_number || '0', 10)
+        return numA - numB
+      })
+  }
+
+  // Get layout config for a zone
+  const getLayoutForZone = (zone) => {
+    return layouts.find(l => l.zone === zone) || {}
+  }
+
+  // Get zone display name
+  const getZoneName = (zone) => {
+    const layout = getLayoutForZone(zone)
+    if (layout.prefix) return layout.prefix
+    switch(zone) {
+      case 'scene': return 'SCÈNE'
+      case 'privilege': return 'PRIVILÈGE'
+      case 'vip': return 'VIP'
+      default: return zone.toUpperCase()
+    }
+  }
+
+  // Get tables per row for a zone
+  const getTablesPerRow = (zone) => {
+    const layout = getLayoutForZone(zone)
+    return layout.tables_per_row || 6
+  }
+
+  // Check if any tables are visible after filtering
+  const hasVisibleTables = getZones().some(zone => getTablesByZone(zone).length > 0)
 
   // Get aggregated items for bar recap
   const getAggregatedItems = () => {
@@ -4000,93 +4050,94 @@ function PreOrdersView({ event, eventDays }) {
             </Button>
           </div>
 
-          {/* Tables Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredTables.map(table => {
-              const status = getTableStatus(table)
-              const order = getOrderForTable(table.id)
-              const budget = table.sold_price || 0
-              const ordered = order?.total_amount || 0
-              const excess = order?.extra_amount || 0
-
+          {/* Tables grouped by zone - same layout as Tables view */}
+          <div className="space-y-6">
+            {getZones().map(zone => {
+              const zoneTables = getTablesByZone(zone)
+              if (zoneTables.length === 0) return null
+              
+              const tablesPerRow = getTablesPerRow(zone)
+              const zoneName = getZoneName(zone)
+              
               return (
-                <Card 
-                  key={table.id}
-                  className={`p-4 border-2 ${
-                    status.status === 'confirmed' ? 'border-green-500/50 bg-green-500/5' :
-                    status.status === 'pending' ? 'border-yellow-500/50 bg-yellow-500/5' :
-                    'border-gray-500/30 bg-gray-500/5'
-                  }`}
-                >
-                  {/* Numéro de table en grand */}
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <span className="text-3xl font-black text-white">{table.display_number || table.table_number}</span>
-                      <span className="text-2xl">{status.badge}</span>
-                    </div>
-                    <Badge variant="outline" className={
-                      status.status === 'confirmed' ? 'border-green-500 text-green-500' :
-                      status.status === 'pending' ? 'border-yellow-500 text-yellow-500' :
-                      'border-gray-500 text-gray-500'
-                    }>
-                      {status.label}
-                    </Badge>
-                  </div>
-                  
-                  {/* Date/Jour */}
-                  <p className="text-xs text-purple-400 mb-2">
-                    📅 {table.day ? format(parseISO(table.day), 'EEEE dd MMM', { locale: fr }) : selectedDay}
-                  </p>
-                  
-                  <p className="text-sm text-muted-foreground truncate mb-3">
-                    {table.client_name || 'Client'}
-                  </p>
-
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Budget boisson</span>
-                      <span className="font-medium">{formatSwiss(budget)} {event.currency}</span>
-                    </div>
-                    
-                    {order && (
-                      <>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Commandé</span>
-                          <span className="font-medium text-purple-400">{formatSwiss(ordered)} {event.currency}</span>
-                        </div>
-                        
-                        {excess > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-red-400">Excédent</span>
-                            <span className="font-bold text-red-400">+{formatSwiss(excess)} {event.currency}</span>
-                          </div>
-                        )}
-
-                        {order.confirmed_at && (
-                          <div className="flex justify-between text-xs">
-                            <span className="text-muted-foreground">Confirmé le</span>
-                            <span>{format(new Date(order.confirmed_at), 'dd/MM à HH:mm')}</span>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full mt-3"
-                    onClick={() => viewTableDetail(table)}
+                <div key={zone}>
+                  <h3 className="text-center mb-3 font-semibold text-muted-foreground text-sm border-b border-border pb-2">
+                    {zoneName}
+                  </h3>
+                  <div 
+                    className="grid gap-2 justify-center"
+                    style={{ 
+                      gridTemplateColumns: `repeat(${tablesPerRow}, minmax(100px, 120px))`,
+                      maxWidth: `${tablesPerRow * 130}px`,
+                      margin: '0 auto'
+                    }}
                   >
-                    <Eye className="w-4 h-4 mr-2" />
-                    Voir détail
-                  </Button>
-                </Card>
+                    {zoneTables.map(table => {
+                      const status = getTableStatus(table)
+                      const order = getOrderForTable(table.id)
+                      const budget = table.sold_price || 0
+                      const ordered = order?.total_amount || 0
+
+                      return (
+                        <div 
+                          key={table.id}
+                          onClick={() => viewTableDetail(table)}
+                          className={`p-2 rounded-lg border-2 cursor-pointer transition-all hover:scale-105 ${
+                            status.status === 'confirmed' ? 'border-green-500 bg-green-500/10' :
+                            status.status === 'pending' ? 'border-yellow-500 bg-yellow-500/10' :
+                            'border-gray-500/50 bg-gray-500/10'
+                          }`}
+                        >
+                          {/* Table number with status badge */}
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-lg font-black">{table.display_number || table.table_number}</span>
+                            <span className="text-sm">{status.badge}</span>
+                          </div>
+                          
+                          {/* Client name */}
+                          <p className="text-xs text-muted-foreground truncate mb-1">
+                            {table.client_name || '-'}
+                          </p>
+                          
+                          {/* Budget and order info */}
+                          <div className="text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Budget</span>
+                              <span className="font-medium">{formatSwiss(budget)}</span>
+                            </div>
+                            {order && (
+                              <div className="flex justify-between text-purple-400">
+                                <span>Cmd</span>
+                                <span className="font-medium">{formatSwiss(ordered)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
               )
             })}
           </div>
 
-          {filteredTables.length === 0 && (
+          {/* Legend */}
+          <div className="flex justify-center gap-4 mt-6 pt-4 border-t">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded border-2 border-green-500 bg-green-500/10"></div>
+              <span className="text-xs">Confirmée</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded border-2 border-yellow-500 bg-yellow-500/10"></div>
+              <span className="text-xs">En attente</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded border-2 border-gray-500/50 bg-gray-500/10"></div>
+              <span className="text-xs">Sans lien</span>
+            </div>
+          </div>
+
+          {!hasVisibleTables && (
             <div className="text-center py-12 text-muted-foreground">
               <ShoppingCart className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>Aucune table trouvée avec ce filtre</p>
