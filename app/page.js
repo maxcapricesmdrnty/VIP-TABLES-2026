@@ -4841,19 +4841,24 @@ function ComptabiliteView({ event, tables, eventDays }) {
     const fetchData = async () => {
       setLoading(true)
       
-      // Fetch payments
-      const { data: paymentsData } = await supabase
-        .from('payments')
-        .select('*, tables(table_number, display_number, client_name, day)')
-        .eq('tables.event_id', event.id)
-        .order('created_at', { ascending: false })
-      
-      setPayments(paymentsData || [])
+      // Fetch payments only for tables in this event
+      const tableIds = tables.map(t => t.id)
+      if (tableIds.length > 0) {
+        const { data: paymentsData } = await supabase
+          .from('payments')
+          .select('*, tables(table_number, display_number, client_name, day)')
+          .in('table_id', tableIds)
+          .order('created_at', { ascending: false })
+        
+        setPayments(paymentsData || [])
+      } else {
+        setPayments([])
+      }
       setLoading(false)
     }
     
-    if (event?.id) fetchData()
-  }, [event?.id])
+    if (event?.id && tables.length > 0) fetchData()
+  }, [event?.id, tables])
 
   // Calculate stats
   const stats = {
@@ -5502,9 +5507,17 @@ function GuichetView({ event, eventDays }) {
 
   const fetchPayments = async () => {
     try {
+      // Get payments only for tables in this event
+      const tableIds = tables.map(t => t.id)
+      if (tableIds.length === 0) {
+        setPayments({})
+        return
+      }
+      
       const { data } = await supabase
         .from('payments')
-        .select('*')
+        .select('*, tables(table_number, display_number, client_name, day)')
+        .in('table_id', tableIds)
         .order('payment_date', { ascending: false })
       
       const grouped = (data || []).reduce((acc, p) => {
