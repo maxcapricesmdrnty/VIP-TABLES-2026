@@ -2762,6 +2762,8 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
   const [saving, setSaving] = useState(false)
   const [vipLink, setVipLink] = useState('')
   const [generatingVipLink, setGeneratingVipLink] = useState(false)
+  const [vipLinkExists, setVipLinkExists] = useState(false)
+  const [regeneratingVipLink, setRegeneratingVipLink] = useState(false)
 
   // Load existing VIP link if any
   useEffect(() => {
@@ -2775,6 +2777,9 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
       if (data?.access_token) {
         const baseUrl = window.location.origin
         setVipLink(`${baseUrl}/vip/${data.access_token}`)
+        setVipLinkExists(true)
+      } else {
+        setVipLinkExists(false)
       }
     }
     loadVipLink()
@@ -2931,6 +2936,7 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
       }
       
       setVipLink(data.link)
+      setVipLinkExists(true)
       
       // Try to copy to clipboard (may fail due to browser permissions)
       try {
@@ -2949,6 +2955,74 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
       toast.error('Erreur: ' + error.message)
     } finally {
       setGeneratingVipLink(false)
+    }
+  }
+
+  const regenerateVipLink = async () => {
+    // Confirmation dialog
+    if (!confirm('Attention : l\'ancien lien ne fonctionnera plus. Continuer ?')) {
+      return
+    }
+    
+    setRegeneratingVipLink(true)
+    try {
+      // First, delete existing order and order_items for this table
+      const { data: existingOrder } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('table_id', table.id)
+        .maybeSingle()
+      
+      if (existingOrder) {
+        // Delete order_items first (foreign key constraint)
+        await supabase
+          .from('order_items')
+          .delete()
+          .eq('order_id', existingOrder.id)
+        
+        // Delete the order
+        await supabase
+          .from('orders')
+          .delete()
+          .eq('id', existingOrder.id)
+      }
+      
+      // Clear current link
+      setVipLink('')
+      setVipLinkExists(false)
+      
+      // Generate new link
+      const response = await fetch('/api/vip/generate-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tableId: table.id })
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur de génération')
+      }
+      
+      setVipLink(data.link)
+      setVipLinkExists(true)
+      
+      // Try to copy to clipboard
+      try {
+        await navigator.clipboard.writeText(data.link)
+        toast.success('Nouveau lien VIP généré et copié!', {
+          description: 'L\'ancien lien a été invalidé'
+        })
+      } catch (clipboardError) {
+        toast.success('Nouveau lien VIP généré!', {
+          description: 'L\'ancien lien a été invalidé'
+        })
+      }
+      
+    } catch (error) {
+      toast.error('Erreur: ' + error.message)
+    } finally {
+      setRegeneratingVipLink(false)
     }
   }
 
@@ -3288,6 +3362,29 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                     >
                       <Copy className="w-3 h-3 mr-1" /> Copier le lien
                     </Button>
+                    
+                    {/* Bouton Régénérer le lien - visible uniquement si lien existe */}
+                    {vipLinkExists && (
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={regenerateVipLink}
+                        disabled={regeneratingVipLink}
+                        className="w-full mt-1 text-muted-foreground hover:text-orange-400"
+                      >
+                        {regeneratingVipLink ? (
+                          <>
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            Régénération...
+                          </>
+                        ) : (
+                          <>
+                            🔄 Régénérer le lien
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    
                     <p className="text-xs text-green-400 mt-2">✓ Lien prêt à envoyer au client</p>
                   </div>
                 ) : (
