@@ -3919,7 +3919,25 @@ function PreOrdersView({ event, eventDays }) {
     const order = getOrderForTable(table.id)
     setSelectedTableDetail({ table, order })
     setModalTab('detail')
-    setAddCart({})
+    
+    // Pre-fill editCart with existing order items
+    const existingCart = {}
+    if (order?.order_items) {
+      order.order_items.forEach(item => {
+        if (item.menu_items) {
+          existingCart[item.menu_item_id] = {
+            id: item.menu_item_id,
+            name: item.menu_items.name,
+            price: item.unit_price,
+            category: item.menu_items.category,
+            format: item.menu_items.format,
+            quantity: item.quantity,
+            isExisting: true
+          }
+        }
+      })
+    }
+    setAddCart(existingCart)
     setAddSearchQuery('')
     setAddCategoryFilter('all')
     setShowDetailModal(true)
@@ -3928,7 +3946,7 @@ function PreOrdersView({ event, eventDays }) {
   // Get menu categories
   const menuCategories = [...new Set(menuItems.map(i => i.category))].filter(Boolean)
 
-  // Filter menu items for add tab
+  // Filter menu items for edit tab
   const filteredMenuItems = menuItems.filter(item => {
     const matchCategory = addCategoryFilter === 'all' || item.category === addCategoryFilter
     const matchSearch = !addSearchQuery || 
@@ -3936,11 +3954,15 @@ function PreOrdersView({ event, eventDays }) {
     return matchCategory && matchSearch
   })
 
-  // Add cart operations
+  // Edit cart operations
   const addToAddCart = (item) => {
     setAddCart(prev => ({
       ...prev,
-      [item.id]: { ...item, quantity: (prev[item.id]?.quantity || 0) + 1 }
+      [item.id]: { 
+        ...item, 
+        quantity: (prev[item.id]?.quantity || 0) + 1,
+        isExisting: prev[item.id]?.isExisting || false
+      }
     }))
   }
 
@@ -3956,29 +3978,51 @@ function PreOrdersView({ event, eventDays }) {
     })
   }
 
-  // Calculate add cart totals
-  const getAddCartTotal = () => {
+  // Calculate cart totals (new total, not delta)
+  const getCartTotal = () => {
     return Object.values(addCart).reduce((sum, item) => sum + (item.price * item.quantity), 0)
   }
 
-  const getAddCartItemCount = () => {
+  const getCartItemCount = () => {
     return Object.values(addCart).reduce((sum, item) => sum + item.quantity, 0)
   }
 
   // Calculate budget info for modal
   const getModalBudgetInfo = () => {
-    if (!selectedTableDetail) return { budget: 0, existing: 0, adding: 0, newTotal: 0, excess: 0 }
+    if (!selectedTableDetail) return { budget: 0, newTotal: 0, excess: 0 }
     const budget = selectedTableDetail.table.sold_price || 0
-    const existing = selectedTableDetail.order?.total_amount || 0
-    const adding = getAddCartTotal()
-    const newTotal = existing + adding
+    const newTotal = getCartTotal()
     const excess = Math.max(0, newTotal - budget)
-    return { budget, existing, adding, newTotal, excess }
+    return { budget, newTotal, excess }
   }
 
-  // Add items to order
-  const handleAddItems = async () => {
-    if (!selectedTableDetail || Object.keys(addCart).length === 0) return
+  // Check if cart has changes from original order
+  const hasCartChanges = () => {
+    const original = selectedTableDetail?.order?.order_items || []
+    const originalMap = {}
+    original.forEach(item => {
+      originalMap[item.menu_item_id] = item.quantity
+    })
+    
+    // Check if any item in cart differs from original
+    for (const [itemId, item] of Object.entries(addCart)) {
+      if ((originalMap[itemId] || 0) !== item.quantity) return true
+    }
+    
+    // Check if any original item was removed
+    for (const itemId of Object.keys(originalMap)) {
+      if (!addCart[itemId] || addCart[itemId].quantity === 0) return true
+    }
+    
+    return false
+  }
+
+  // Save modified order (delete all and re-insert)
+  const handleSaveOrder = async () => {
+    if (!selectedTableDetail) return
+    
+    // Check if there are items to save
+    const itemsToSave = Object.values(addCart).filter(item => item.quantity > 0)
     
     setAddingItems(true)
     try {
@@ -4015,22 +4059,30 @@ function PreOrdersView({ event, eventDays }) {
 
         if (orderError) throw orderError
         orderId = newOrder.id
+      } else {
+        // Delete all existing order items
+        await supabase
+          .from('order_items')
+          .delete()
+          .eq('order_id', orderId)
       }
 
-      // Insert new order items
-      const newItems = Object.values(addCart).map(item => ({
-        order_id: orderId,
-        menu_item_id: item.id,
-        quantity: item.quantity,
-        unit_price: item.price,
-        total_price: item.price * item.quantity
-      }))
+      // Insert new order items (only those with quantity > 0)
+      if (itemsToSave.length > 0) {
+        const newItems = itemsToSave.map(item => ({
+          order_id: orderId,
+          menu_item_id: item.id,
+          quantity: item.quantity,
+          unit_price: item.price,
+          total_price: item.price * item.quantity
+        }))
 
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(newItems)
+        const { error: itemsError } = await supabase
+          .from('order_items')
+          .insert(newItems)
 
-      if (itemsError) throw itemsError
+        if (itemsError) throw itemsError
+      }
 
       // Update order totals
       const { error: updateError } = await supabase
@@ -4045,8 +4097,8 @@ function PreOrdersView({ event, eventDays }) {
       if (updateError) throw updateError
 
       // Show success toast
-      const itemCount = getAddCartItemCount()
-      toast.success(`${itemCount} article(s) ajouté(s) à la table ${table.display_number || table.table_number}`)
+      const itemCount = getCartItemCount()
+      toast.success(`Commande modifiée: ${itemCount} article(s) pour la table ${table.display_number || table.table_number}`)
 
       // Refresh data
       await fetchData()
@@ -4056,7 +4108,7 @@ function PreOrdersView({ event, eventDays }) {
       setAddCart({})
 
     } catch (error) {
-      console.error('Error adding items:', error)
+      console.error('Error saving order:', error)
       toast.error('Erreur: ' + error.message)
     } finally {
       setAddingItems(false)
@@ -4418,7 +4470,7 @@ function PreOrdersView({ event, eventDays }) {
                   onClick={() => setModalTab('add')}
                   className={modalTab === 'add' ? 'bg-purple-500' : ''}
                 >
-                  ➕ Ajouter
+                  ✏️ Modifier la commande
                 </Button>
               </div>
 
@@ -4465,7 +4517,7 @@ function PreOrdersView({ event, eventDays }) {
                     ) : (
                       <div className="text-center py-6 text-muted-foreground">
                         <p>Aucun article commandé</p>
-                        <p className="text-sm mt-1">Utilisez l'onglet "➕ Ajouter" pour commander</p>
+                        <p className="text-sm mt-1">Utilisez l'onglet "✏️ Modifier" pour commander</p>
                       </div>
                     )}
 
@@ -4537,15 +4589,27 @@ function PreOrdersView({ event, eventDays }) {
                     <div className="space-y-2 max-h-[250px] overflow-y-auto">
                       {filteredMenuItems.map(item => {
                         const inCart = addCart[item.id]
+                        const isExisting = inCart?.isExisting
                         return (
                           <div 
                             key={item.id}
                             className={`flex items-center justify-between p-2 rounded-lg border ${
-                              inCart ? 'border-purple-500 bg-purple-500/10' : 'border-border bg-muted/30'
+                              isExisting 
+                                ? 'border-green-500 bg-green-500/10' 
+                                : inCart 
+                                  ? 'border-purple-500 bg-purple-500/10' 
+                                  : 'border-border bg-muted/30'
                             }`}
                           >
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{item.name}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium truncate">{item.name}</p>
+                                {isExisting && (
+                                  <Badge variant="outline" className="text-[10px] border-green-500 text-green-500 px-1 py-0">
+                                    commandé
+                                  </Badge>
+                                )}
+                              </div>
                               <p className="text-xs text-muted-foreground">{item.format} • {item.category}</p>
                             </div>
                             <div className="flex items-center gap-2 ml-2">
@@ -4553,19 +4617,16 @@ function PreOrdersView({ event, eventDays }) {
                                 {formatSwiss(item.price)} {event.currency}
                               </span>
                               <div className="flex items-center gap-1">
-                                {inCart && (
-                                  <Button
-                                    size="icon"
-                                    variant="outline"
-                                    className="h-7 w-7"
-                                    onClick={() => removeFromAddCart(item.id)}
-                                  >
-                                    <Minus className="w-3 h-3" />
-                                  </Button>
-                                )}
-                                {inCart && (
-                                  <span className="w-6 text-center font-bold">{inCart.quantity}</span>
-                                )}
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  className="h-7 w-7"
+                                  onClick={() => removeFromAddCart(item.id)}
+                                  disabled={!inCart || inCart.quantity === 0}
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </Button>
+                                <span className="w-8 text-center font-bold">{inCart?.quantity || 0}</span>
                                 <Button
                                   size="icon"
                                   className="h-7 w-7 bg-purple-500 hover:bg-purple-600"
@@ -4586,7 +4647,7 @@ function PreOrdersView({ event, eventDays }) {
                 )}
               </div>
 
-              {/* Sticky Footer for Add Tab */}
+              {/* Sticky Footer for Edit Tab */}
               {modalTab === 'add' && (
                 <div className="border-t border-border pt-3 mt-2 space-y-2 bg-background">
                   {/* Budget recap */}
@@ -4596,16 +4657,8 @@ function PreOrdersView({ event, eventDays }) {
                       <span className="font-medium">{formatSwiss(getModalBudgetInfo().budget)} {event.currency}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Déjà commandé</span>
-                      <span className="font-medium">{formatSwiss(getModalBudgetInfo().existing)} {event.currency}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-purple-400">Ajout en cours</span>
-                      <span className="font-bold text-purple-400">+{formatSwiss(getModalBudgetInfo().adding)} {event.currency}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Nouveau total</span>
-                      <span className="font-bold">{formatSwiss(getModalBudgetInfo().newTotal)} {event.currency}</span>
+                      <span className="font-medium">Total commande</span>
+                      <span className="font-bold text-purple-400">{formatSwiss(getModalBudgetInfo().newTotal)} {event.currency}</span>
                     </div>
                   </div>
 
@@ -4622,8 +4675,8 @@ function PreOrdersView({ event, eventDays }) {
 
                   {/* Submit button */}
                   <Button
-                    onClick={handleAddItems}
-                    disabled={Object.keys(addCart).length === 0 || addingItems}
+                    onClick={handleSaveOrder}
+                    disabled={!hasCartChanges() || addingItems}
                     className={`w-full ${
                       getModalBudgetInfo().excess > 0 
                         ? 'bg-orange-500 hover:bg-orange-600' 
@@ -4633,15 +4686,15 @@ function PreOrdersView({ event, eventDays }) {
                     {addingItems ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Ajout en cours...
+                        Enregistrement...
                       </>
                     ) : getModalBudgetInfo().excess > 0 ? (
                       <>
-                        ⚠️ Ajouter ({formatSwiss(getModalBudgetInfo().excess)} {event.currency} à encaisser)
+                        ⚠️ Enregistrer ({formatSwiss(getModalBudgetInfo().excess)} {event.currency} à encaisser)
                       </>
                     ) : (
                       <>
-                        ✓ Ajouter au forfait ({getAddCartItemCount()} article{getAddCartItemCount() > 1 ? 's' : ''})
+                        ✓ Enregistrer les modifications ({getCartItemCount()} article{getCartItemCount() > 1 ? 's' : ''})
                       </>
                     )}
                   </Button>
