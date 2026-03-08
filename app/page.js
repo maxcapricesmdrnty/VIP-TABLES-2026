@@ -430,6 +430,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
   const [selectedVenue, setSelectedVenue] = useState(null)
   const [selectedDay, setSelectedDay] = useState(null)
   const [tables, setTables] = useState([])
+  const [tableOrders, setTableOrders] = useState({}) // Map table_id -> order status
   const [layouts, setLayouts] = useState([])
   const [selectedTable, setSelectedTable] = useState(null)
   const [showTableModal, setShowTableModal] = useState(false)
@@ -537,6 +538,23 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       .order('zone')
       .order('table_number')
     setTables(data || [])
+    
+    // Fetch orders for these tables to show preorder indicators
+    if (data && data.length > 0) {
+      const tableIds = data.map(t => t.id)
+      const { data: ordersData } = await supabase
+        .from('orders')
+        .select('table_id, status')
+        .in('table_id', tableIds)
+      
+      const ordersMap = {}
+      ;(ordersData || []).forEach(order => {
+        ordersMap[order.table_id] = order.status
+      })
+      setTableOrders(ordersMap)
+    } else {
+      setTableOrders({})
+    }
   }
 
   const fetchLayouts = async () => {
@@ -1477,6 +1495,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                             key={table.id} 
                             table={table} 
                             currency={event.currency}
+                            hasPreorder={tableOrders[table.id] === 'confirmed' || tableOrders[table.id] === 'pending'}
                             onClick={() => {
                               setSelectedTable(table)
                               setShowTableModal(true)
@@ -1507,6 +1526,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                             key={table.id} 
                             table={table}
                             currency={event.currency}
+                            hasPreorder={tableOrders[table.id] === 'confirmed' || tableOrders[table.id] === 'pending'}
                             onClick={() => {
                               setSelectedTable(table)
                               setShowTableModal(true)
@@ -1548,6 +1568,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                               key={table.id} 
                               table={table}
                               currency={event.currency}
+                              hasPreorder={tableOrders[table.id] === 'confirmed' || tableOrders[table.id] === 'pending'}
                               onClick={() => {
                                 setSelectedTable(table)
                                 setShowTableModal(true)
@@ -1595,6 +1616,12 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                   fetchTables()
                   setShowTableModal(false)
                   setSelectedTable(null)
+                }}
+                onViewPreorder={(day) => {
+                  setShowTableModal(false)
+                  setSelectedTable(null)
+                  setSelectedDay(day || selectedDay)
+                  setView('preorders')
                 }}
               />
             )}
@@ -1949,7 +1976,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
 
         {/* Pre-Orders View */}
         {view === 'preorders' && (
-          <PreOrdersView event={event} eventDays={eventDays} />
+          <PreOrdersView event={event} eventDays={eventDays} initialDay={selectedDay} />
         )}
 
         {/* Invoices View */}
@@ -2672,7 +2699,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
 }
 
 // Table Cell Component
-function TableCell({ table, currency, onClick }) {
+function TableCell({ table, currency, onClick, hasPreorder }) {
   const getStatusClass = (status) => {
     const classes = {
       libre: 'bg-green-500/20 border-green-500 hover:bg-green-500/30',
@@ -2694,8 +2721,15 @@ function TableCell({ table, currency, onClick }) {
   return (
     <div
       onClick={onClick}
-      className={`p-2 rounded-lg border-2 cursor-pointer transition-all w-[100px] sm:w-[130px] h-[85px] sm:h-[100px] flex flex-col justify-center ${getStatusClass(table.status)}`}
+      className={`p-2 rounded-lg border-2 cursor-pointer transition-all w-[100px] sm:w-[130px] h-[85px] sm:h-[100px] flex flex-col justify-center relative ${getStatusClass(table.status)}`}
     >
+      {/* Pre-order indicator */}
+      {hasPreorder && (
+        <div className="absolute top-1 right-1 text-[10px]" title="Pré-commande confirmée">
+          📦
+        </div>
+      )}
+      
       <div className="font-bold text-center text-sm sm:text-base">
         {table.display_number || table.table_number}
         {table.display_number && <span className="text-[9px] sm:text-[10px] font-normal text-muted-foreground ml-1">({table.table_number})</span>}
@@ -2741,7 +2775,7 @@ function TableCell({ table, currency, onClick }) {
 }
 
 // Table Modal Component
-function TableModal({ table, open, onClose, currency, event, onSave }) {
+function TableModal({ table, open, onClose, currency, event, onSave, onViewPreorder }) {
   const [form, setForm] = useState({
     status: table.status || 'libre',
     display_number: table.display_number || '',
@@ -2764,13 +2798,14 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
   const [generatingVipLink, setGeneratingVipLink] = useState(false)
   const [vipLinkExists, setVipLinkExists] = useState(false)
   const [regeneratingVipLink, setRegeneratingVipLink] = useState(false)
+  const [orderStatus, setOrderStatus] = useState(null)
 
-  // Load existing VIP link if any
+  // Load existing VIP link and order status if any
   useEffect(() => {
     const loadVipLink = async () => {
       const { data } = await supabase
         .from('orders')
-        .select('access_token')
+        .select('access_token, status')
         .eq('table_id', table.id)
         .maybeSingle()
       
@@ -2778,8 +2813,10 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
         const baseUrl = window.location.origin
         setVipLink(`${baseUrl}/vip/${data.access_token}`)
         setVipLinkExists(true)
+        setOrderStatus(data.status)
       } else {
         setVipLinkExists(false)
+        setOrderStatus(null)
       }
     }
     loadVipLink()
@@ -3385,6 +3422,18 @@ function TableModal({ table, open, onClose, currency, event, onSave }) {
                       </Button>
                     )}
                     
+                    {/* Bouton Voir la commande - visible si commande existe */}
+                    {orderStatus && (orderStatus === 'confirmed' || orderStatus === 'pending') && onViewPreorder && (
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => onViewPreorder(table.day)}
+                        className="w-full mt-2 border-purple-500 text-purple-400 hover:bg-purple-500/20"
+                      >
+                        👁️ Voir la commande
+                      </Button>
+                    )}
+                    
                     <p className="text-xs text-green-400 mt-2">✓ Lien prêt à envoyer au client</p>
                   </div>
                 ) : (
@@ -3628,8 +3677,8 @@ function TeamManagementView({ event }) {
 
 
 // Pre-Orders Dashboard Component
-function PreOrdersView({ event, eventDays }) {
-  const [selectedDay, setSelectedDay] = useState('')
+function PreOrdersView({ event, eventDays, initialDay }) {
+  const [selectedDay, setSelectedDay] = useState(initialDay || '')
   const [tables, setTables] = useState([])
   const [orders, setOrders] = useState([])
   const [layouts, setLayouts] = useState([])
@@ -3649,13 +3698,17 @@ function PreOrdersView({ event, eventDays }) {
 
   const availableDays = (eventDays || []).map(d => d?.date || d?.day).filter(Boolean).sort()
 
-  // Auto-select current day or first available
+  // Auto-select initialDay, current day, or first available
   useEffect(() => {
     if (availableDays.length > 0 && !selectedDay) {
-      const today = new Date().toISOString().split('T')[0]
-      setSelectedDay(availableDays.includes(today) ? today : availableDays[0])
+      if (initialDay && availableDays.includes(initialDay)) {
+        setSelectedDay(initialDay)
+      } else {
+        const today = new Date().toISOString().split('T')[0]
+        setSelectedDay(availableDays.includes(today) ? today : availableDays[0])
+      }
     }
-  }, [availableDays])
+  }, [availableDays, initialDay])
 
   // Fetch data when day changes
   useEffect(() => {
