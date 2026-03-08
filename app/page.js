@@ -430,6 +430,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
   const [selectedVenue, setSelectedVenue] = useState(null)
   const [selectedDay, setSelectedDay] = useState(null)
   const [tables, setTables] = useState([])
+  const [allTables, setAllTables] = useState([]) // All tables for the event (for dashboard stats)
   const [tableOrders, setTableOrders] = useState({}) // Map table_id -> order status
   const [layouts, setLayouts] = useState([])
   const [selectedTable, setSelectedTable] = useState(null)
@@ -490,6 +491,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     fetchVenues()
     fetchEventDays()
     fetchMenuItems()
+    fetchAllTables() // Load all tables for dashboard stats
   }, [event.id])
 
   useEffect(() => {
@@ -555,6 +557,16 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     } else {
       setTableOrders({})
     }
+  }
+
+  // Fetch ALL tables for the event (for dashboard and comptabilité stats)
+  const fetchAllTables = async () => {
+    if (!event?.id) return
+    const { data } = await supabase
+      .from('tables')
+      .select('*')
+      .eq('event_id', event.id)
+    setAllTables(data || [])
   }
 
   const fetchLayouts = async () => {
@@ -947,6 +959,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       const newCount = tablesToInsert.length
       toast.success(`${newCount} tables créées${keptCount > 0 ? `, ${keptCount} réservations conservées` : ''}!`)
       fetchTables()
+      fetchAllTables() // Refresh dashboard stats
     } catch (error) {
       toast.error(error.message)
     }
@@ -997,6 +1010,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
       toast.success(`Table ${addTableForm.display_number} ajoutée!`)
       setShowAddTableModal(false)
       fetchTables()
+      fetchAllTables() // Refresh dashboard stats
     } catch (error) {
       toast.error(error.message)
     }
@@ -1223,25 +1237,26 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     return (t.capacity || 0) + (t.additional_persons || 0) + (t.on_site_additional_persons || 0)
   }
 
+  // Dashboard stats - use allTables (all venues, all days) for global overview
   const stats = {
-    total: tables.length,
-    libre: tables.filter(t => t.status === 'libre').length,
-    reserve: tables.filter(t => t.status === 'reserve').length,
-    confirme: tables.filter(t => t.status === 'confirme').length,
-    paye: tables.filter(t => t.status === 'paye').length,
+    total: allTables.length,
+    libre: allTables.filter(t => t.status === 'libre').length,
+    reserve: allTables.filter(t => t.status === 'reserve').length,
+    confirme: allTables.filter(t => t.status === 'confirme').length,
+    paye: allTables.filter(t => t.status === 'paye').length,
     // Montant potentiel total (toutes les tables avec leur prix standard)
-    potentiel: tables.reduce((sum, t) => sum + (t.standard_price || 0), 0),
+    potentiel: allTables.reduce((sum, t) => sum + (t.standard_price || 0), 0),
     // CA par statut
-    caReserve: tables.filter(t => t.status === 'reserve').reduce((sum, t) => sum + calculateTableTotal(t), 0),
-    caConfirme: tables.filter(t => t.status === 'confirme').reduce((sum, t) => sum + calculateTableTotal(t), 0),
-    caPaye: tables.filter(t => t.status === 'paye').reduce((sum, t) => sum + calculateTableTotal(t), 0),
+    caReserve: allTables.filter(t => t.status === 'reserve').reduce((sum, t) => sum + calculateTableTotal(t), 0),
+    caConfirme: allTables.filter(t => t.status === 'confirme').reduce((sum, t) => sum + calculateTableTotal(t), 0),
+    caPaye: allTables.filter(t => t.status === 'paye').reduce((sum, t) => sum + calculateTableTotal(t), 0),
     // CA total (confirmé + payé uniquement)
-    ca: tables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => sum + calculateTableTotal(t), 0),
+    ca: allTables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => sum + calculateTableTotal(t), 0),
     // Déjà encaissé (total_paid uniquement pour les tables confirmées ou payées)
-    paid: tables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => sum + (t.total_paid || 0), 0),
+    paid: allTables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => sum + (t.total_paid || 0), 0),
     // Total personnes (toutes tables non-libres)
-    totalPersons: tables.filter(t => t.status !== 'libre').reduce((sum, t) => sum + calculateTablePersons(t), 0),
-    commissions: tables.reduce((sum, t) => sum + (t.commission_amount || 0), 0)
+    totalPersons: allTables.filter(t => t.status !== 'libre').reduce((sum, t) => sum + calculateTablePersons(t), 0),
+    commissions: allTables.filter(t => ['confirme', 'paye'].includes(t.status)).reduce((sum, t) => sum + (t.commission_amount || 0), 0)
   }
 
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -1615,6 +1630,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                 event={event}
                 onSave={() => {
                   fetchTables()
+                  fetchAllTables() // Refresh dashboard stats
                   setShowTableModal(false)
                   setSelectedTable(null)
                 }}
@@ -1987,7 +2003,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
 
         {/* Comptabilité View */}
         {view === 'comptabilite' && (
-          <ComptabiliteView event={event} tables={tables} eventDays={eventDays} />
+          <ComptabiliteView event={event} tables={allTables} eventDays={eventDays} />
         )}
 
         {/* Venues View */}
@@ -2154,6 +2170,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                           toast.success('Configuration par défaut copiée (layout + numéros)!')
                           fetchLayouts()
                           fetchTables()
+                          fetchAllTables() // Refresh dashboard stats
                         } else {
                           toast.error('Aucune configuration par défaut trouvée')
                         }
