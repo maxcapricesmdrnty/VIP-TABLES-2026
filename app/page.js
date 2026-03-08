@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Calendar, MapPin, Plus, LogOut, Settings, Users, Table2, Loader2, Wine, FileText, Download, Trash2, Edit, ChevronLeft, ChevronRight, X, PanelLeftClose, PanelLeft, LayoutDashboard, Receipt, Cog, ChevronDown, Upload, FileSpreadsheet, Check, Link, Link as LinkIcon, Copy, ExternalLink, ShoppingCart, Ticket, Search, Filter, UserCheck, Clock, CreditCard, StickyNote, Banknote, TrendingUp, TrendingDown, DollarSign, Eye, AlertTriangle } from 'lucide-react'
+import { Calendar, MapPin, Plus, Minus, LogOut, Settings, Users, Table2, Loader2, Wine, FileText, Download, Trash2, Edit, ChevronLeft, ChevronRight, X, PanelLeftClose, PanelLeft, LayoutDashboard, Receipt, Cog, ChevronDown, Upload, FileSpreadsheet, Check, Link, Link as LinkIcon, Copy, ExternalLink, ShoppingCart, Ticket, Search, Filter, UserCheck, Clock, CreditCard, StickyNote, Banknote, TrendingUp, TrendingDown, DollarSign, Eye, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { format, parseISO, eachDayOfInterval } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -3633,11 +3633,19 @@ function PreOrdersView({ event, eventDays }) {
   const [tables, setTables] = useState([])
   const [orders, setOrders] = useState([])
   const [layouts, setLayouts] = useState([])
+  const [menuItems, setMenuItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('status')
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedTableDetail, setSelectedTableDetail] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
+  
+  // Modal state for adding products
+  const [modalTab, setModalTab] = useState('detail')
+  const [addCart, setAddCart] = useState({})
+  const [addSearchQuery, setAddSearchQuery] = useState('')
+  const [addCategoryFilter, setAddCategoryFilter] = useState('all')
+  const [addingItems, setAddingItems] = useState(false)
 
   const availableDays = (eventDays || []).map(d => d?.date || d?.day).filter(Boolean).sort()
 
@@ -3676,6 +3684,15 @@ function PreOrdersView({ event, eventDays }) {
         .eq('day', selectedDay)
         .order('zone')
 
+      // Fetch menu items for the event
+      const { data: menuData } = await supabase
+        .from('menu_items')
+        .select('*')
+        .eq('event_id', event.id)
+        .eq('available', true)
+        .order('category')
+        .order('name')
+
       // Fetch orders with items for these tables
       const tableIds = (tablesData || []).map(t => t.id)
       let ordersData = []
@@ -3707,6 +3724,7 @@ function PreOrdersView({ event, eventDays }) {
 
       setTables(tablesData || [])
       setLayouts(layoutsData || [])
+      setMenuItems(menuData || [])
       setOrders(ordersData)
     } catch (error) {
       console.error('Error fetching pre-orders:', error)
@@ -3900,7 +3918,149 @@ function PreOrdersView({ event, eventDays }) {
   const viewTableDetail = (table) => {
     const order = getOrderForTable(table.id)
     setSelectedTableDetail({ table, order })
+    setModalTab('detail')
+    setAddCart({})
+    setAddSearchQuery('')
+    setAddCategoryFilter('all')
     setShowDetailModal(true)
+  }
+
+  // Get menu categories
+  const menuCategories = [...new Set(menuItems.map(i => i.category))].filter(Boolean)
+
+  // Filter menu items for add tab
+  const filteredMenuItems = menuItems.filter(item => {
+    const matchCategory = addCategoryFilter === 'all' || item.category === addCategoryFilter
+    const matchSearch = !addSearchQuery || 
+      item.name.toLowerCase().includes(addSearchQuery.toLowerCase())
+    return matchCategory && matchSearch
+  })
+
+  // Add cart operations
+  const addToAddCart = (item) => {
+    setAddCart(prev => ({
+      ...prev,
+      [item.id]: { ...item, quantity: (prev[item.id]?.quantity || 0) + 1 }
+    }))
+  }
+
+  const removeFromAddCart = (itemId) => {
+    setAddCart(prev => {
+      const newCart = { ...prev }
+      if (newCart[itemId]?.quantity > 1) {
+        newCart[itemId] = { ...newCart[itemId], quantity: newCart[itemId].quantity - 1 }
+      } else {
+        delete newCart[itemId]
+      }
+      return newCart
+    })
+  }
+
+  // Calculate add cart totals
+  const getAddCartTotal = () => {
+    return Object.values(addCart).reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  }
+
+  const getAddCartItemCount = () => {
+    return Object.values(addCart).reduce((sum, item) => sum + item.quantity, 0)
+  }
+
+  // Calculate budget info for modal
+  const getModalBudgetInfo = () => {
+    if (!selectedTableDetail) return { budget: 0, existing: 0, adding: 0, newTotal: 0, excess: 0 }
+    const budget = selectedTableDetail.table.sold_price || 0
+    const existing = selectedTableDetail.order?.total_amount || 0
+    const adding = getAddCartTotal()
+    const newTotal = existing + adding
+    const excess = Math.max(0, newTotal - budget)
+    return { budget, existing, adding, newTotal, excess }
+  }
+
+  // Add items to order
+  const handleAddItems = async () => {
+    if (!selectedTableDetail || Object.keys(addCart).length === 0) return
+    
+    setAddingItems(true)
+    try {
+      const { table, order } = selectedTableDetail
+      const budgetInfo = getModalBudgetInfo()
+      let orderId = order?.id
+
+      // If no order exists, create one
+      if (!orderId) {
+        // Get venue for event_id
+        const { data: venue } = await supabase
+          .from('venues')
+          .select('event_id')
+          .eq('id', table.venue_id)
+          .single()
+
+        const accessToken = crypto.randomUUID()
+        const { data: newOrder, error: orderError } = await supabase
+          .from('orders')
+          .insert({
+            table_id: table.id,
+            event_id: venue?.event_id || event.id,
+            order_type: 'server',
+            status: 'confirmed',
+            access_token: accessToken,
+            budget_amount: table.sold_price || 0,
+            total_amount: 0,
+            extra_amount: 0,
+            budget_exceeded: false,
+            confirmed_at: new Date().toISOString()
+          })
+          .select()
+          .single()
+
+        if (orderError) throw orderError
+        orderId = newOrder.id
+      }
+
+      // Insert new order items
+      const newItems = Object.values(addCart).map(item => ({
+        order_id: orderId,
+        menu_item_id: item.id,
+        quantity: item.quantity,
+        unit_price: item.price,
+        total_price: item.price * item.quantity
+      }))
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(newItems)
+
+      if (itemsError) throw itemsError
+
+      // Update order totals
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({
+          total_amount: budgetInfo.newTotal,
+          extra_amount: budgetInfo.excess,
+          budget_exceeded: budgetInfo.excess > 0
+        })
+        .eq('id', orderId)
+
+      if (updateError) throw updateError
+
+      // Show success toast
+      const itemCount = getAddCartItemCount()
+      toast.success(`${itemCount} article(s) ajouté(s) à la table ${table.display_number || table.table_number}`)
+
+      // Refresh data
+      await fetchData()
+      
+      // Close modal
+      setShowDetailModal(false)
+      setAddCart({})
+
+    } catch (error) {
+      console.error('Error adding items:', error)
+      toast.error('Erreur: ' + error.message)
+    } finally {
+      setAddingItems(false)
+    }
   }
 
   const formatSwiss = (amount) => (amount || 0).toLocaleString('de-CH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
@@ -4218,12 +4378,18 @@ function PreOrdersView({ event, eventDays }) {
         </div>
       )}
 
-      {/* Detail Modal */}
-      <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      {/* Detail Modal with Tabs */}
+      <Dialog open={showDetailModal} onOpenChange={(open) => {
+        setShowDetailModal(open)
+        if (!open) {
+          setAddCart({})
+          setModalTab('detail')
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
           {selectedTableDetail && (
             <>
-              <DialogHeader>
+              <DialogHeader className="pb-2">
                 <DialogTitle className="flex items-center gap-3">
                   <span className="text-2xl font-black">{selectedTableDetail.table.display_number || selectedTableDetail.table.table_number}</span>
                   <span className="text-xl">{getTableStatus(selectedTableDetail.table).badge}</span>
@@ -4236,73 +4402,251 @@ function PreOrdersView({ event, eventDays }) {
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-4">
-                {/* Budget Info */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground">Budget boisson</p>
-                    <p className="text-lg font-bold">{formatSwiss(selectedTableDetail.table.sold_price)} {event.currency}</p>
-                  </div>
-                  {selectedTableDetail.order && (
-                    <div className="p-3 bg-purple-500/10 rounded-lg">
-                      <p className="text-xs text-muted-foreground">Commandé</p>
-                      <p className="text-lg font-bold text-purple-400">
-                        {formatSwiss(selectedTableDetail.order.total_amount)} {event.currency}
-                      </p>
-                    </div>
-                  )}
-                </div>
+              {/* Tabs */}
+              <div className="flex gap-2 border-b border-border pb-2">
+                <Button
+                  size="sm"
+                  variant={modalTab === 'detail' ? 'default' : 'ghost'}
+                  onClick={() => setModalTab('detail')}
+                  className={modalTab === 'detail' ? 'bg-purple-500' : ''}
+                >
+                  📋 Détail commande
+                </Button>
+                <Button
+                  size="sm"
+                  variant={modalTab === 'add' ? 'default' : 'ghost'}
+                  onClick={() => setModalTab('add')}
+                  className={modalTab === 'add' ? 'bg-purple-500' : ''}
+                >
+                  ➕ Ajouter
+                </Button>
+              </div>
 
-                {/* Order Items */}
-                {selectedTableDetail.order?.order_items?.length > 0 ? (
-                  <div>
-                    <h4 className="font-medium mb-2">Articles commandés</h4>
-                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                      {selectedTableDetail.order.order_items.map((item, idx) => (
-                        <div key={idx} className="flex justify-between p-2 bg-muted/30 rounded">
-                          <div>
-                            <p className="font-medium">{item.menu_items?.name || 'Article'}</p>
-                            <p className="text-xs text-muted-foreground">{item.menu_items?.category}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium">{item.quantity}x</p>
-                            <p className="text-sm text-purple-400">{formatSwiss(item.total_price)} {event.currency}</p>
-                          </div>
+              {/* Tab Content */}
+              <div className="flex-1 overflow-y-auto">
+                {/* Detail Tab */}
+                {modalTab === 'detail' && (
+                  <div className="space-y-4 py-2">
+                    {/* Budget Info */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <p className="text-xs text-muted-foreground">Budget boisson</p>
+                        <p className="text-lg font-bold">{formatSwiss(selectedTableDetail.table.sold_price)} {event.currency}</p>
+                      </div>
+                      {selectedTableDetail.order && (
+                        <div className="p-3 bg-purple-500/10 rounded-lg">
+                          <p className="text-xs text-muted-foreground">Commandé</p>
+                          <p className="text-lg font-bold text-purple-400">
+                            {formatSwiss(selectedTableDetail.order.total_amount)} {event.currency}
+                          </p>
                         </div>
+                      )}
+                    </div>
+
+                    {/* Order Items */}
+                    {selectedTableDetail.order?.order_items?.length > 0 ? (
+                      <div>
+                        <h4 className="font-medium mb-2">Articles commandés</h4>
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                          {selectedTableDetail.order.order_items.map((item, idx) => (
+                            <div key={idx} className="flex justify-between p-2 bg-muted/30 rounded">
+                              <div>
+                                <p className="font-medium">{item.menu_items?.name || 'Article'}</p>
+                                <p className="text-xs text-muted-foreground">{item.menu_items?.category}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-medium">{item.quantity}x</p>
+                                <p className="text-sm text-purple-400">{formatSwiss(item.total_price)} {event.currency}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 text-muted-foreground">
+                        <p>Aucun article commandé</p>
+                        <p className="text-sm mt-1">Utilisez l'onglet "➕ Ajouter" pour commander</p>
+                      </div>
+                    )}
+
+                    {/* Client Notes */}
+                    {selectedTableDetail.order?.client_notes && (
+                      <div>
+                        <h4 className="font-medium mb-2">📝 Notes du client</h4>
+                        <div className="p-3 bg-muted/30 rounded-lg italic">
+                          {selectedTableDetail.order.client_notes}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Excess Warning */}
+                    {selectedTableDetail.order?.extra_amount > 0 && (
+                      <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                        <div className="flex items-center gap-2 text-red-400">
+                          <AlertTriangle className="w-5 h-5" />
+                          <span className="font-bold">
+                            Excédent: +{formatSwiss(selectedTableDetail.order.extra_amount)} {event.currency}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          À régler sur place le jour de l'événement
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Add Tab */}
+                {modalTab === 'add' && (
+                  <div className="py-2 space-y-3">
+                    {/* Search */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Rechercher un article..."
+                        value={addSearchQuery}
+                        onChange={(e) => setAddSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+
+                    {/* Category filters */}
+                    <div className="flex gap-1 flex-wrap">
+                      <Button
+                        size="sm"
+                        variant={addCategoryFilter === 'all' ? 'default' : 'outline'}
+                        onClick={() => setAddCategoryFilter('all')}
+                        className={`text-xs ${addCategoryFilter === 'all' ? 'bg-purple-500' : ''}`}
+                      >
+                        Tout
+                      </Button>
+                      {menuCategories.map(cat => (
+                        <Button
+                          key={cat}
+                          size="sm"
+                          variant={addCategoryFilter === cat ? 'default' : 'outline'}
+                          onClick={() => setAddCategoryFilter(cat)}
+                          className={`text-xs ${addCategoryFilter === cat ? 'bg-purple-500' : ''}`}
+                        >
+                          {cat}
+                        </Button>
                       ))}
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <p>Aucun article commandé</p>
-                  </div>
-                )}
 
-                {/* Client Notes */}
-                {selectedTableDetail.order?.client_notes && (
-                  <div>
-                    <h4 className="font-medium mb-2">📝 Notes du client</h4>
-                    <div className="p-3 bg-muted/30 rounded-lg italic">
-                      {selectedTableDetail.order.client_notes}
+                    {/* Menu items list */}
+                    <div className="space-y-2 max-h-[250px] overflow-y-auto">
+                      {filteredMenuItems.map(item => {
+                        const inCart = addCart[item.id]
+                        return (
+                          <div 
+                            key={item.id}
+                            className={`flex items-center justify-between p-2 rounded-lg border ${
+                              inCart ? 'border-purple-500 bg-purple-500/10' : 'border-border bg-muted/30'
+                            }`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{item.name}</p>
+                              <p className="text-xs text-muted-foreground">{item.format} • {item.category}</p>
+                            </div>
+                            <div className="flex items-center gap-2 ml-2">
+                              <span className="text-sm font-semibold text-purple-400 whitespace-nowrap">
+                                {formatSwiss(item.price)} {event.currency}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                {inCart && (
+                                  <Button
+                                    size="icon"
+                                    variant="outline"
+                                    className="h-7 w-7"
+                                    onClick={() => removeFromAddCart(item.id)}
+                                  >
+                                    <Minus className="w-3 h-3" />
+                                  </Button>
+                                )}
+                                {inCart && (
+                                  <span className="w-6 text-center font-bold">{inCart.quantity}</span>
+                                )}
+                                <Button
+                                  size="icon"
+                                  className="h-7 w-7 bg-purple-500 hover:bg-purple-600"
+                                  onClick={() => addToAddCart(item)}
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                      {filteredMenuItems.length === 0 && (
+                        <p className="text-center text-muted-foreground py-4">Aucun article trouvé</p>
+                      )}
                     </div>
-                  </div>
-                )}
-
-                {/* Excess Warning */}
-                {selectedTableDetail.order?.extra_amount > 0 && (
-                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                    <div className="flex items-center gap-2 text-red-400">
-                      <AlertTriangle className="w-5 h-5" />
-                      <span className="font-bold">
-                        Excédent: +{formatSwiss(selectedTableDetail.order.extra_amount)} {event.currency}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      À régler sur place le jour de l'événement
-                    </p>
                   </div>
                 )}
               </div>
+
+              {/* Sticky Footer for Add Tab */}
+              {modalTab === 'add' && (
+                <div className="border-t border-border pt-3 mt-2 space-y-2 bg-background">
+                  {/* Budget recap */}
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Budget table</span>
+                      <span className="font-medium">{formatSwiss(getModalBudgetInfo().budget)} {event.currency}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Déjà commandé</span>
+                      <span className="font-medium">{formatSwiss(getModalBudgetInfo().existing)} {event.currency}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-purple-400">Ajout en cours</span>
+                      <span className="font-bold text-purple-400">+{formatSwiss(getModalBudgetInfo().adding)} {event.currency}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Nouveau total</span>
+                      <span className="font-bold">{formatSwiss(getModalBudgetInfo().newTotal)} {event.currency}</span>
+                    </div>
+                  </div>
+
+                  {/* Excess warning */}
+                  {getModalBudgetInfo().excess > 0 && (
+                    <div className="flex justify-between items-center p-2 bg-red-500/10 rounded-lg border border-red-500/30">
+                      <span className="text-red-400 font-medium flex items-center gap-1">
+                        <AlertTriangle className="w-4 h-4" />
+                        Excédent à encaisser
+                      </span>
+                      <span className="text-red-400 font-bold">+{formatSwiss(getModalBudgetInfo().excess)} {event.currency}</span>
+                    </div>
+                  )}
+
+                  {/* Submit button */}
+                  <Button
+                    onClick={handleAddItems}
+                    disabled={Object.keys(addCart).length === 0 || addingItems}
+                    className={`w-full ${
+                      getModalBudgetInfo().excess > 0 
+                        ? 'bg-orange-500 hover:bg-orange-600' 
+                        : 'bg-purple-500 hover:bg-purple-600'
+                    }`}
+                  >
+                    {addingItems ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Ajout en cours...
+                      </>
+                    ) : getModalBudgetInfo().excess > 0 ? (
+                      <>
+                        ⚠️ Ajouter ({formatSwiss(getModalBudgetInfo().excess)} {event.currency} à encaisser)
+                      </>
+                    ) : (
+                      <>
+                        ✓ Ajouter au forfait ({getAddCartItemCount()} article{getAddCartItemCount() > 1 ? 's' : ''})
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </DialogContent>
