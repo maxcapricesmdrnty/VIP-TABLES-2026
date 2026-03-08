@@ -3636,7 +3636,12 @@ function PreOrdersView({ event, eventDays }) {
   }).sort((a, b) => {
     // Sort: pending first, then no_link, then confirmed
     const statusOrder = { pending: 0, no_link: 1, confirmed: 2 }
-    return statusOrder[getTableStatus(a).status] - statusOrder[getTableStatus(b).status]
+    const statusDiff = statusOrder[getTableStatus(a).status] - statusOrder[getTableStatus(b).status]
+    if (statusDiff !== 0) return statusDiff
+    // Then sort by table number within each status group
+    const numA = parseInt(a.display_number || a.table_number || '0', 10)
+    const numB = parseInt(b.display_number || b.table_number || '0', 10)
+    return numA - numB
   })
 
   // Get aggregated items for bar recap
@@ -3916,15 +3921,11 @@ function PreOrdersView({ event, eventDays }) {
                     'border-gray-500/30 bg-gray-500/5'
                   }`}
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold">{table.table_number}</span>
-                        <span className="text-lg">{status.badge}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground truncate max-w-[180px]">
-                        {table.client_name || 'Client'}
-                      </p>
+                  {/* Numéro de table en grand */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl font-black text-white">{table.display_number || table.table_number}</span>
+                      <span className="text-2xl">{status.badge}</span>
                     </div>
                     <Badge variant="outline" className={
                       status.status === 'confirmed' ? 'border-green-500 text-green-500' :
@@ -3934,6 +3935,10 @@ function PreOrdersView({ event, eventDays }) {
                       {status.label}
                     </Badge>
                   </div>
+                  
+                  <p className="text-sm text-muted-foreground truncate mb-3">
+                    {table.client_name || 'Client'}
+                  </p>
 
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
