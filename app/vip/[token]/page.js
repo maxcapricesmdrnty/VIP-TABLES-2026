@@ -8,6 +8,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Wine, Beer, Coffee, Sparkles, Plus, Minus, ShoppingCart, Check, AlertTriangle } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
+import { format, parseISO } from 'date-fns'
+import { fr } from 'date-fns/locale'
 
 // Category icons and labels
 const categoryConfig = {
@@ -252,14 +254,29 @@ export default function VipOrderPage() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-zinc-900/95 backdrop-blur border-b border-zinc-800 px-4 py-4">
         <div className="max-w-lg mx-auto">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              {/* Ligne 1: Nom de l'événement */}
               <h1 className="text-lg font-bold text-white">{event?.name || 'VIP'}</h1>
-              <p className="text-sm text-zinc-400">
-                Table {table?.table_number} • {table?.client_name}
+              
+              {/* Ligne 2: Date + Numéro de table (très visible) */}
+              <div className="flex items-center gap-2 mt-1">
+                {table?.day && (
+                  <span className="text-amber-400 font-semibold">
+                    📅 {format(parseISO(table.day), 'EEEE d MMMM', { locale: fr })}
+                  </span>
+                )}
+                <span className="text-amber-400 font-bold text-xl">
+                  • Table {table?.table_number}
+                </span>
+              </div>
+              
+              {/* Ligne 3: Nom du client */}
+              <p className="text-sm text-zinc-400 mt-1">
+                {table?.client_name}
               </p>
             </div>
-            <div className="text-right">
+            <div className="text-right ml-4">
               <p className="text-xs text-zinc-500">Budget boisson</p>
               <p className="text-lg font-bold text-amber-400">
                 {table?.beverage_budget?.toLocaleString() || 0} {event?.currency}
