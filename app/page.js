@@ -2750,7 +2750,6 @@ function TableCell({ table, currency, onClick, hasPreorder }) {
       
       <div className="font-bold text-center text-sm sm:text-base">
         {table.display_number || table.table_number}
-        {table.display_number && <span className="text-[9px] sm:text-[10px] font-normal text-muted-foreground ml-1">({table.table_number})</span>}
       </div>
       
       {hasReservation ? (
