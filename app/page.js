@@ -1490,6 +1490,7 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
             {/* Bouton pour ajouter les tables manquantes */}
             {selectedVenue && selectedDay && (
