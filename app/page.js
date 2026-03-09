@@ -1219,7 +1219,13 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
     }
   }
 
-  const getTablesByZone = (zone) => tables.filter(t => t.zone === zone)
+  const getTablesByZone = (zone) => tables
+    .filter(t => t.zone === zone)
+    .sort((a, b) => {
+      const numA = parseInt(a.display_number || a.table_number || '0', 10)
+      const numB = parseInt(b.display_number || b.table_number || '0', 10)
+      return numA - numB
+    })
   
   const getBackZones = () => {
     // Support both "back" and "back_xxx" formats
