@@ -1498,21 +1498,6 @@ function EventDashboard({ event, view, setView, onBack, user, onLogout, onEventU
               </div>
             </div>
 
-            {/* Bouton pour ajouter les tables manquantes */}
-            {selectedVenue && selectedDay && (
-              <div className="flex gap-2 mb-4">
-                {tables.length === 0 ? (
-                  <Button onClick={() => generateTablesForDay()}>
-                    🔄 Générer les tables
-                  </Button>
-                ) : (
-                  <Button variant="outline" onClick={() => generateTablesForDay()}>
-                    🔄 Synchroniser avec le Plan (ajouter tables manquantes)
-                  </Button>
-                )}
-              </div>
-            )}
-
             {tables.length > 0 && (
               <div className="bg-card rounded-lg border p-4 sm:p-6 overflow-x-auto">
                 {/* Zone Gauche + DJ Booth + Zone Droite */}
