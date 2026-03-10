@@ -2740,7 +2740,7 @@ function TableCell({ table, currency, onClick, hasPreorder }) {
   return (
     <div
       onClick={onClick}
-      className={`p-2 rounded-lg border-2 cursor-pointer transition-all w-[100px] sm:w-[130px] h-[85px] sm:h-[100px] flex flex-col justify-center relative ${getStatusClass(table.status)}`}
+      className={`p-2 rounded-lg border-2 cursor-pointer transition-all w-[100px] sm:w-[130px] h-[95px] sm:h-[100px] flex flex-col justify-center relative ${getStatusClass(table.status)}`}
     >
       {/* Pre-order indicator */}
       {hasPreorder && (
@@ -2755,8 +2755,8 @@ function TableCell({ table, currency, onClick, hasPreorder }) {
       
       {hasReservation ? (
         <>
-          {/* Client name - allow 2 lines on mobile */}
-          <div className="text-[10px] sm:text-xs text-center mt-1 font-medium px-1 line-clamp-2 leading-tight">{table.client_name}</div>
+          {/* Client name - show full name, wrap to 2 lines */}
+          <div className="text-[9px] sm:text-xs text-center mt-1 font-medium px-0.5 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: '1.2' }}>{table.client_name}</div>
           
           {/* Number of persons */}
           <div className="text-[10px] sm:text-[11px] text-center text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
