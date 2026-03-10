@@ -6328,6 +6328,7 @@ function InvoicesView({ event, onEventUpdate }) {
       case 'vip': return billingSettings.billing_email || 'vip@caprices.ch'
       case 'client': return selectedInvoiceTable?.client_email || ''
       case 'custom': return customEmail
+      case 'both': return `${selectedInvoiceTable?.client_email}, ${billingSettings.billing_email || 'vip@caprices.ch'}`
       default: return ''
     }
   }
@@ -7229,7 +7230,7 @@ function InvoicesView({ event, onEventUpdate }) {
               
               {/* Email Options */}
               <div className="space-y-4">
-                <Label className="text-base font-semibold">Send to:</Label>
+                <Label className="text-base font-semibold">Envoyer à :</Label>
                 
                 <div className="space-y-3">
                   {/* Option VIP */}
@@ -7241,7 +7242,7 @@ function InvoicesView({ event, onEventUpdate }) {
                       {invoiceRecipient === 'vip' && <div className="w-2 h-2 rounded-full bg-amber-500" />}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium">Internal Copy</p>
+                      <p className="font-medium">📧 Copie interne uniquement</p>
                       <p className="text-sm text-muted-foreground">{billingSettings.billing_email || 'vip@caprices.ch'}</p>
                     </div>
                   </div>
@@ -7255,9 +7256,9 @@ function InvoicesView({ event, onEventUpdate }) {
                       {invoiceRecipient === 'client' && <div className="w-2 h-2 rounded-full bg-amber-500" />}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium">Client Email</p>
+                      <p className="font-medium">👤 Client uniquement</p>
                       <p className="text-sm text-muted-foreground">
-                        {selectedInvoiceTable.client_email || 'Not provided'}
+                        {selectedInvoiceTable.client_email || 'Email non fourni'}
                       </p>
                     </div>
                   </div>
@@ -7271,7 +7272,7 @@ function InvoicesView({ event, onEventUpdate }) {
                       {invoiceRecipient === 'custom' && <div className="w-2 h-2 rounded-full bg-amber-500" />}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium">Other Email Address</p>
+                      <p className="font-medium">✉️ Autre adresse email</p>
                       {invoiceRecipient === 'custom' && (
                         <Input 
                           type="email"
@@ -7284,6 +7285,22 @@ function InvoicesView({ event, onEventUpdate }) {
                       )}
                     </div>
                   </div>
+                  
+                  {/* Option Both (Client + VIP) */}
+                  <div 
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${invoiceRecipient === 'both' ? 'border-amber-500 bg-amber-500/10' : 'border-border hover:bg-muted/50'} ${!selectedInvoiceTable.client_email ? 'opacity-50' : ''}`}
+                    onClick={() => selectedInvoiceTable.client_email && setInvoiceRecipient('both')}
+                  >
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${invoiceRecipient === 'both' ? 'border-amber-500' : 'border-muted-foreground'}`}>
+                      {invoiceRecipient === 'both' && <div className="w-2 h-2 rounded-full bg-amber-500" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">👥 Client + Copie interne</p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedInvoiceTable.client_email ? `${selectedInvoiceTable.client_email} + ${billingSettings.billing_email || 'vip@caprices.ch'}` : 'Email client requis'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -7291,7 +7308,7 @@ function InvoicesView({ event, onEventUpdate }) {
           
           <DialogFooter className="flex gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setShowInvoiceModal(false)}>
-              Cancel
+              Annuler
             </Button>
             <Button 
               onClick={sendInvoiceEmail}
@@ -7301,12 +7318,12 @@ function InvoicesView({ event, onEventUpdate }) {
               {sendingEmail === selectedInvoiceTable?.id ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Sending...
+                  Envoi en cours...
                 </>
               ) : (
                 <>
                   <FileText className="w-4 h-4 mr-2" />
-                  Send Invoice
+                  Envoyer la facture
                 </>
               )}
             </Button>
