@@ -2755,8 +2755,8 @@ function TableCell({ table, currency, onClick, hasPreorder }) {
       
       {hasReservation ? (
         <>
-          {/* Client name */}
-          <div className="text-[10px] sm:text-xs text-center truncate mt-1 font-medium px-1">{table.client_name}</div>
+          {/* Client name - allow 2 lines on mobile */}
+          <div className="text-[10px] sm:text-xs text-center mt-1 font-medium px-1 line-clamp-2 leading-tight">{table.client_name}</div>
           
           {/* Number of persons */}
           <div className="text-[10px] sm:text-[11px] text-center text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
