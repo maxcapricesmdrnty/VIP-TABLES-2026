@@ -2797,6 +2797,7 @@ function TableModal({ table, open, onClose, currency, event, onSave, onViewPreor
   const [form, setForm] = useState({
     status: table.status || 'libre',
     display_number: table.display_number || '',
+    capacity: table.capacity || 0,
     client_name: table.client_name || '',
     client_email: table.client_email || '',
     client_phone: table.client_phone || '',
@@ -3211,6 +3212,18 @@ function TableModal({ table, open, onClose, currency, event, onSave, onViewPreor
                 <option value="paye">🟣 Payé</option>
               </select>
             </div>
+          </div>
+
+          {/* Capacité de base */}
+          <div className="bg-muted/30 p-3 rounded-lg">
+            <Label className="text-amber-400">Personnes de base (capacité table)</Label>
+            <Input
+              type="number"
+              min="0"
+              value={form.capacity}
+              onChange={(e) => setForm({...form, capacity: parseInt(e.target.value) || 0})}
+              className="mt-1"
+            />
           </div>
 
           <div>
